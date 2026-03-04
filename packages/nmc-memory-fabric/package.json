@@ -1,0 +1,17 @@
+{
+  "name": "@nmc-ai/nmc-memory-fabric",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "QMD-first memory fabric with structured facts and vector fallback",
+  "main": "src/index.ts",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "dependencies": {
+    "@lancedb/lancedb": "^0.23.0",
+    "better-sqlite3": "^11.10.0",
+    "openai": "^6.16.0"
+  }
+}

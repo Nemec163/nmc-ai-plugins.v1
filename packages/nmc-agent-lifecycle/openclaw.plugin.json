@@ -1,0 +1,18 @@
+{
+  "id": "nmc-agent-lifecycle",
+  "name": "NMC Agent Lifecycle",
+  "description": "Create/delete agents with deterministic cleanup and reconciler",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "stateDir": { "type": "string" },
+      "openclawConfigPath": { "type": "string" },
+      "workspaceRoot": { "type": "string" },
+      "templatesDir": { "type": "string" },
+      "factsDbPath": { "type": "string" },
+      "vectorsPath": { "type": "string" }
+    }
+  }
+}

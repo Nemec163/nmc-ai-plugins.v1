@@ -1,0 +1,30 @@
+---
+name: memory-curator
+description: Curate long-term memory quality by running recall checks, promotion workflow, and prune/decay maintenance. Use when memory drift, duplicate facts, stale entries, or promotion decisions must be handled.
+---
+
+# Memory Curator
+
+## Workflow
+
+1. Inspect memory health and layer distribution.
+2. Run targeted recall for task context.
+3. Promote stable facts into `M4_global_facts` through the workflow.
+4. Execute prune and verify resulting counters.
+
+## Commands
+
+- Stats/doctor: `scripts/memory_health.sh`
+- Promote candidate: `scripts/promote_fact.sh`
+- Decide promotion: `scripts/decide_promotion.sh`
+- Prune: `scripts/prune_memory.sh`
+
+## Rules
+
+- Avoid direct writes to `M4_global_facts` for non-orchestrator actors.
+- Require explicit rationale for every promotion.
+- Prefer small, deterministic updates over bulk writes.
+
+## References
+
+Read [`references/promotion-policy.md`](references/promotion-policy.md) for quality gates.
