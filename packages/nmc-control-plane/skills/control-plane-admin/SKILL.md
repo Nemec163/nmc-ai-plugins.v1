@@ -20,6 +20,8 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - `GET /v1/admin/plugins`
 - `GET /v1/admin/plugins/contracts`
 - `GET /v1/admin/skills`
+- `GET /v1/admin/capabilities`
+- `GET /v1/admin/monitoring`
 - `POST /v1/admin/plugins/:id/config`
 - `GET /v1/memory/plan?query=...`
 - `GET /v1/memory/conflicts`
@@ -30,5 +32,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - Use mutation token for config updates.
 - Patch only required fields; preserve existing config.
 - Avoid bulk edits across many plugins in one operation.
+- For UI bootstrap, prefer `GET /v1/admin/capabilities` over multiple fragmented calls.
+- For dashboard monitoring, prefer `GET /v1/admin/monitoring` with explicit `principal` for accurate conflict counters.
 - For memory conflict endpoints, always pass `principal` and explicit `actor_level` (`A3` list, `A4` resolve).
 - Inspect pending conflicts first; resolve one conflict at a time.

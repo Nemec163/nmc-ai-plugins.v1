@@ -35,6 +35,8 @@ Mutating endpoints additionally require:
 - `GET /v1/admin/plugins`
 - `GET /v1/admin/plugins/contracts`
 - `GET /v1/admin/skills`
+- `GET /v1/admin/capabilities`
+- `GET /v1/admin/monitoring`
 - `POST /v1/admin/plugins/:id/config`
 - `GET /v1/audit/events?limit=200`
 - `GET /v1/heartbeat/state`
@@ -66,6 +68,21 @@ Use optional query `limit` (1..2000, default 200) to control tail size.
 
 `GET /v1/admin/skills` returns runtime-discovered skills (`openclaw skills list --json`)
 and plugin-manifest skill bindings (`pluginSkills`) for admin UI inventory.
+`GET /v1/admin/capabilities` returns a single payload for admin UI bootstrapping:
+- plugin contracts + redacted plugin entries
+- skill inventory + plugin-skill bindings
+- memory layer guide for selected actor level
+- endpoint groups for memory/admin feature wiring
+Optional query:
+- `actor_level`: defaults to control-plane config `adminActorLevel`
+
+`GET /v1/admin/monitoring` returns dashboard-oriented runtime summary:
+- managed agents count + raw agent list payload
+- memory stats + memory layers + pending conflicts (ACL-aware)
+- control-plane runtime settings + `nmc-agent doctor` payload
+Optional query:
+- `principal`: defaults to control-plane config `adminPrincipal`
+- `actor_level`: defaults to control-plane config `adminActorLevel`
 
 ## Plugin config validation
 

@@ -13,6 +13,8 @@ type Cfg = {
   mutationTokenEnv: string;
   allowMutations: boolean;
   corsOrigins: string[];
+  adminPrincipal: string;
+  adminActorLevel: string;
 };
 
 type JsonSchema = {
@@ -55,6 +57,14 @@ function parseCfg(raw: unknown): Cfg {
         : "NMC_AI_PLUGINS_MUTATION_TOKEN",
     allowMutations: cfg.allowMutations === true,
     corsOrigins,
+    adminPrincipal:
+      typeof cfg.adminPrincipal === "string" && cfg.adminPrincipal.trim()
+        ? cfg.adminPrincipal.trim()
+        : "orchestrator",
+    adminActorLevel:
+      typeof cfg.adminActorLevel === "string" && cfg.adminActorLevel.trim()
+        ? cfg.adminActorLevel.trim()
+        : "A3_system_operator",
   };
 }
 
@@ -186,6 +196,19 @@ function pickPluginRows(raw: Record<string, unknown>): Array<Record<string, unkn
   return [];
 }
 
+function pickRows(raw: Record<string, unknown>): Array<Record<string, unknown>> {
+  if (Array.isArray(raw.items)) return raw.items.filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  if (Array.isArray(raw.results)) return raw.results.filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  if (Array.isArray(raw.data)) return raw.data.filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  if (Array.isArray(raw.plugins)) return raw.plugins.filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  return [];
+}
+
+function extractCount(raw: Record<string, unknown>): number {
+  if (typeof raw.count === "number" && Number.isFinite(raw.count)) return Math.max(0, Math.trunc(raw.count));
+  return pickRows(raw).length;
+}
+
 function collectPluginDescriptors(discovered: Record<string, unknown>): Record<string, PluginDescriptor> {
   const rows = pickPluginRows(discovered);
   const out: Record<string, PluginDescriptor> = {};
@@ -296,6 +319,8 @@ const plugin = {
       mutationTokenEnv: { type: "string" },
       allowMutations: { type: "boolean" },
       corsOrigins: { type: "array", items: { type: "string" } },
+      adminPrincipal: { type: "string" },
+      adminActorLevel: { type: "string" },
     },
   },
 
@@ -352,6 +377,8 @@ const plugin = {
                 mutationToken: Boolean(mutationToken),
               },
               corsOrigins: cfg.corsOrigins,
+              adminPrincipal: cfg.adminPrincipal,
+              adminActorLevel: cfg.adminActorLevel,
             };
             if (opts.json) {
               console.log(JSON.stringify(payload, null, 2));
@@ -521,8 +548,129 @@ const plugin = {
               json(res, 200, {
                 ok: true,
                 data: {
+                  count: extractCount(listed),
                   listed,
                   pluginSkills: skillsByPlugin,
+                },
+              });
+              return;
+            }
+
+            if (method === "GET" && path === "/v1/admin/capabilities") {
+              const actorLevel = String(url.searchParams.get("actor_level") ?? cfg.adminActorLevel).trim() || cfg.adminActorLevel;
+              const discovered = await runOpenClawJson(["plugins", "list", "--json"]);
+              const descriptors = collectPluginDescriptors(discovered);
+              const listedSkills = await runOpenClawJson(["skills", "list", "--json"]);
+              const layers = await runOpenClawJson(["nmc-mem", "layers", "--actor-level", actorLevel, "--json"]);
+              const { path: configPath, cfg: openclawCfg } = await readOpenClawConfigJson();
+              const plugins = asObject(openclawCfg.plugins);
+              const pluginSkills = Object.values(descriptors)
+                .filter((row) => Array.isArray(row.skills) && row.skills.length > 0)
+                .map((row) => ({
+                  pluginId: row.id,
+                  pluginName: row.name ?? row.id,
+                  skills: row.skills,
+                }));
+
+              json(res, 200, {
+                ok: true,
+                data: {
+                  defaults: {
+                    adminPrincipal: cfg.adminPrincipal,
+                    adminActorLevel: cfg.adminActorLevel,
+                  },
+                  plugins: {
+                    configPath,
+                    slots: asObject(plugins.slots),
+                    entries: sanitizePluginEntries(openclawCfg),
+                    descriptors,
+                  },
+                  skills: {
+                    count: extractCount(listedSkills),
+                    listed: listedSkills,
+                    pluginSkills,
+                  },
+                  memory: {
+                    actorLevel,
+                    layers,
+                  },
+                  endpoints: {
+                    admin: [
+                      "/v1/admin/plugins",
+                      "/v1/admin/plugins/contracts",
+                      "/v1/admin/skills",
+                      "/v1/admin/capabilities",
+                      "/v1/admin/monitoring",
+                      "/v1/admin/plugins/:id/config",
+                    ],
+                    memory: [
+                      "/v1/memory/plan",
+                      "/v1/memory/recall",
+                      "/v1/memory/store",
+                      "/v1/memory/promote",
+                      "/v1/memory/promotions/:id/decide",
+                      "/v1/memory/conflicts",
+                      "/v1/memory/conflicts/:id/resolve",
+                      "/v1/memory/prune",
+                      "/v1/memory/stats",
+                      "/v1/memory/layers",
+                    ],
+                  },
+                },
+              });
+              return;
+            }
+
+            if (method === "GET" && path === "/v1/admin/monitoring") {
+              const actorLevel = String(url.searchParams.get("actor_level") ?? cfg.adminActorLevel).trim() || cfg.adminActorLevel;
+              const principal = String(url.searchParams.get("principal") ?? cfg.adminPrincipal).trim();
+              const [agents, stats, layers, auditEvents] = await Promise.all([
+                runOpenClawJson(["nmc-agent", "list", "--json"]),
+                runOpenClawJson(["nmc-mem", "stats", "--json"]),
+                runOpenClawJson(["nmc-mem", "layers", "--actor-level", actorLevel, "--json"]),
+                runOpenClawJson(["nmc-agent", "doctor", "--json"]),
+              ]);
+              let conflicts: Record<string, unknown> | null = null;
+              if (principal) {
+                conflicts = await runOpenClawJson([
+                  "nmc-mem",
+                  "conflicts",
+                  "--status",
+                  "pending",
+                  "--limit",
+                  "200",
+                  "--actor-level",
+                  actorLevel,
+                  "--principal",
+                  principal,
+                  "--json",
+                ]);
+              }
+
+              json(res, 200, {
+                ok: true,
+                data: {
+                  ts: new Date().toISOString(),
+                  principal,
+                  actorLevel,
+                  agents: {
+                    count: extractCount(agents),
+                    data: agents,
+                  },
+                  memory: {
+                    stats,
+                    layers,
+                    conflictsPending: conflicts ? extractCount(conflicts) : null,
+                    conflicts,
+                  },
+                  runtime: {
+                    controlPlane: {
+                      host: cfg.host,
+                      port: cfg.port,
+                      allowMutations: cfg.allowMutations,
+                    },
+                    doctor: auditEvents,
+                  },
                 },
               });
               return;

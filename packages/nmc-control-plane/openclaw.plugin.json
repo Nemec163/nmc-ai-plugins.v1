@@ -28,6 +28,16 @@
       "label": "Allow Mutations",
       "help": "If false, mutating endpoints require x-nmc-mutation-token."
     },
+    "adminPrincipal": {
+      "label": "Admin Principal",
+      "placeholder": "orchestrator",
+      "advanced": true
+    },
+    "adminActorLevel": {
+      "label": "Admin Actor Level",
+      "placeholder": "A3_system_operator",
+      "advanced": true
+    },
     "corsOrigins": {
       "label": "CORS Origins",
       "help": "Optional browser origins allowed to call the API (exact match).",
@@ -52,6 +62,12 @@
       },
       "allowMutations": {
         "type": "boolean"
+      },
+      "adminPrincipal": {
+        "type": "string"
+      },
+      "adminActorLevel": {
+        "type": "string"
       },
       "corsOrigins": {
         "type": "array",
@@ -81,6 +97,12 @@
         "allowMutations": {
           "type": "boolean"
         },
+        "adminPrincipal": {
+          "type": "string"
+        },
+        "adminActorLevel": {
+          "type": "string"
+        },
         "corsOrigins": {
           "type": "array",
           "items": {
@@ -109,6 +131,16 @@
       "allowMutations": {
         "label": "Allow Mutations",
         "help": "If false, mutating endpoints require x-nmc-mutation-token."
+      },
+      "adminPrincipal": {
+        "label": "Admin Principal",
+        "placeholder": "orchestrator",
+        "advanced": true
+      },
+      "adminActorLevel": {
+        "label": "Admin Actor Level",
+        "placeholder": "A3_system_operator",
+        "advanced": true
       },
       "corsOrigins": {
         "label": "CORS Origins",
