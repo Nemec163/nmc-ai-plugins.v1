@@ -31,6 +31,7 @@ type PluginDescriptor = {
   name?: string;
   kind?: string;
   version?: string;
+  skills?: string[];
   configSchema?: JsonSchema;
   uiHints?: Record<string, unknown>;
 };
@@ -196,6 +197,9 @@ function collectPluginDescriptors(discovered: Record<string, unknown>): Record<s
       name: typeof row.name === "string" ? row.name : undefined,
       kind: typeof row.kind === "string" ? row.kind : undefined,
       version: typeof row.version === "string" ? row.version : undefined,
+      skills: Array.isArray(row.skills)
+        ? row.skills.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        : undefined,
       configSchema: (row.configSchema && typeof row.configSchema === "object" ? row.configSchema : undefined) as JsonSchema | undefined,
       uiHints: (row.uiHints && typeof row.uiHints === "object" ? row.uiHints : undefined) as
         | Record<string, unknown>
@@ -491,6 +495,28 @@ const plugin = {
               return;
             }
 
+            if (method === "GET" && path === "/v1/admin/skills") {
+              const listed = await runOpenClawJson(["skills", "list", "--json"]);
+              const discovered = await runOpenClawJson(["plugins", "list", "--json"]);
+              const descriptors = collectPluginDescriptors(discovered);
+              const skillsByPlugin = Object.values(descriptors)
+                .filter((row) => Array.isArray(row.skills) && row.skills.length > 0)
+                .map((row) => ({
+                  pluginId: row.id,
+                  pluginName: row.name ?? row.id,
+                  skills: row.skills,
+                }));
+
+              json(res, 200, {
+                ok: true,
+                data: {
+                  listed,
+                  pluginSkills: skillsByPlugin,
+                },
+              });
+              return;
+            }
+
             if (method === "POST" && path.startsWith("/v1/admin/plugins/") && path.endsWith("/config")) {
               const pluginId = decodeURIComponent(path.replace("/v1/admin/plugins/", "").replace("/config", ""));
               if (!pluginId.trim()) {
@@ -683,6 +709,45 @@ const plugin = {
                 "prune",
                 "--mode",
                 String(body.mode ?? "both"),
+                "--json",
+              ]);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
+            if (method === "GET" && path === "/v1/memory/conflicts") {
+              const limit = parseBoundedInt(url.searchParams.get("limit"), 20, 1, 200);
+              const status = String(url.searchParams.get("status") ?? "pending");
+              const payload = await runOpenClawJson([
+                "nmc-mem",
+                "conflicts",
+                "--limit",
+                String(limit),
+                "--status",
+                status,
+                "--json",
+              ]);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
+            if (method === "POST" && path.startsWith("/v1/memory/conflicts/") && path.endsWith("/resolve")) {
+              const conflictId = decodeURIComponent(
+                path.replace("/v1/memory/conflicts/", "").replace("/resolve", ""),
+              ).trim();
+              if (!conflictId) {
+                json(res, 400, { ok: false, error: "conflict_id_required" });
+                return;
+              }
+              const body = await readJsonBody(req);
+              const resolution = String(body.resolution ?? "apply_incoming");
+              const payload = await runOpenClawJson([
+                "nmc-mem",
+                "resolve-conflict",
+                "--id",
+                conflictId,
+                "--resolution",
+                resolution,
                 "--json",
               ]);
               json(res, 200, { ok: true, data: payload });

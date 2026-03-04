@@ -23,6 +23,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycl
 - Default to least privilege.
 - Escalate only if required by concrete task capability.
 - Prefer `A1`/`A2` for domain specialists.
+- Validate that memory-layer grants are narrower than or equal to operational scope.
 
 ## References
 

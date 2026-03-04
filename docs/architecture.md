@@ -13,6 +13,15 @@
 5. Recall is ACL-gated by `principal` and can be layer-scoped to avoid loading irrelevant context.
 6. Auto-recall uses bounded context budget and explicit layer allowlist.
 7. Default recall path is narrow-first (`M1_local -> M2_domain -> M4_global_facts`), with `M3_shared` as explicit expansion layer.
+8. Conflict queue (`fact_conflicts`) prevents noisy overwrites for the same natural key and supports manual resolve.
+
+## Multi-agent best practice
+
+- Keep most agents at `A1`/`A2`; reserve `A3`/`A4` for operators and orchestrators.
+- Require explicit `principal` for recall/store/promote/decide flows.
+- Treat `M4_global_facts` as curated memory only via promotion workflow.
+- Keep context tight: layer filters + small limits first, then controlled expansion.
+- Use control-plane admin endpoints for observability (`/v1/memory/stats`, `/v1/memory/layers`, `/v1/memory/conflicts`).
 
 ## Lifecycle
 

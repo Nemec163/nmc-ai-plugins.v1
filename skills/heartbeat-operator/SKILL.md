@@ -23,6 +23,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - Do not mutate agent lifecycle unless requested.
 - Keep operations idempotent.
 - Record only actionable deltas.
+- For memory checks, query narrow layers first and avoid broad context dumps.
 
 ## References
 

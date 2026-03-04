@@ -12,6 +12,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.
 2. Use explicit layer filters before increasing result limits.
 3. Escalate to broader layers only when the narrow search is insufficient.
 4. Store new memory in the lowest valid layer; use promotion flow for `M4_global_facts`.
+5. Keep injected context budget small and evidence-based (citations only, no full logs).
 
 ## Layer-first recall patterns
 

@@ -29,6 +29,7 @@ Use a stable principal for ACL-aware commands:
 - Require explicit rationale for every promotion.
 - Prefer small, deterministic updates over bulk writes.
 - Prefer targeted recall by scope/layer instead of broad retrieval.
+- Keep context lean: recall with explicit `--layer` and low `--limit` first, expand only if recall is insufficient.
 
 ## References
 

@@ -27,10 +27,13 @@ Mutating endpoints additionally require:
 - `POST /v1/memory/promote`
 - `POST /v1/memory/promotions/:id/decide`
 - `POST /v1/memory/prune`
+- `GET /v1/memory/conflicts?status=pending&limit=20`
+- `POST /v1/memory/conflicts/:id/resolve`
 - `GET /v1/memory/layers`
 - `GET /v1/memory/stats`
 - `GET /v1/admin/plugins`
 - `GET /v1/admin/plugins/contracts`
+- `GET /v1/admin/skills`
 - `POST /v1/admin/plugins/:id/config`
 - `GET /v1/audit/events?limit=200`
 - `GET /v1/heartbeat/state`
@@ -45,9 +48,17 @@ Requests without `principal` return `400 {"error":"principal_required"}`.
 For `POST /v1/memory/recall`, optional `layers` array narrows retrieval to explicit memory layers.
 `GET /v1/memory/layers` returns machine-readable layer guidance and recommended recall order.
 Optional query `actor_level` includes effective read/write/promote profile for that level.
+`GET /v1/memory/conflicts` returns conflict queue rows. Supported query:
+- `status`: `pending|resolved|all`
+- `limit`: `1..200` (default `20`)
+`POST /v1/memory/conflicts/:id/resolve` resolves conflict with body:
+- `resolution`: `apply_incoming` or `keep_existing`
 
 `GET /v1/audit/events` returns parsed audit entries from lifecycle `events.ndjson`.
 Use optional query `limit` (1..2000, default 200) to control tail size.
+
+`GET /v1/admin/skills` returns runtime-discovered skills (`openclaw skills list --json`)
+and plugin-manifest skill bindings (`pluginSkills`) for admin UI inventory.
 
 ## Plugin config validation
 

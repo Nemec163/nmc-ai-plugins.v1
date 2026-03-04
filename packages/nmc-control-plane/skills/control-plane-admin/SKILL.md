@@ -19,10 +19,14 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - `GET /v1/health`
 - `GET /v1/admin/plugins`
 - `GET /v1/admin/plugins/contracts`
+- `GET /v1/admin/skills`
 - `POST /v1/admin/plugins/:id/config`
+- `GET /v1/memory/conflicts`
+- `POST /v1/memory/conflicts/:id/resolve`
 
 ## Guardrails
 
 - Use mutation token for config updates.
 - Patch only required fields; preserve existing config.
 - Avoid bulk edits across many plugins in one operation.
+- For memory operations, inspect pending conflicts first; resolve one conflict at a time.

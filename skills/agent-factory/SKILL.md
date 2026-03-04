@@ -25,6 +25,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycl
 - Use hard delete only when explicitly requested.
 - Do not assign `A4_orchestrator_full` unless explicitly required.
 - Keep `tools_allowlist` minimal.
+- Match access levels to memory-layer needs; avoid granting broad layer access by default.
 
 ## References
 
