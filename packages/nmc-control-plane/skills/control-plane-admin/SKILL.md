@@ -25,6 +25,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - `POST /v1/admin/plugins/:id/config`
 - `GET /v1/memory/plan?query=...`
 - `GET /v1/memory/access-profile?principal=...`
+- `GET /v1/memory/principals?principal=...`
 - `GET /v1/memory/conflicts`
 - `POST /v1/memory/conflicts/:id/resolve`
 

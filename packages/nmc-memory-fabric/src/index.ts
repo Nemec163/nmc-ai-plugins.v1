@@ -71,6 +71,16 @@ function extractHookPrompt(event: Record<string, unknown>): string {
   return "";
 }
 
+function extractEventString(event: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = event[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
 function looksLikeStructuredMemory(text: string): boolean {
   if (text.length < 20 || text.length > 400) return false;
   if (text.includes("```")) return false;
@@ -233,6 +243,23 @@ const plugin = {
       if (fromParam) return fromParam;
       const fromEnv = (process.env.OPENCLAW_AGENT_ID ?? process.env.OPENCLAW_PRINCIPAL ?? "").trim();
       return fromEnv || undefined;
+    }
+
+    function resolveHookPrincipal(event: Record<string, unknown>): string | undefined {
+      const fromEvent = extractEventString(event, ["principal", "agentId", "agent_id", "owner"]);
+      return resolvePrincipal(fromEvent ?? cfg.autoRecallPrincipal);
+    }
+
+    function resolveHookActorLevel(event: Record<string, unknown>): AccessLevel {
+      const fromEvent = extractEventString(event, ["actorLevel", "actor_level", "accessLevel", "access_level"]);
+      if (fromEvent) return parseAccessLevel(fromEvent);
+      const fromEnv = (process.env.OPENCLAW_AGENT_ACCESS_LEVEL ?? "").trim();
+      return parseAccessLevel(fromEnv || cfg.autoRecallActorLevel);
+    }
+
+    function resolveHookScope(event: Record<string, unknown>): string | undefined {
+      const fromEvent = extractEventString(event, ["scope", "domainScope", "domain_scope"]);
+      return fromEvent ? normalizeScope(fromEvent) : undefined;
     }
 
     function requirePrincipal(value?: string): { ok: true; principal: string } | { ok: false } {
@@ -985,6 +1012,51 @@ const plugin = {
 
     api.registerTool(
       {
+        name: "nmc_memory_principals",
+        label: "NMC Memory Principals",
+        description: "List principals that currently have memory ACL grants.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          required: ["principal"],
+          properties: {
+            principal: { type: "string" },
+            actorLevel: { type: "string" },
+            limit: { type: "integer", minimum: 1, maximum: 2000 },
+          },
+        },
+        async execute(_toolCallId, rawParams) {
+          const params = rawParams as {
+            principal: string;
+            actorLevel?: string;
+            limit?: number;
+          };
+          const level = parseAccessLevel(params.actorLevel);
+          const principalCheck = requirePrincipal(params.principal);
+          if (!principalCheck.ok) {
+            return {
+              content: [{ type: "text", text: "Principal inventory denied: principal is required." }],
+              details: { ok: false, code: "principal_required" },
+            };
+          }
+          if (!canAuditRead(level, principalCheck.principal)) {
+            return {
+              content: [{ type: "text", text: "Principal inventory denied by ACL policy." }],
+              details: { ok: false, code: "access_denied" },
+            };
+          }
+          const rows = facts.listPrincipals(params.limit ?? 200);
+          return {
+            content: [{ type: "text", text: JSON.stringify({ count: rows.length, rows }, null, 2) }],
+            details: { ok: true, count: rows.length, rows },
+          };
+        },
+      },
+      { name: "nmc_memory_principals" },
+    );
+
+    api.registerTool(
+      {
         name: "nmc_memory_conflicts",
         label: "NMC Memory Conflicts",
         description: "List pending/resolved fact conflicts detected by natural-key upsert.",
@@ -1440,6 +1512,38 @@ const plugin = {
           });
 
         mem
+          .command("principals")
+          .option("--limit <limit>", "max rows", "200")
+          .option("--actor-level <level>", "access level", "A3_system_operator")
+          .option("--principal <principal>", "acl principal")
+          .option("--json", "JSON output")
+          .action((opts: {
+            limit?: string;
+            actorLevel?: string;
+            principal?: string;
+            json?: boolean;
+          }) => {
+            const level = parseAccessLevel(String(opts.actorLevel ?? "A3_system_operator"));
+            const principalCheck = requirePrincipal(opts.principal);
+            if (!principalCheck.ok) {
+              const payload = { ok: false, code: "principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("principal_required");
+              return;
+            }
+            if (!canAuditRead(level, principalCheck.principal)) {
+              const payload = { ok: false, code: "access_denied" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("Access denied");
+              return;
+            }
+            const rows = facts.listPrincipals(Number(opts.limit ?? "200"));
+            const payload = { ok: true, count: rows.length, rows };
+            if (opts.json) console.log(JSON.stringify(payload, null, 2));
+            else console.log(JSON.stringify(payload, null, 2));
+          });
+
+        mem
           .command("conflicts")
           .option("--limit <limit>", "max rows", "20")
           .option("--status <status>", "pending|resolved|all", "pending")
@@ -1550,6 +1654,7 @@ const plugin = {
           "nmc-mem promote",
           "nmc-mem decide",
           "nmc-mem prune",
+          "nmc-mem principals",
           "nmc-mem conflicts",
           "nmc-mem resolve-conflict",
           "nmc-mem doctor",
@@ -1558,13 +1663,13 @@ const plugin = {
     );
 
     if (cfg.autoRecall) {
-      function buildContextSnippet(hits: RecallResult[]): string {
+      function buildContextSnippet(hits: RecallResult[], maxChars: number): string {
         const lines: string[] = [];
         let used = 0;
         for (const hit of hits) {
           const line = `- [${hit.layer}/${hit.backend}] ${hit.text} (${hit.citation})`;
           const next = line.length + 1;
-          if (used + next > cfg.autoRecallMaxContextChars) break;
+          if (used + next > maxChars) break;
           lines.push(line);
           used += next;
         }
@@ -1576,15 +1681,24 @@ const plugin = {
         if (!prompt || prompt.length < 4) {
           return;
         }
+        const principal = resolveHookPrincipal(event);
+        const actorLevel = resolveHookActorLevel(event);
+        const scope = resolveHookScope(event);
+        if (!principal) return;
         const hits = await runRecall({
           query: prompt,
           limit: 5,
-          actorLevel: parseAccessLevel(cfg.autoRecallActorLevel),
-          principal: cfg.autoRecallPrincipal,
+          scope,
+          actorLevel,
+          principal,
           layers: cfg.autoRecallLayers,
         });
         if (!hits.length) return;
-        const text = buildContextSnippet(hits);
+        const maxChars = Math.min(
+          cfg.autoRecallMaxContextChars,
+          CONTEXT_BUDGET_BY_ACCESS[actorLevel],
+        );
+        const text = buildContextSnippet(hits, maxChars);
         if (!text) return;
         const addendum = `<nmc-memory>\n${text}\n</nmc-memory>`;
         return {

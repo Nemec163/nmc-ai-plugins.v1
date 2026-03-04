@@ -618,6 +618,7 @@ const plugin = {
                     memory: [
                       "/v1/memory/plan",
                       "/v1/memory/access-profile",
+                      "/v1/memory/principals",
                       "/v1/memory/recall",
                       "/v1/memory/store",
                       "/v1/memory/promote",
@@ -656,6 +657,19 @@ const plugin = {
                     "--json",
                   ])
                 : null;
+              const principals = principal
+                ? await runOpenClawJson([
+                    "nmc-mem",
+                    "principals",
+                    "--principal",
+                    principal,
+                    "--actor-level",
+                    actorLevel,
+                    "--limit",
+                    "200",
+                    "--json",
+                  ])
+                : null;
               let conflicts: Record<string, unknown> | null = null;
               if (principal) {
                 conflicts = await runOpenClawJson([
@@ -687,6 +701,8 @@ const plugin = {
                     stats,
                     layers,
                     accessProfile,
+                    principalsCount: principals ? extractCount(principals) : null,
+                    principals,
                     conflictsPending: conflicts ? extractCount(conflicts) : null,
                     conflicts,
                   },
@@ -849,6 +865,29 @@ const plugin = {
                 args.push("--layer", trimmed);
               }
               const payload = await runOpenClawJson(args);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
+            if (method === "GET" && path === "/v1/memory/principals") {
+              const principal = String(url.searchParams.get("principal") ?? "").trim();
+              if (!principal) {
+                json(res, 400, { ok: false, error: "principal_required" });
+                return;
+              }
+              const limit = parseBoundedInt(url.searchParams.get("limit"), 200, 1, 2000);
+              const actorLevel = String(url.searchParams.get("actor_level") ?? "A3_system_operator");
+              const payload = await runOpenClawJson([
+                "nmc-mem",
+                "principals",
+                "--limit",
+                String(limit),
+                "--actor-level",
+                actorLevel,
+                "--principal",
+                principal,
+                "--json",
+              ]);
               json(res, 200, { ok: true, data: payload });
               return;
             }

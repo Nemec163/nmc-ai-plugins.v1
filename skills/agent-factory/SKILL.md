@@ -12,13 +12,15 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycl
 2. Pick `access_level` and `domain_scopes`.
 3. Build a minimal create payload.
 4. Execute lifecycle operation via `openclaw nmc-agent`.
-5. Verify with `openclaw nmc-agent list --json` and `openclaw nmc-agent doctor --json`.
+5. Verify ACL-aware memory routing with `openclaw nmc-mem access-profile`.
+6. Verify with `openclaw nmc-agent list --json` and `openclaw nmc-agent doctor --json`.
 
 ## Commands
 
 - Create: `scripts/create_agent.sh`
 - Set access: `scripts/set_access.sh`
 - Hard delete: `scripts/delete_agent.sh`
+- Access profile (manual): `openclaw nmc-mem access-profile --principal <agent_id> --actor-level <level> --json`
 
 ## Constraints
 

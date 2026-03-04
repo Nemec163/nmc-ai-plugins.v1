@@ -25,6 +25,7 @@ Mutating endpoints additionally require:
 - `POST /v1/memory/recall`
 - `GET /v1/memory/plan?query=...`
 - `GET /v1/memory/access-profile?principal=orchestrator`
+- `GET /v1/memory/principals?principal=orchestrator`
 - `POST /v1/memory/store`
 - `POST /v1/memory/promote`
 - `POST /v1/memory/promotions/:id/decide`
@@ -54,6 +55,7 @@ For `POST /v1/memory/recall`, optional `layers` array narrows retrieval to expli
 agents/UI to choose minimal retrieval scope before calling recall.
 `GET /v1/memory/access-profile` returns principal-specific ACL summary, suggested recall layers,
 and a bounded context budget recommendation without loading memory snippets.
+`GET /v1/memory/principals` returns ACL principal inventory (grant counts by mode/layer/scope) for admin UI and operator audits.
 `GET /v1/memory/layers` returns machine-readable layer guidance and recommended recall order.
 Optional query `actor_level` includes effective read/write/promote profile for that level.
 `GET /v1/memory/access-profile` query:
@@ -62,6 +64,10 @@ Optional query `actor_level` includes effective read/write/promote profile for t
 - `scope`: defaults to `global`
 - `query`: optional routing seed for suggested recall layers
 - `layer`: repeatable explicit layer override
+`GET /v1/memory/principals` query:
+- `principal`: ACL principal requesting inventory access (required)
+- `actor_level`: defaults to `A3_system_operator`
+- `limit`: `1..2000` (default `200`)
 `GET /v1/memory/conflicts` returns conflict queue rows. Required/optional query:
 - `principal`: ACL principal (required)
 - `actor_level`: defaults to `A3_system_operator`

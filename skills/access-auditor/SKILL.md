@@ -17,6 +17,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycl
 
 - Snapshot: `scripts/access_snapshot.sh`
 - Compare: `scripts/access_check.sh`
+- Principals inventory: `openclaw nmc-mem principals --principal <id> --actor-level A3_system_operator --json`
 
 ## Policy
 

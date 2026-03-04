@@ -61,6 +61,16 @@ openclaw nmc-mem access-profile \
   --json
 ```
 
+### Inspect principal ACL inventory (admin UI list)
+
+```bash
+openclaw nmc-mem principals \
+  --principal orchestrator \
+  --actor-level A3_system_operator \
+  --limit 500 \
+  --json
+```
+
 ### Inspect and resolve memory conflicts
 
 ```bash

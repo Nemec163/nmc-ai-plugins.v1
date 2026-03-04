@@ -7,3 +7,4 @@ if [ "$#" -ne 2 ]; then
 fi
 
 openclaw nmc-agent set-access --agent-id "$1" --access-level "$2" --json
+openclaw nmc-mem access-profile --principal "$1" --actor-level "$2" --query "access-level update" --json

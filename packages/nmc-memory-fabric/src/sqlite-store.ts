@@ -96,6 +96,17 @@ export type GrantRow = {
   createdAt: number;
 };
 
+export type PrincipalGrantSummary = {
+  principal: string;
+  grants: number;
+  layers: number;
+  scopes: number;
+  read: number;
+  write: number;
+  promote: number;
+  admin: number;
+};
+
 export type PruneResult = {
   hardDeleted: number;
   hardDeletedIds: string[];
@@ -732,6 +743,49 @@ export class FactsStore {
       scope: row.scope,
       mode: row.mode,
       createdAt: row.created_at,
+    }));
+  }
+
+  listPrincipals(limit = 200): PrincipalGrantSummary[] {
+    const normalizedLimit = Math.max(1, Math.min(limit, 2000));
+    const rows = this.db
+      .prepare(
+        `
+        SELECT
+          principal,
+          COUNT(*) as grants,
+          COUNT(DISTINCT layer) as layers,
+          COUNT(DISTINCT scope) as scopes,
+          SUM(CASE WHEN mode = 'read' THEN 1 ELSE 0 END) as read_cnt,
+          SUM(CASE WHEN mode = 'write' THEN 1 ELSE 0 END) as write_cnt,
+          SUM(CASE WHEN mode = 'promote' THEN 1 ELSE 0 END) as promote_cnt,
+          SUM(CASE WHEN mode = 'admin' THEN 1 ELSE 0 END) as admin_cnt
+        FROM acl_grants
+        GROUP BY principal
+        ORDER BY principal ASC
+        LIMIT ?
+      `,
+      )
+      .all(normalizedLimit) as Array<{
+      principal: string;
+      grants: number;
+      layers: number;
+      scopes: number;
+      read_cnt: number;
+      write_cnt: number;
+      promote_cnt: number;
+      admin_cnt: number;
+    }>;
+
+    return rows.map((row) => ({
+      principal: row.principal,
+      grants: row.grants,
+      layers: row.layers,
+      scopes: row.scopes,
+      read: row.read_cnt,
+      write: row.write_cnt,
+      promote: row.promote_cnt,
+      admin: row.admin_cnt,
     }));
   }
 
