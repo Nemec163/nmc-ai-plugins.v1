@@ -1,0 +1,4 @@
+interface:
+  display_name: "Memory Layer Router"
+  short_description: "Query only the necessary memory layers"
+  default_prompt: "Choose minimal memory layers first, then expand only if needed."

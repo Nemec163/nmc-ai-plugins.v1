@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lifecycle Operator"
+  short_description: "Manage agent lifecycle and ACL reconciliation"
+  default_prompt: "Apply deterministic create/update/delete lifecycle operations safely."

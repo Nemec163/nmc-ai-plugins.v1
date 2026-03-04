@@ -4,6 +4,64 @@
   "name": "NMC Memory Fabric",
   "description": "QMD-first memory fabric with structured facts/decisions and semantic fallback",
   "version": "0.1.0",
+  "skills": [
+    "skills/memory-layer-router",
+    "./skills/memory-layer-router"
+  ],
+  "uiHints": {
+    "stateDir": {
+      "label": "State Directory",
+      "placeholder": "~/.openclaw/nmc-ai-plugins",
+      "advanced": true
+    },
+    "autoRecall": {
+      "label": "Auto Recall",
+      "help": "Inject relevant memory snippets before agent execution."
+    },
+    "autoCapture": {
+      "label": "Auto Capture",
+      "help": "Capture high-signal facts from agent runs."
+    },
+    "autoRecallPrincipal": {
+      "label": "Auto Recall Principal",
+      "placeholder": "system:auto-recall",
+      "advanced": true
+    },
+    "autoRecallActorLevel": {
+      "label": "Auto Recall Actor Level",
+      "placeholder": "A4_orchestrator_full",
+      "advanced": true
+    },
+    "autoRecallLayers": {
+      "label": "Auto Recall Layers",
+      "help": "Limit which memory layers can be injected.",
+      "advanced": true
+    },
+    "autoRecallMaxContextChars": {
+      "label": "Auto Recall Context Budget",
+      "placeholder": "1800",
+      "advanced": true
+    },
+    "embedding.apiKey": {
+      "label": "OpenAI API Key",
+      "sensitive": true,
+      "placeholder": "sk-proj-...",
+      "help": "Used for vector embedding fallback."
+    },
+    "embedding.model": {
+      "label": "Embedding Model",
+      "placeholder": "text-embedding-3-small"
+    },
+    "qmd.paths": {
+      "label": "QMD Paths",
+      "help": "Directories scanned by QMD recall.",
+      "advanced": true
+    },
+    "qmd.exclude": {
+      "label": "QMD Exclude Patterns",
+      "advanced": true
+    }
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -13,6 +71,10 @@
       "workspaceRoot": { "type": "string" },
       "autoRecall": { "type": "boolean" },
       "autoCapture": { "type": "boolean" },
+      "autoRecallPrincipal": { "type": "string" },
+      "autoRecallActorLevel": { "type": "string" },
+      "autoRecallLayers": { "type": "array", "items": { "type": "string" } },
+      "autoRecallMaxContextChars": { "type": "integer", "minimum": 256, "maximum": 6000 },
       "embedding": {
         "type": "object",
         "additionalProperties": false,

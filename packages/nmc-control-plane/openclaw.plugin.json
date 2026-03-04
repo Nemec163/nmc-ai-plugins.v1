@@ -3,6 +3,32 @@
   "name": "NMC Control Plane",
   "description": "Local HTTP control-plane for memory and agent lifecycle operations",
   "version": "0.1.0",
+  "skills": [
+    "skills/control-plane-admin",
+    "./skills/control-plane-admin"
+  ],
+  "uiHints": {
+    "host": {
+      "label": "Bind Host",
+      "placeholder": "127.0.0.1"
+    },
+    "port": {
+      "label": "Port",
+      "placeholder": "4466"
+    },
+    "apiTokenEnv": {
+      "label": "API Token Env",
+      "placeholder": "NMC_AI_PLUGINS_API_TOKEN"
+    },
+    "mutationTokenEnv": {
+      "label": "Mutation Token Env",
+      "placeholder": "NMC_AI_PLUGINS_MUTATION_TOKEN"
+    },
+    "allowMutations": {
+      "label": "Allow Mutations",
+      "help": "If false, mutating endpoints require x-nmc-mutation-token."
+    }
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

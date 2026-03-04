@@ -49,6 +49,8 @@ Installer behavior:
 - Bind: `127.0.0.1:4466`
 - Auth: `Authorization: Bearer $NMC_AI_PLUGINS_API_TOKEN`
 - Mutation gate: `x-nmc-mutation-token: $NMC_AI_PLUGINS_MUTATION_TOKEN` (unless `allowMutations=true`)
+- Admin/UI hooks: `GET /v1/admin/plugins`, `POST /v1/admin/plugins/:id/config`
+- Memory recall supports optional layer routing (`layers` in API or `--layer` in CLI)
 
 See [docs/api.md](./docs/api.md).
 

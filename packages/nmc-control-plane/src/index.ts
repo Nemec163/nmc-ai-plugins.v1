@@ -1,9 +1,8 @@
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 
 const execFileAsync = promisify(execFile);
 
@@ -82,6 +81,54 @@ async function runOpenClawJson(args: string[]): Promise<Record<string, unknown>>
   }
 }
 
+function asObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+async function resolveOpenClawConfigPath(): Promise<string> {
+  const doctor = await runOpenClawJson(["nmc-agent", "doctor", "--json"]);
+  const paths = asObject(doctor.paths);
+  const configPath = paths.openclawConfigPath;
+  if (typeof configPath === "string" && configPath.trim()) {
+    return configPath;
+  }
+  throw new Error("openclaw_config_path_unavailable");
+}
+
+async function readOpenClawConfigJson(): Promise<{ path: string; cfg: Record<string, unknown> }> {
+  const configPath = await resolveOpenClawConfigPath();
+  const raw = await readFile(configPath, "utf-8");
+  return { path: configPath, cfg: asObject(JSON.parse(raw)) };
+}
+
+function sanitizePluginEntries(cfg: Record<string, unknown>): Record<string, unknown> {
+  const redact = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(redact);
+    if (!value || typeof value !== "object") return value;
+    const obj = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(obj)) {
+      out[key] = /key|token|secret|password/i.test(key) ? "***" : redact(nested);
+    }
+    return out;
+  };
+
+  const plugins = asObject(cfg.plugins);
+  const entries = asObject(plugins.entries);
+  const out: Record<string, unknown> = {};
+  for (const [id, rawEntry] of Object.entries(entries)) {
+    const entry = asObject(rawEntry);
+    const config = asObject(entry.config);
+    out[id] = {
+      enabled: entry.enabled !== false,
+      config: redact(config),
+    };
+  }
+  return out;
+}
+
 function isMutating(method: string, path: string): boolean {
   if (method === "GET") return false;
   if (path === "/v1/health") return false;
@@ -92,7 +139,17 @@ const plugin = {
   id: "nmc-control-plane",
   name: "NMC Control Plane",
   description: "Local API for memory/lifecycle operations",
-  configSchema: emptyPluginConfigSchema(),
+  configSchema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      host: { type: "string" },
+      port: { type: "integer" },
+      apiTokenEnv: { type: "string" },
+      mutationTokenEnv: { type: "string" },
+      allowMutations: { type: "boolean" },
+    },
+  },
 
   register(api: OpenClawPluginApi) {
     const cfg = parseCfg(api.pluginConfig);
@@ -259,6 +316,67 @@ const plugin = {
               return;
             }
 
+            if (method === "GET" && path === "/v1/admin/plugins") {
+              const discovered = await runOpenClawJson(["plugins", "list", "--json"]);
+              const { path: configPath, cfg: openclawCfg } = await readOpenClawConfigJson();
+              const plugins = asObject(openclawCfg.plugins);
+              json(res, 200, {
+                ok: true,
+                data: {
+                  configPath,
+                  slots: asObject(plugins.slots),
+                  entries: sanitizePluginEntries(openclawCfg),
+                  discovered,
+                },
+              });
+              return;
+            }
+
+            if (method === "POST" && path.startsWith("/v1/admin/plugins/") && path.endsWith("/config")) {
+              const pluginId = decodeURIComponent(path.replace("/v1/admin/plugins/", "").replace("/config", ""));
+              if (!pluginId.trim()) {
+                json(res, 400, { ok: false, error: "plugin_id_required" });
+                return;
+              }
+              const body = await readJsonBody(req);
+              const { path: configPath, cfg: openclawCfg } = await readOpenClawConfigJson();
+
+              openclawCfg.plugins = asObject(openclawCfg.plugins);
+              const plugins = asObject(openclawCfg.plugins);
+              plugins.entries = asObject(plugins.entries);
+              const entries = asObject(plugins.entries);
+              const existing = asObject(entries[pluginId]);
+
+              const patchEnabled = typeof body.enabled === "boolean" ? body.enabled : existing.enabled !== false;
+              const patchConfig = body.config && typeof body.config === "object" && !Array.isArray(body.config)
+                ? (body.config as Record<string, unknown>)
+                : {};
+
+              entries[pluginId] = {
+                ...existing,
+                enabled: patchEnabled,
+                config: {
+                  ...asObject(existing.config),
+                  ...patchConfig,
+                },
+              };
+
+              plugins.entries = entries;
+              openclawCfg.plugins = plugins;
+              await writeFile(configPath, `${JSON.stringify(openclawCfg, null, 2)}\n`, "utf-8");
+
+              json(res, 200, {
+                ok: true,
+                data: {
+                  pluginId,
+                  enabled: patchEnabled,
+                  configPath,
+                  entry: sanitizePluginEntries(openclawCfg)[pluginId] ?? null,
+                },
+              });
+              return;
+            }
+
             if (method === "POST" && path === "/v1/memory/recall") {
               const body = await readJsonBody(req);
               const principal = String(body.principal ?? "").trim();
@@ -266,7 +384,7 @@ const plugin = {
                 json(res, 400, { ok: false, error: "principal_required" });
                 return;
               }
-              const payload = await runOpenClawJson([
+              const args = [
                 "nmc-mem",
                 "recall",
                 String(body.query ?? ""),
@@ -279,7 +397,13 @@ const plugin = {
                 "--principal",
                 principal,
                 "--json",
-              ]);
+              ];
+              if (Array.isArray(body.layers)) {
+                for (const layer of body.layers) {
+                  args.push("--layer", String(layer));
+                }
+              }
+              const payload = await runOpenClawJson(args);
               json(res, 200, { ok: true, data: payload });
               return;
             }

@@ -3,7 +3,6 @@ import { dirname, join } from "node:path";
 import Database from "better-sqlite3";
 import * as lancedb from "@lancedb/lancedb";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 import { parseConfig } from "./config.js";
 import { parseAccessLevel, grantsForLevel, type AccessLevel, type MemoryLayer } from "./acl.js";
 import { AgentRegistry } from "./registry.js";
@@ -83,7 +82,18 @@ const plugin = {
   id: "nmc-agent-lifecycle",
   name: "NMC Agent Lifecycle",
   description: "Lifecycle operations for managed agents",
-  configSchema: emptyPluginConfigSchema(),
+  configSchema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      stateDir: { type: "string" },
+      openclawConfigPath: { type: "string" },
+      workspaceRoot: { type: "string" },
+      templatesDir: { type: "string" },
+      factsDbPath: { type: "string" },
+      vectorsPath: { type: "string" },
+    },
+  },
 
   register(api: OpenClawPluginApi) {
     const pluginRoot = api.resolvePath(".");

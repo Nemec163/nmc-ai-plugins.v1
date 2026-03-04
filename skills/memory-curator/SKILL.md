@@ -19,11 +19,15 @@ description: Curate long-term memory quality by running recall checks, promotion
 - Decide promotion: `scripts/decide_promotion.sh`
 - Prune: `scripts/prune_memory.sh`
 
+Use a stable principal for ACL-aware commands:
+- Example: `NMC_PRINCIPAL=orchestrator scripts/promote_fact.sh <id> "reason" A3_system_operator`
+
 ## Rules
 
 - Avoid direct writes to `M4_global_facts` for non-orchestrator actors.
 - Require explicit rationale for every promotion.
 - Prefer small, deterministic updates over bulk writes.
+- Prefer targeted recall by scope/layer instead of broad retrieval.
 
 ## References
 

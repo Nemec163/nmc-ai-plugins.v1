@@ -109,6 +109,10 @@ if (discoverableIds.has('nmc-memory-fabric')) {
       stateDir,
       autoRecall: true,
       autoCapture: true,
+      autoRecallPrincipal: 'system:auto-recall',
+      autoRecallActorLevel: 'A4_orchestrator_full',
+      autoRecallLayers: ['M0_core', 'M1_local', 'M2_domain', 'M3_shared', 'M4_global_facts'],
+      autoRecallMaxContextChars: 1800,
       embedding: {
         apiKey: '${OPENAI_API_KEY}',
         model: 'text-embedding-3-small',

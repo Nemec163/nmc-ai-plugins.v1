@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { DEFAULT_QMD_ALLOWLIST } from "./qmd-store.js";
+import type { AccessLevel, MemoryLayer } from "./acl.js";
 import { resolvePath } from "./utils.js";
 
 export type FabricConfig = {
@@ -10,6 +11,10 @@ export type FabricConfig = {
   workspaceRoot: string;
   autoRecall: boolean;
   autoCapture: boolean;
+  autoRecallPrincipal: string;
+  autoRecallActorLevel: AccessLevel;
+  autoRecallLayers: MemoryLayer[];
+  autoRecallMaxContextChars: number;
   embedding: {
     apiKey: string;
     model: string;
@@ -26,6 +31,16 @@ const DEFAULTS = {
   openclawConfigPath: join(homedir(), ".openclaw", "openclaw.json"),
   workspaceRoot: join(homedir(), ".openclaw", "workspace"),
   embeddingModel: "text-embedding-3-small",
+  autoRecallPrincipal: "system:auto-recall",
+  autoRecallActorLevel: "A4_orchestrator_full" as AccessLevel,
+  autoRecallLayers: [
+    "M0_core",
+    "M1_local",
+    "M2_domain",
+    "M3_shared",
+    "M4_global_facts",
+  ] as MemoryLayer[],
+  autoRecallMaxContextChars: 1800,
 };
 
 const DEFAULT_EXCLUDES = ["**/node_modules/**", "**/.git/**", "**/dist/**", "**/.next/**"];
@@ -81,6 +96,12 @@ export function parseConfig(raw: unknown): FabricConfig {
   const embeddingRaw = (cfg.embedding ?? {}) as Record<string, unknown>;
   const embeddingApiKeyRaw = typeof embeddingRaw.apiKey === "string" ? embeddingRaw.apiKey : "${OPENAI_API_KEY}";
   const pluginQmd = (cfg.qmd ?? {}) as Record<string, unknown>;
+  const autoRecallLayers = Array.isArray(cfg.autoRecallLayers)
+    ? cfg.autoRecallLayers.filter((v): v is MemoryLayer => typeof v === "string")
+    : DEFAULTS.autoRecallLayers;
+  const autoRecallMaxContextChars = typeof cfg.autoRecallMaxContextChars === "number"
+    ? Math.max(256, Math.min(6000, Math.trunc(cfg.autoRecallMaxContextChars)))
+    : DEFAULTS.autoRecallMaxContextChars;
 
   const rawPaths = Array.isArray(pluginQmd.paths)
     ? pluginQmd.paths
@@ -99,6 +120,16 @@ export function parseConfig(raw: unknown): FabricConfig {
     workspaceRoot,
     autoRecall: cfg.autoRecall !== false,
     autoCapture: cfg.autoCapture !== false,
+    autoRecallPrincipal:
+      typeof cfg.autoRecallPrincipal === "string" && cfg.autoRecallPrincipal.trim()
+        ? cfg.autoRecallPrincipal.trim()
+        : DEFAULTS.autoRecallPrincipal,
+    autoRecallActorLevel:
+      typeof cfg.autoRecallActorLevel === "string" && cfg.autoRecallActorLevel.trim()
+        ? (cfg.autoRecallActorLevel.trim() as AccessLevel)
+        : DEFAULTS.autoRecallActorLevel,
+    autoRecallLayers: autoRecallLayers.length ? autoRecallLayers : DEFAULTS.autoRecallLayers,
+    autoRecallMaxContextChars,
     embedding: {
       apiKey: resolveEnvVars(embeddingApiKeyRaw),
       model: typeof embeddingRaw.model === "string" ? embeddingRaw.model : DEFAULTS.embeddingModel,

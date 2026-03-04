@@ -3,6 +3,34 @@
   "name": "NMC Agent Lifecycle",
   "description": "Create/delete agents with deterministic cleanup and reconciler",
   "version": "0.1.0",
+  "skills": [
+    "skills/lifecycle-operator",
+    "./skills/lifecycle-operator"
+  ],
+  "uiHints": {
+    "stateDir": {
+      "label": "State Directory",
+      "placeholder": "~/.openclaw/nmc-ai-plugins",
+      "advanced": true
+    },
+    "workspaceRoot": {
+      "label": "Workspace Root",
+      "placeholder": "~/.openclaw/workspace"
+    },
+    "templatesDir": {
+      "label": "Templates Directory",
+      "placeholder": "~/.openclaw/nmc-ai-plugins/templates/agent-md",
+      "advanced": true
+    },
+    "factsDbPath": {
+      "label": "Facts DB Path",
+      "advanced": true
+    },
+    "vectorsPath": {
+      "label": "Vectors Path",
+      "advanced": true
+    }
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

@@ -30,7 +30,12 @@ openclaw nmc-agent delete --agent-id trader-01 --mode hard --json
 ### Recall
 
 ```bash
-openclaw nmc-mem recall "portfolio rebalance decision" --scope finance --json
+openclaw nmc-mem recall "portfolio rebalance decision" \
+  --scope finance \
+  --layer M2_domain \
+  --layer M4_global_facts \
+  --principal trader-01 \
+  --json
 ```
 
 ### Promote fact candidate
@@ -41,5 +46,6 @@ openclaw nmc-mem promote \
   --target-layer M4_global_facts \
   --reason "stable cross-agent decision" \
   --actor-level A2_domain_builder \
+  --principal orchestrator \
   --json
 ```

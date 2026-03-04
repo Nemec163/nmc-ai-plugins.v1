@@ -10,6 +10,8 @@
    - qmd text retrieval
    - vector semantic
    - merge + dedup + rerank + citations
+5. Recall is ACL-gated by `principal` and can be layer-scoped to avoid loading irrelevant context.
+6. Auto-recall uses bounded context budget and explicit layer allowlist.
 
 ## Lifecycle
 

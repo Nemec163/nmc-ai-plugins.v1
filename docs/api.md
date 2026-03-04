@@ -23,6 +23,8 @@ Mutating endpoints additionally require:
 - `POST /v1/memory/promotions/:id/decide`
 - `POST /v1/memory/prune`
 - `GET /v1/memory/stats`
+- `GET /v1/admin/plugins`
+- `POST /v1/admin/plugins/:id/config`
 - `GET /v1/audit/events?limit=200`
 - `GET /v1/heartbeat/state`
 
@@ -33,6 +35,7 @@ All responses are JSON.
 For `POST /v1/memory/recall`, `POST /v1/memory/store`, `POST /v1/memory/promote`, and
 `POST /v1/memory/promotions/:id/decide`, request body must include `principal` (string).
 Requests without `principal` return `400 {"error":"principal_required"}`.
+For `POST /v1/memory/recall`, optional `layers` array narrows retrieval to explicit memory layers.
 
 `GET /v1/audit/events` returns parsed audit entries from lifecycle `events.ndjson`.
 Use optional query `limit` (1..2000, default 200) to control tail size.

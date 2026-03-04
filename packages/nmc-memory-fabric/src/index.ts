@@ -1,8 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
-import { parseAccessLevel, canApprove, canPromote, canRead, canWrite, type AccessLevel, type MemoryLayer } from "./acl.js";
+import { parseAccessLevel, canApprove, canPromote, canRead, canWrite, MEMORY_LAYERS, type AccessLevel, type MemoryLayer } from "./acl.js";
 import { parseConfig } from "./config.js";
 import { FactsStore, type ConflictResolution, type FactCategory, type DecayClass } from "./sqlite-store.js";
 import { Embeddings, VectorStore } from "./vector-store.js";
@@ -21,6 +20,14 @@ type RecallResult = {
 };
 
 type HookHandler = (event: Record<string, unknown>) => Promise<unknown> | unknown;
+
+function parseLayerFilter(value: unknown): MemoryLayer[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out = value.filter(
+    (layer): layer is MemoryLayer => typeof layer === "string" && MEMORY_LAYERS.includes(layer as MemoryLayer),
+  );
+  return out.length ? out : undefined;
+}
 
 function extractHookPrompt(event: Record<string, unknown>): string {
   if (typeof event.prompt === "string") return event.prompt;
@@ -47,7 +54,39 @@ const plugin = {
   id: "nmc-memory-fabric",
   name: "NMC Memory Fabric",
   description: "QMD-first memory with structured facts and vector fallback",
-  configSchema: emptyPluginConfigSchema(),
+  configSchema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      stateDir: { type: "string" },
+      openclawConfigPath: { type: "string" },
+      workspaceRoot: { type: "string" },
+      autoRecall: { type: "boolean" },
+      autoCapture: { type: "boolean" },
+      autoRecallPrincipal: { type: "string" },
+      autoRecallActorLevel: { type: "string" },
+      autoRecallLayers: { type: "array", items: { type: "string" } },
+      autoRecallMaxContextChars: { type: "integer", minimum: 256, maximum: 6000 },
+      embedding: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          apiKey: { type: "string" },
+          model: { type: "string" },
+        },
+        required: ["apiKey"],
+      },
+      qmd: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          enabled: { type: "boolean" },
+          paths: { type: "array", items: { type: "string" } },
+          exclude: { type: "array", items: { type: "string" } },
+        },
+      },
+    },
+  },
 
   register(api: OpenClawPluginApi) {
     const cfg = parseConfig(api.pluginConfig);
@@ -139,6 +178,7 @@ const plugin = {
       principal?: string;
       entity?: string;
       key?: string;
+      layers?: MemoryLayer[];
     }): Promise<RecallResult[]> {
       const level = parseAccessLevel(input.actorLevel);
       const scope = input.scope ? normalizeScope(input.scope) : undefined;
@@ -146,6 +186,8 @@ const plugin = {
       if (!principalCheck.ok) return [];
       const principal = principalCheck.principal;
       const limit = Math.max(1, Math.min(input.limit ?? 5, 20));
+      const layerFilter = new Set(input.layers ?? []);
+      const includeLayer = (layer: MemoryLayer) => layerFilter.size === 0 || layerFilter.has(layer);
 
       const requestedExact = input.entity
         ? { entity: input.entity, key: input.key }
@@ -155,17 +197,17 @@ const plugin = {
         requestedExact.entity && requestedExact.entity.trim()
           ? facts
               .exactLookup(requestedExact.entity, requestedExact.key, scope)
-              .filter((hit) => canReadScoped(level, principal, hit.layer, hit.scope))
+              .filter((hit) => includeLayer(hit.layer) && canReadScoped(level, principal, hit.layer, hit.scope))
           : [];
 
       const factsHits = facts
         .search(input.query, scope, limit * 2)
-        .filter((hit) => canReadScoped(level, principal, hit.layer, hit.scope));
+        .filter((hit) => includeLayer(hit.layer) && canReadScoped(level, principal, hit.layer, hit.scope));
 
       const qmdHits = cfg.qmd.enabled
         ? qmd
             .search(input.query, limit * 2)
-            .filter((hit) => canReadScoped(level, principal, hit.layer, hit.scope))
+            .filter((hit) => includeLayer(hit.layer) && canReadScoped(level, principal, hit.layer, hit.scope))
         : [];
 
       let vectorHits: RecallResult[] = [];
@@ -186,7 +228,7 @@ const plugin = {
           })
           .filter(
             (hit): hit is RecallResult =>
-              Boolean(hit) && canReadScoped(level, principal, hit.layer, hit.scope),
+              Boolean(hit) && includeLayer(hit.layer) && canReadScoped(level, principal, hit.layer, hit.scope),
           );
       } catch (err) {
         api.logger.warn(`nmc-memory-fabric: vector recall failed: ${String(err)}`);
@@ -217,6 +259,7 @@ const plugin = {
             limit: { type: "integer", minimum: 1, maximum: 20 },
             actorLevel: { type: "string" },
             principal: { type: "string" },
+            layers: { type: "array", items: { type: "string" } },
           },
         },
         async execute(_toolCallId, rawParams) {
@@ -228,6 +271,7 @@ const plugin = {
             limit?: number;
             actorLevel?: AccessLevel;
             principal?: string;
+            layers?: MemoryLayer[];
           };
 
           const principalCheck = requirePrincipal(params.principal);
@@ -238,7 +282,10 @@ const plugin = {
             };
           }
 
-          const results = await runRecall(params);
+          const results = await runRecall({
+            ...params,
+            layers: parseLayerFilter(params.layers),
+          });
           return {
             content: [
               {
@@ -726,8 +773,12 @@ const plugin = {
           .option("--limit <limit>", "result limit", "5")
           .option("--actor-level <level>", "access level", "A1_worker")
           .option("--principal <principal>", "acl principal")
+          .option("--layer <layer>", "repeatable memory layer filter", (value, prev: string[]) => {
+            prev.push(value);
+            return prev;
+          }, [])
           .option("--json", "JSON output")
-          .action(async (query: string, opts: { scope?: string; entity?: string; key?: string; limit?: string; actorLevel?: string; principal?: string; json?: boolean }) => {
+          .action(async (query: string, opts: { scope?: string; entity?: string; key?: string; limit?: string; actorLevel?: string; principal?: string; layer?: string[]; json?: boolean }) => {
             const principalCheck = requirePrincipal(opts.principal);
             if (!principalCheck.ok) {
               const payload = { ok: false, code: "principal_required" };
@@ -743,6 +794,7 @@ const plugin = {
               limit: Number(opts.limit ?? "5"),
               actorLevel: parseAccessLevel(opts.actorLevel),
               principal: principalCheck.principal,
+              layers: parseLayerFilter(opts.layer),
             });
             if (opts.json) {
               console.log(JSON.stringify({ count: results.length, results }, null, 2));
@@ -1005,14 +1057,34 @@ const plugin = {
     );
 
     if (cfg.autoRecall) {
+      function buildContextSnippet(hits: RecallResult[]): string {
+        const lines: string[] = [];
+        let used = 0;
+        for (const hit of hits) {
+          const line = `- [${hit.layer}/${hit.backend}] ${hit.text} (${hit.citation})`;
+          const next = line.length + 1;
+          if (used + next > cfg.autoRecallMaxContextChars) break;
+          lines.push(line);
+          used += next;
+        }
+        return lines.join("\n");
+      }
+
       registerCompatHook("session.prompt.addendum", "before_agent_start", async (event) => {
         const prompt = extractHookPrompt(event);
         if (!prompt || prompt.length < 4) {
           return;
         }
-        const hits = await runRecall({ query: prompt, limit: 5, actorLevel: "A4_orchestrator_full" });
+        const hits = await runRecall({
+          query: prompt,
+          limit: 5,
+          actorLevel: parseAccessLevel(cfg.autoRecallActorLevel),
+          principal: cfg.autoRecallPrincipal,
+          layers: cfg.autoRecallLayers,
+        });
         if (!hits.length) return;
-        const text = hits.map((h) => `- [${h.layer}/${h.backend}] ${h.text} (${h.citation})`).join("\n");
+        const text = buildContextSnippet(hits);
+        if (!text) return;
         const addendum = `<nmc-memory>\n${text}\n</nmc-memory>`;
         return {
           addendum,
