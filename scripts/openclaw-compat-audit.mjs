@@ -78,8 +78,22 @@ for (const pluginFile of fs.readdirSync(path.join(root, 'packages')).map((name) 
     continue;
   }
 
-  if (typeof manifest.id !== 'string' || !manifest.id.trim()) {
-    report.plugins.errors.push(`${pluginFile}: missing/invalid id`);
+  const pluginId = typeof manifest.openclawPlugin === 'string' && manifest.openclawPlugin.trim()
+    ? manifest.openclawPlugin.trim()
+    : typeof manifest.id === 'string' && manifest.id.trim()
+      ? manifest.id.trim()
+      : '';
+  if (!pluginId) {
+    report.plugins.errors.push(`${pluginFile}: missing plugin identifier (openclawPlugin or id)`);
+  }
+  if (
+    typeof manifest.openclawPlugin === 'string' &&
+    manifest.openclawPlugin.trim() &&
+    typeof manifest.id === 'string' &&
+    manifest.id.trim() &&
+    manifest.openclawPlugin.trim() !== manifest.id.trim()
+  ) {
+    report.plugins.errors.push(`${pluginFile}: openclawPlugin and id must match when both are provided`);
   }
   for (const key of ['name', 'description', 'version']) {
     if (typeof manifest[key] !== 'string' || !manifest[key].trim()) {
@@ -90,13 +104,13 @@ for (const pluginFile of fs.readdirSync(path.join(root, 'packages')).map((name) 
     report.plugins.errors.push(`${pluginFile}: invalid kind (must be non-empty string when provided)`);
   }
 
-  if (typeof manifest.source !== 'string' || !manifest.source.trim()) {
-    report.plugins.errors.push(`${pluginFile}: missing source`);
-  } else {
+  if (typeof manifest.source === 'string' && manifest.source.trim()) {
     const sourcePath = path.resolve(path.dirname(pluginFile), manifest.source);
     if (!fs.existsSync(sourcePath)) {
       report.plugins.errors.push(`${pluginFile}: source path not found ${manifest.source}`);
     }
+  } else {
+    report.plugins.warnings.push(`${pluginFile}: source missing (allowed by spec, but useful for local audits)`);
   }
 
   const legacyConfigSchema = manifest.configSchema && typeof manifest.configSchema === 'object'
@@ -113,6 +127,9 @@ for (const pluginFile of fs.readdirSync(path.join(root, 'packages')).map((name) 
     report.plugins.errors.push(`${pluginFile}: missing config schema (config.schema or configSchema)`);
   } else if (effectiveConfigSchema.additionalProperties !== false) {
     report.plugins.warnings.push(`${pluginFile}: config schema additionalProperties should be false`);
+  }
+  if (!configObj) {
+    report.plugins.warnings.push(`${pluginFile}: missing config object (spec recommends config.schema + config.uiHints)`);
   }
 
   if (Array.isArray(manifest.skills)) {
@@ -217,12 +234,12 @@ for (const dir of allSkillDirs()) {
 const templateChecks = [
   {
     file: path.join(root, 'templates', 'agent-md', 'BOOT.md'),
-    patterns: [/catalog/i, /\bplan\b/i, /layer/i],
-    note: 'should enforce catalog -> plan -> scoped recall bootstrap',
+    patterns: [/bootstrap|catalog/i, /\bplan\b/i, /layer|scope/i],
+    note: 'should enforce bootstrap/catalog -> plan -> scoped recall bootstrap',
   },
   {
     file: path.join(root, 'templates', 'agent-md', 'AGENTS.md'),
-    patterns: [/catalog/i, /\bplan\b/i, /narrow-first/i],
+    patterns: [/bootstrap|catalog/i, /\bplan\b/i, /narrow-first/i],
     note: 'should enforce low-context recall policy',
   },
 ];

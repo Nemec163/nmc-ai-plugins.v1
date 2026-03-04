@@ -1,4 +1,5 @@
 {
+  "openclawPlugin": "nmc-memory-fabric",
   "id": "nmc-memory-fabric",
   "kind": "memory",
   "name": "NMC Memory Fabric",
@@ -8,6 +9,18 @@
   "skills": [
     "./skills/memory-layer-router"
   ],
+  "admin": {
+    "uiHandles": {
+      "monitoring": [
+        "/v1/memory/stats",
+        "/v1/memory/layers",
+        "/v1/memory/catalog",
+        "/v1/memory/conflicts"
+      ],
+      "bootstrap": "/v1/memory/bootstrap",
+      "configPatch": "/v1/admin/plugins/nmc-memory-fabric/config"
+    }
+  },
   "uiHints": {
     "stateDir": {
       "label": "State Directory",

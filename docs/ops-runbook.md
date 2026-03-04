@@ -57,10 +57,10 @@ openclaw nmc-mem recall "portfolio rebalance decision" \
 openclaw nmc-mem layers --json
 ```
 
-### Inspect principal access profile (UI bootstrap contract)
+### Inspect principal bootstrap contract (UI/agent startup)
 
 ```bash
-openclaw nmc-mem access-profile \
+openclaw nmc-mem bootstrap \
   --principal trader-01 \
   --actor-level A2_domain_builder \
   --scope finance \

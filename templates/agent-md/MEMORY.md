@@ -6,7 +6,7 @@
 - Scopes: `{domain_scopes}`
 
 ## Layer Routing
-- Bootstrap with `nmc-mem access-profile` and `nmc-mem catalog` before recall.
+- Bootstrap with `nmc-mem bootstrap` before recall (profile + catalog + plan).
 - Default recall path: `M1_local -> M2_domain -> M4_global_facts`.
 - Use `M3_shared` only as explicit expansion.
 - Treat `M4_global_facts` as promotion-only for non-A4 actors.

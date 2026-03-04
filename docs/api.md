@@ -24,6 +24,7 @@ Mutating endpoints additionally require:
 - `POST /v1/agents/:id/access-level`
 - `POST /v1/memory/recall`
 - `GET /v1/memory/plan?query=...`
+- `GET /v1/memory/bootstrap?principal=orchestrator`
 - `GET /v1/memory/access-profile?principal=orchestrator`
 - `GET /v1/memory/catalog?principal=orchestrator`
 - `GET /v1/memory/principals?principal=orchestrator`
@@ -57,6 +58,8 @@ Requests without `principal` return `400 {"error":"principal_required"}`.
 For `POST /v1/memory/recall`, optional `layers` array narrows retrieval to explicit memory layers.
 `GET /v1/memory/plan` returns a narrow-first layer strategy (no memory content), useful for
 agents/UI to choose minimal retrieval scope before calling recall.
+`GET /v1/memory/bootstrap` returns principal-aware access profile + layer catalog + narrow-first
+plan in one payload (no memory snippets), preferred for agent/UI startup.
 `GET /v1/memory/access-profile` returns principal-specific ACL summary, suggested recall layers,
 and a bounded context budget recommendation without loading memory snippets.
 `GET /v1/memory/catalog` returns principal-aware layer orientation (ACL grants, visible counts,
@@ -66,6 +69,12 @@ and suggested strategy) without loading memory snippets.
 `GET /v1/memory/layers` returns machine-readable layer guidance and recommended recall order.
 Optional query `actor_level` includes effective read/write/promote profile for that level.
 `GET /v1/memory/access-profile` query:
+- `principal`: ACL principal (required)
+- `actor_level`: defaults to `A1_worker`
+- `scope`: defaults to `global`
+- `query`: optional routing seed for suggested recall layers
+- `layer`: repeatable explicit layer override
+`GET /v1/memory/bootstrap` query:
 - `principal`: ACL principal (required)
 - `actor_level`: defaults to `A1_worker`
 - `scope`: defaults to `global`
@@ -114,6 +123,8 @@ Use optional query `limit` (1..2000, default 200) to control tail size.
 
 `GET /v1/admin/skills` returns runtime-discovered skills (`openclaw skills list --json`)
 and plugin-manifest skill bindings (`pluginSkills`) for admin UI inventory.
+`GET /v1/admin/plugins/contracts` includes plugin descriptor contracts and optional
+manifest-declared `admin.uiHandles` for wiring config/monitoring UI actions.
 `GET /v1/admin/capabilities` returns a single payload for admin UI bootstrapping:
 - plugin contracts + redacted plugin entries
 - skill inventory + plugin-skill bindings

@@ -80,6 +80,21 @@ type MemoryCatalog = {
   };
 };
 
+type MemoryBootstrap = {
+  principal: string;
+  actorLevel: AccessLevel;
+  scope: string;
+  contextBudgetChars: number;
+  constraints: {
+    mustPassPrincipal: true;
+    requireExplicitLayersForRecall: true;
+    narrowFirstOrder: MemoryLayer[];
+  };
+  profile: AccessProfile;
+  catalog: MemoryCatalog;
+  plan: RecallPlan;
+};
+
 type HookHandler = (event: Record<string, unknown>) => Promise<unknown> | unknown;
 type GrantMode = "read" | "write" | "promote" | "admin";
 
@@ -447,6 +462,44 @@ const plugin = {
       };
     }
 
+    function buildMemoryBootstrap(input: {
+      principal: string;
+      actorLevel?: string;
+      scope?: string;
+      query?: string;
+      layers?: MemoryLayer[];
+    }): MemoryBootstrap {
+      const profile = buildAccessProfile(input);
+      const catalog = buildMemoryCatalog({
+        principal: profile.principal,
+        actorLevel: profile.actorLevel,
+        scope: profile.scope,
+        query: input.query,
+        layers: input.layers,
+      });
+      const plan = buildRecallPlan({
+        query: input.query?.trim() || "default recall",
+        actorLevel: profile.actorLevel,
+        scope: profile.scope,
+        layers: input.layers,
+      });
+
+      return {
+        principal: profile.principal,
+        actorLevel: profile.actorLevel,
+        scope: profile.scope,
+        contextBudgetChars: profile.suggestedContextBudgetChars,
+        constraints: {
+          mustPassPrincipal: true,
+          requireExplicitLayersForRecall: true,
+          narrowFirstOrder: ["M1_local", "M2_domain", "M4_global_facts"],
+        },
+        profile,
+        catalog,
+        plan,
+      };
+    }
+
     function registerCompatHook(kind: string, legacyEvent: string, handler: HookHandler): void {
       const apiLike = api as unknown as Record<string, unknown>;
       const registerHookFn = apiLike.registerHook;
@@ -577,6 +630,55 @@ const plugin = {
 
       return merged;
     }
+
+    api.registerTool(
+      {
+        name: "nmc_memory_bootstrap",
+        label: "NMC Memory Bootstrap",
+        description:
+          "Return principal-aware memory bootstrap payload (access profile + catalog + narrow-first plan).",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          required: ["principal"],
+          properties: {
+            principal: { type: "string" },
+            actorLevel: { type: "string" },
+            scope: { type: "string" },
+            query: { type: "string" },
+            layers: { type: "array", items: { type: "string" } },
+          },
+        },
+        async execute(_toolCallId, rawParams) {
+          const params = rawParams as {
+            principal: string;
+            actorLevel?: string;
+            scope?: string;
+            query?: string;
+            layers?: MemoryLayer[];
+          };
+          const principalCheck = requirePrincipal(params.principal);
+          if (!principalCheck.ok) {
+            return {
+              content: [{ type: "text", text: "Bootstrap denied: principal is required for ACL checks." }],
+              details: { ok: false, code: "principal_required" },
+            };
+          }
+          const payload = buildMemoryBootstrap({
+            principal: principalCheck.principal,
+            actorLevel: params.actorLevel,
+            scope: params.scope,
+            query: params.query,
+            layers: parseLayerFilter(params.layers),
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+            details: payload,
+          };
+        },
+      },
+      { name: "nmc_memory_bootstrap" },
+    );
 
     api.registerTool(
       {
@@ -1583,6 +1685,49 @@ const plugin = {
           });
 
         mem
+          .command("bootstrap")
+          .requiredOption("--principal <principal>", "acl principal")
+          .option("--actor-level <level>", "access level", "A1_worker")
+          .option("--scope <scope>", "scope", "global")
+          .option("--query <query>", "optional recall query seed", "default recall")
+          .option("--layer <layer>", "repeatable memory layer override", (value, prev: string[]) => {
+            prev.push(value);
+            return prev;
+          }, [])
+          .option("--json", "JSON output")
+          .action((opts: {
+            principal: string;
+            actorLevel?: string;
+            scope?: string;
+            query?: string;
+            layer?: string[];
+            json?: boolean;
+          }) => {
+            const principalCheck = requirePrincipal(opts.principal);
+            if (!principalCheck.ok) {
+              const payload = { ok: false, code: "principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("principal_required");
+              return;
+            }
+            const payload = buildMemoryBootstrap({
+              principal: principalCheck.principal,
+              actorLevel: opts.actorLevel,
+              scope: opts.scope,
+              query: opts.query,
+              layers: parseLayerFilter(opts.layer),
+            });
+            if (opts.json) {
+              console.log(JSON.stringify(payload, null, 2));
+              return;
+            }
+            console.log(
+              `${payload.principal} (${payload.actorLevel}) scope=${payload.scope} ` +
+                `budget=${payload.contextBudgetChars} strategy=${payload.plan.layers.join(" -> ")}`,
+            );
+          });
+
+        mem
           .command("plan")
           .argument("<query>")
           .option("--scope <scope>")
@@ -2220,6 +2365,7 @@ const plugin = {
           "nmc-mem",
           "nmc-mem stats",
           "nmc-mem layers",
+          "nmc-mem bootstrap",
           "nmc-mem plan",
           "nmc-mem access-profile",
           "nmc-mem catalog",

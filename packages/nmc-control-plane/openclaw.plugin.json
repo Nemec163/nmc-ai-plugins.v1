@@ -1,4 +1,5 @@
 {
+  "openclawPlugin": "nmc-control-plane",
   "id": "nmc-control-plane",
   "name": "NMC Control Plane",
   "description": "Local HTTP control-plane for memory and agent lifecycle operations",
@@ -7,6 +8,14 @@
   "skills": [
     "./skills/control-plane-admin"
   ],
+  "admin": {
+    "uiHandles": {
+      "capabilities": "/v1/admin/capabilities",
+      "monitoring": "/v1/admin/monitoring",
+      "pluginContracts": "/v1/admin/plugins/contracts",
+      "pluginConfigPatch": "/v1/admin/plugins/:id/config"
+    }
+  },
   "uiHints": {
     "host": {
       "label": "Bind Host",

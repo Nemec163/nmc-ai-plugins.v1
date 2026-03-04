@@ -111,7 +111,7 @@ if (discoverableIds.has('nmc-memory-fabric')) {
       autoCapture: true,
       autoRecallPrincipal: 'system:auto-recall',
       autoRecallActorLevel: 'A4_orchestrator_full',
-      autoRecallLayers: ['M0_core', 'M1_local', 'M2_domain', 'M3_shared', 'M4_global_facts'],
+      autoRecallLayers: ['M1_local', 'M2_domain', 'M4_global_facts'],
       autoRecallMaxContextChars: 1800,
       embedding: {
         apiKey: '${OPENAI_API_KEY}',
@@ -167,6 +167,7 @@ cfg.agents ??= {};
 cfg.agents.defaults ??= {};
 cfg.agents.defaults.toolsAllowlist ??= [];
 const baselineTools = [
+  'nmc_memory_bootstrap',
   'nmc_memory_plan',
   'nmc_memory_access_profile',
   'nmc_memory_catalog',
@@ -179,6 +180,8 @@ const baselineTools = [
   'nmc_memory_stats',
   'nmc_memory_principals',
   'nmc_memory_grants',
+  'nmc_memory_grant_set',
+  'nmc_memory_grant_delete',
   'nmc_memory_conflicts',
   'nmc_memory_conflict_resolve',
   'nmc_agent_list',

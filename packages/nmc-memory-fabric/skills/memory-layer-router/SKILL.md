@@ -8,8 +8,8 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.
 
 ## Workflow
 
-1. Start with memory catalog to orient visible layers/counters without loading snippets.
-2. Build a narrow-first plan from the current query and scope.
+1. Start with memory bootstrap (`profile + catalog + plan`) without loading snippets.
+2. Refine narrow-first plan from the current query and scope.
 3. Use explicit layer filters before increasing result limits.
 4. Escalate to broader layers only when the narrow search is insufficient.
 5. Store new memory in the lowest valid layer; use promotion flow for `M4_global_facts`.
@@ -24,6 +24,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.
 
 ## Commands
 
+- Tool: `nmc_memory_bootstrap` (single-call orientation: profile + catalog + plan)
 - Tool: `nmc_memory_catalog` (layer orientation without content load)
 - Tool: `nmc_memory_plan` (plan layers before retrieval)
 - Tool: `nmc_memory_access_profile` (principal ACL + suggested budget)
@@ -31,6 +32,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.
 - Tool: `nmc_memory_grants` (inspect grants for one principal without loading memory snippets)
 - Tool: `nmc_memory_recall` with `layers`
 - Tool: `nmc_memory_layers` (inspect layer guide)
+- CLI: `openclaw nmc-mem bootstrap --principal <id> --actor-level A1_worker --scope <scope> --query "<query>" --json`
 - CLI: `openclaw nmc-mem catalog --principal <id> --actor-level A1_worker --scope <scope> --query "<query>" --json`
 - CLI: `openclaw nmc-mem plan "<query>" --scope <scope> --actor-level A1_worker --json`
 - CLI: `openclaw nmc-mem access-profile --principal <id> --actor-level A2_domain_builder --json`

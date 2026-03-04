@@ -36,6 +36,7 @@ type PluginDescriptor = {
   skills?: string[];
   configSchema?: JsonSchema;
   uiHints?: Record<string, unknown>;
+  admin?: Record<string, unknown>;
 };
 
 function parseCfg(raw: unknown): Cfg {
@@ -228,6 +229,10 @@ function collectPluginDescriptors(discovered: Record<string, unknown>): Record<s
     const uiHintsFromConfig = config.uiHints && typeof config.uiHints === "object"
       ? (config.uiHints as Record<string, unknown>)
       : undefined;
+    const admin =
+      row.admin && typeof row.admin === "object" && !Array.isArray(row.admin)
+        ? (row.admin as Record<string, unknown>)
+        : undefined;
     out[id] = {
       id,
       name: typeof row.name === "string" ? row.name : undefined,
@@ -238,6 +243,7 @@ function collectPluginDescriptors(discovered: Record<string, unknown>): Record<s
         : undefined,
       configSchema: schemaFromConfig ?? schemaFromLegacy,
       uiHints: uiHintsFromConfig ?? uiHintsFromLegacy,
+      admin,
     };
   }
   return out;
@@ -562,6 +568,17 @@ const plugin = {
               const descriptors = collectPluginDescriptors(discovered);
               const listedSkills = await runOpenClawJson(["skills", "list", "--json"]);
               const layers = await runOpenClawJson(["nmc-mem", "layers", "--actor-level", actorLevel, "--json"]);
+              const bootstrap = await runOpenClawJson([
+                "nmc-mem",
+                "bootstrap",
+                "--principal",
+                cfg.adminPrincipal,
+                "--actor-level",
+                actorLevel,
+                "--query",
+                "admin capabilities bootstrap",
+                "--json",
+              ]);
               const accessProfile = await runOpenClawJson([
                 "nmc-mem",
                 "access-profile",
@@ -615,6 +632,7 @@ const plugin = {
                   memory: {
                     actorLevel,
                     layers,
+                    bootstrap,
                     accessProfile,
                     catalog: memoryCatalog,
                   },
@@ -629,6 +647,7 @@ const plugin = {
                     ],
                     memory: [
                       "/v1/memory/plan",
+                      "/v1/memory/bootstrap",
                       "/v1/memory/access-profile",
                       "/v1/memory/catalog",
                       "/v1/memory/principals",
@@ -892,6 +911,35 @@ const plugin = {
               const args = [
                 "nmc-mem",
                 "access-profile",
+                "--principal",
+                principal,
+                "--actor-level",
+                String(url.searchParams.get("actor_level") ?? "A1_worker"),
+                "--scope",
+                String(url.searchParams.get("scope") ?? "global"),
+                "--query",
+                String(url.searchParams.get("query") ?? "default recall"),
+                "--json",
+              ];
+              for (const layer of url.searchParams.getAll("layer")) {
+                const trimmed = String(layer ?? "").trim();
+                if (!trimmed) continue;
+                args.push("--layer", trimmed);
+              }
+              const payload = await runOpenClawJson(args);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
+            if (method === "GET" && path === "/v1/memory/bootstrap") {
+              const principal = String(url.searchParams.get("principal") ?? "").trim();
+              if (!principal) {
+                json(res, 400, { ok: false, error: "principal_required" });
+                return;
+              }
+              const args = [
+                "nmc-mem",
+                "bootstrap",
                 "--principal",
                 principal,
                 "--actor-level",

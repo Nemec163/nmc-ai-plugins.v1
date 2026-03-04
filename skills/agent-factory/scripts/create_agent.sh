@@ -22,7 +22,7 @@ openclaw "${args[@]}"
 
 # Emit memory access profile for the new principal so operators can verify
 # layer visibility without loading memory content.
-openclaw nmc-mem access-profile \
+openclaw nmc-mem bootstrap \
   --principal "$agent_id" \
   --actor-level "$access_level" \
   --query "agent bootstrap memory routing" \
