@@ -319,7 +319,7 @@ const plugin = {
 
             if (method === "POST" && path === "/v1/memory/promote") {
               const body = await readJsonBody(req);
-              const principal = String(body.principal ?? body.requested_by ?? "").trim();
+              const principal = String(body.principal ?? "").trim();
               if (!principal) {
                 json(res, 400, { ok: false, error: "principal_required" });
                 return;
@@ -350,7 +350,7 @@ const plugin = {
                 path.replace("/v1/memory/promotions/", "").replace("/decide", ""),
               );
               const body = await readJsonBody(req);
-              const principal = String(body.principal ?? body.reviewer ?? "").trim();
+              const principal = String(body.principal ?? "").trim();
               if (!principal) {
                 json(res, 400, { ok: false, error: "principal_required" });
                 return;
