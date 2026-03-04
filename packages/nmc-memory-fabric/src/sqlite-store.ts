@@ -88,6 +88,14 @@ export type ConflictResolveResult = {
     | null;
 };
 
+export type GrantRow = {
+  principal: string;
+  layer: MemoryLayer;
+  scope: string;
+  mode: "read" | "write" | "promote" | "admin";
+  createdAt: number;
+};
+
 export type PruneResult = {
   hardDeleted: number;
   hardDeletedIds: string[];
@@ -698,6 +706,33 @@ export class FactsStore {
       )
       .get(principal.trim(), layer, mode, normalizedScope);
     return Boolean(row);
+  }
+
+  listGrants(principal: string): GrantRow[] {
+    const rows = this.db
+      .prepare(
+        `
+        SELECT principal, layer, scope, mode, created_at
+        FROM acl_grants
+        WHERE principal = ?
+        ORDER BY layer ASC, mode ASC, scope ASC
+      `,
+      )
+      .all(principal.trim()) as Array<{
+      principal: string;
+      layer: MemoryLayer;
+      scope: string;
+      mode: "read" | "write" | "promote" | "admin";
+      created_at: number;
+    }>;
+
+    return rows.map((row) => ({
+      principal: row.principal,
+      layer: row.layer,
+      scope: row.scope,
+      mode: row.mode,
+      createdAt: row.created_at,
+    }));
   }
 
   listConflicts(limit = 20, status: "pending" | "resolved" | "all" = "pending"): ConflictRow[] {

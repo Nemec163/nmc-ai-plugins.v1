@@ -50,10 +50,11 @@ Installer behavior:
 - Auth: `Authorization: Bearer $NMC_AI_PLUGINS_API_TOKEN`
 - Mutation gate: `x-nmc-mutation-token: $NMC_AI_PLUGINS_MUTATION_TOKEN` (unless `allowMutations=true`)
 - Admin/UI hooks: `GET /v1/admin/plugins`, `GET /v1/admin/plugins/contracts`, `POST /v1/admin/plugins/:id/config`
-- Admin/UI capabilities: `GET /v1/admin/capabilities` (contracts + skills + memory layers), `GET /v1/admin/monitoring` (runtime dashboard payload)
+- Admin/UI capabilities: `GET /v1/admin/capabilities` (contracts + skills + memory layers + access profile), `GET /v1/admin/monitoring` (runtime dashboard payload)
 - Skills/UI hooks: `GET /v1/admin/skills` (runtime + plugin-bound skills inventory)
 - Memory recall supports optional layer routing (`layers` in API or `--layer` in CLI)
 - Memory planning endpoint for narrow-first routing before recall: `GET /v1/memory/plan`
+- Principal access profile for UI/agent bootstrap (ACL + suggested layers + context budget): `GET /v1/memory/access-profile`
 - Memory conflict queue for manual curation (ACL principal required): `GET /v1/memory/conflicts`, `POST /v1/memory/conflicts/:id/resolve`
 - Memory layer metadata for agents/UI: `GET /v1/memory/layers` (`openclaw nmc-mem layers --json`)
 

@@ -15,6 +15,7 @@
 7. Default recall path is narrow-first (`M1_local -> M2_domain -> M4_global_facts`), with `M3_shared` as explicit expansion layer.
 8. Conflict queue (`fact_conflicts`) prevents noisy overwrites for the same natural key and supports manual resolve.
 9. Recall planning is explicit (`nmc-mem plan` / `/v1/memory/plan`) so agents can choose layers before loading memory snippets.
+10. Principal access bootstrap is explicit (`nmc-mem access-profile` / `/v1/memory/access-profile`) so UI/agents can apply ACL-aware layer routing and context budget defaults before recall.
 
 ## Multi-agent best practice
 
@@ -22,7 +23,7 @@
 - Require explicit `principal` for recall/store/promote/decide flows.
 - Treat `M4_global_facts` as curated memory only via promotion workflow.
 - Keep context tight: layer filters + small limits first, then controlled expansion.
-- Use control-plane admin endpoints for observability (`/v1/memory/stats`, `/v1/memory/layers`, `/v1/memory/conflicts`).
+- Use control-plane admin endpoints for observability (`/v1/memory/stats`, `/v1/memory/layers`, `/v1/memory/access-profile`, `/v1/memory/conflicts`).
 
 ## Lifecycle
 

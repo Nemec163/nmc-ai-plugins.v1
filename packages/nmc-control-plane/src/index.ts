@@ -562,6 +562,17 @@ const plugin = {
               const descriptors = collectPluginDescriptors(discovered);
               const listedSkills = await runOpenClawJson(["skills", "list", "--json"]);
               const layers = await runOpenClawJson(["nmc-mem", "layers", "--actor-level", actorLevel, "--json"]);
+              const accessProfile = await runOpenClawJson([
+                "nmc-mem",
+                "access-profile",
+                "--principal",
+                cfg.adminPrincipal,
+                "--actor-level",
+                actorLevel,
+                "--query",
+                "admin capabilities bootstrap",
+                "--json",
+              ]);
               const { path: configPath, cfg: openclawCfg } = await readOpenClawConfigJson();
               const plugins = asObject(openclawCfg.plugins);
               const pluginSkills = Object.values(descriptors)
@@ -593,6 +604,7 @@ const plugin = {
                   memory: {
                     actorLevel,
                     layers,
+                    accessProfile,
                   },
                   endpoints: {
                     admin: [
@@ -605,6 +617,7 @@ const plugin = {
                     ],
                     memory: [
                       "/v1/memory/plan",
+                      "/v1/memory/access-profile",
                       "/v1/memory/recall",
                       "/v1/memory/store",
                       "/v1/memory/promote",
@@ -630,6 +643,19 @@ const plugin = {
                 runOpenClawJson(["nmc-mem", "layers", "--actor-level", actorLevel, "--json"]),
                 runOpenClawJson(["nmc-agent", "doctor", "--json"]),
               ]);
+              const accessProfile = principal
+                ? await runOpenClawJson([
+                    "nmc-mem",
+                    "access-profile",
+                    "--principal",
+                    principal,
+                    "--actor-level",
+                    actorLevel,
+                    "--query",
+                    "monitoring dashboard",
+                    "--json",
+                  ])
+                : null;
               let conflicts: Record<string, unknown> | null = null;
               if (principal) {
                 conflicts = await runOpenClawJson([
@@ -660,6 +686,7 @@ const plugin = {
                   memory: {
                     stats,
                     layers,
+                    accessProfile,
                     conflictsPending: conflicts ? extractCount(conflicts) : null,
                     conflicts,
                   },
@@ -787,6 +814,35 @@ const plugin = {
               if (scope) {
                 args.push("--scope", scope);
               }
+              for (const layer of url.searchParams.getAll("layer")) {
+                const trimmed = String(layer ?? "").trim();
+                if (!trimmed) continue;
+                args.push("--layer", trimmed);
+              }
+              const payload = await runOpenClawJson(args);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
+            if (method === "GET" && path === "/v1/memory/access-profile") {
+              const principal = String(url.searchParams.get("principal") ?? "").trim();
+              if (!principal) {
+                json(res, 400, { ok: false, error: "principal_required" });
+                return;
+              }
+              const args = [
+                "nmc-mem",
+                "access-profile",
+                "--principal",
+                principal,
+                "--actor-level",
+                String(url.searchParams.get("actor_level") ?? "A1_worker"),
+                "--scope",
+                String(url.searchParams.get("scope") ?? "global"),
+                "--query",
+                String(url.searchParams.get("query") ?? "default recall"),
+                "--json",
+              ];
               for (const layer of url.searchParams.getAll("layer")) {
                 const trimmed = String(layer ?? "").trim();
                 if (!trimmed) continue;
