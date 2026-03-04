@@ -696,6 +696,24 @@ export class FactsStore {
       .run(randomUUID(), principal, layer, normalizeScope(scope), mode, nowMs());
   }
 
+  deleteGrant(
+    principal: string,
+    layer: MemoryLayer,
+    scope: string,
+    mode: "read" | "write" | "promote" | "admin",
+  ): boolean {
+    const res = this.db
+      .prepare(
+        `DELETE FROM acl_grants
+         WHERE principal = ?
+           AND layer = ?
+           AND scope = ?
+           AND mode = ?`,
+      )
+      .run(principal.trim(), layer, normalizeScope(scope), mode);
+    return res.changes > 0;
+  }
+
   deleteGrants(principal: string): number {
     const res = this.db.prepare(`DELETE FROM acl_grants WHERE principal = ?`).run(principal);
     return res.changes;

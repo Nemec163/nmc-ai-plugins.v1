@@ -57,6 +57,7 @@ Installer behavior:
 - Principal access profile for UI/agent bootstrap (ACL + suggested layers + context budget): `GET /v1/memory/access-profile`
 - Principal memory catalog for zero-content layer orientation (ACL grants + visible counters + strategy): `GET /v1/memory/catalog`
 - Principal ACL inventory for admin/operator visibility: `GET /v1/memory/principals`
+- Principal ACL grant editor handles for admin UI: `GET/POST/DELETE /v1/memory/grants`
 - Memory conflict queue for manual curation (ACL principal required): `GET /v1/memory/conflicts`, `POST /v1/memory/conflicts/:id/resolve`
 - Memory layer metadata for agents/UI: `GET /v1/memory/layers` (`openclaw nmc-mem layers --json`)
 

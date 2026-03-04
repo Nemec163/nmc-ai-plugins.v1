@@ -632,6 +632,7 @@ const plugin = {
                       "/v1/memory/access-profile",
                       "/v1/memory/catalog",
                       "/v1/memory/principals",
+                      "/v1/memory/grants",
                       "/v1/memory/recall",
                       "/v1/memory/store",
                       "/v1/memory/promote",
@@ -696,6 +697,19 @@ const plugin = {
                     "--json",
                   ])
                 : null;
+              const grants = principal
+                ? await runOpenClawJson([
+                    "nmc-mem",
+                    "grants",
+                    "--principal",
+                    principal,
+                    "--target",
+                    principal,
+                    "--actor-level",
+                    actorLevel,
+                    "--json",
+                  ])
+                : null;
               let conflicts: Record<string, unknown> | null = null;
               if (principal) {
                 conflicts = await runOpenClawJson([
@@ -730,6 +744,8 @@ const plugin = {
                     catalog,
                     principalsCount: principals ? extractCount(principals) : null,
                     principals,
+                    grantsCount: grants ? extractCount(grants) : null,
+                    grants,
                     conflictsPending: conflicts ? extractCount(conflicts) : null,
                     conflicts,
                   },
@@ -942,6 +958,110 @@ const plugin = {
                 actorLevel,
                 "--principal",
                 principal,
+                "--json",
+              ]);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
+            if (method === "GET" && path === "/v1/memory/grants") {
+              const principal = String(url.searchParams.get("principal") ?? "").trim();
+              if (!principal) {
+                json(res, 400, { ok: false, error: "principal_required" });
+                return;
+              }
+              const targetPrincipal = String(url.searchParams.get("target_principal") ?? principal).trim();
+              if (!targetPrincipal) {
+                json(res, 400, { ok: false, error: "target_principal_required" });
+                return;
+              }
+              const actorLevel = String(url.searchParams.get("actor_level") ?? "A3_system_operator");
+              const payload = await runOpenClawJson([
+                "nmc-mem",
+                "grants",
+                "--principal",
+                principal,
+                "--target",
+                targetPrincipal,
+                "--actor-level",
+                actorLevel,
+                "--json",
+              ]);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
+            if (method === "POST" && path === "/v1/memory/grants") {
+              const body = await readJsonBody(req);
+              const principal = String(body.principal ?? "").trim();
+              if (!principal) {
+                json(res, 400, { ok: false, error: "principal_required" });
+                return;
+              }
+              const targetPrincipal = String(body.target_principal ?? "").trim();
+              if (!targetPrincipal) {
+                json(res, 400, { ok: false, error: "target_principal_required" });
+                return;
+              }
+              const layer = String(body.layer ?? "").trim();
+              const mode = String(body.mode ?? "").trim();
+              if (!layer || !mode) {
+                json(res, 400, { ok: false, error: "layer_and_mode_required" });
+                return;
+              }
+              const payload = await runOpenClawJson([
+                "nmc-mem",
+                "grant-set",
+                "--principal",
+                principal,
+                "--target",
+                targetPrincipal,
+                "--layer",
+                layer,
+                "--mode",
+                mode,
+                "--scope",
+                String(body.scope ?? "global"),
+                "--actor-level",
+                String(body.actor_level ?? "A4_orchestrator_full"),
+                "--json",
+              ]);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
+            if (method === "DELETE" && path === "/v1/memory/grants") {
+              const principal = String(url.searchParams.get("principal") ?? "").trim();
+              if (!principal) {
+                json(res, 400, { ok: false, error: "principal_required" });
+                return;
+              }
+              const targetPrincipal = String(url.searchParams.get("target_principal") ?? "").trim();
+              if (!targetPrincipal) {
+                json(res, 400, { ok: false, error: "target_principal_required" });
+                return;
+              }
+              const layer = String(url.searchParams.get("layer") ?? "").trim();
+              const mode = String(url.searchParams.get("mode") ?? "").trim();
+              if (!layer || !mode) {
+                json(res, 400, { ok: false, error: "layer_and_mode_required" });
+                return;
+              }
+              const payload = await runOpenClawJson([
+                "nmc-mem",
+                "grant-delete",
+                "--principal",
+                principal,
+                "--target",
+                targetPrincipal,
+                "--layer",
+                layer,
+                "--mode",
+                mode,
+                "--scope",
+                String(url.searchParams.get("scope") ?? "global"),
+                "--actor-level",
+                String(url.searchParams.get("actor_level") ?? "A4_orchestrator_full"),
                 "--json",
               ]);
               json(res, 200, { ok: true, data: payload });

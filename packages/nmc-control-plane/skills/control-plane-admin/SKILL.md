@@ -1,7 +1,7 @@
 ---
 name: control-plane-admin
 description: Operate and configure the local NMC control-plane API for monitoring and admin workflows. Use when checking service health, inspecting plugin setup, or applying safe plugin config patches.
-metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.enabled"]}}}
+metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.enabled"],"anyBins":["openclaw"]}}}
 ---
 
 # Control Plane Admin
@@ -27,6 +27,9 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - `GET /v1/memory/access-profile?principal=...`
 - `GET /v1/memory/catalog?principal=...`
 - `GET /v1/memory/principals?principal=...`
+- `GET /v1/memory/grants?principal=...&target_principal=...`
+- `POST /v1/memory/grants`
+- `DELETE /v1/memory/grants?...`
 - `GET /v1/memory/conflicts`
 - `POST /v1/memory/conflicts/:id/resolve`
 
@@ -39,5 +42,6 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - For dashboard monitoring, prefer `GET /v1/admin/monitoring` with explicit `principal` for accurate conflict counters.
 - For principal-aware UI defaults, fetch `GET /v1/memory/access-profile` before recall/store actions.
 - For zero-content memory orientation, fetch `GET /v1/memory/catalog` before recall (layer visibility + counters + strategy).
+- For manual ACL tuning, inspect `GET /v1/memory/grants` before `POST`/`DELETE` changes.
 - For memory conflict endpoints, always pass `principal` and explicit `actor_level` (`A3` list, `A4` resolve).
 - Inspect pending conflicts first; resolve one conflict at a time.

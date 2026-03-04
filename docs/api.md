@@ -27,6 +27,9 @@ Mutating endpoints additionally require:
 - `GET /v1/memory/access-profile?principal=orchestrator`
 - `GET /v1/memory/catalog?principal=orchestrator`
 - `GET /v1/memory/principals?principal=orchestrator`
+- `GET /v1/memory/grants?principal=orchestrator&target_principal=trader-01`
+- `POST /v1/memory/grants`
+- `DELETE /v1/memory/grants?principal=orchestrator&target_principal=trader-01&layer=M2_domain&mode=read&scope=finance`
 - `POST /v1/memory/store`
 - `POST /v1/memory/promote`
 - `POST /v1/memory/promotions/:id/decide`
@@ -59,6 +62,7 @@ and a bounded context budget recommendation without loading memory snippets.
 `GET /v1/memory/catalog` returns principal-aware layer orientation (ACL grants, visible counts,
 and suggested strategy) without loading memory snippets.
 `GET /v1/memory/principals` returns ACL principal inventory (grant counts by mode/layer/scope) for admin UI and operator audits.
+`GET /v1/memory/grants` returns explicit grants for one target principal, used by admin UI manual ACL editors.
 `GET /v1/memory/layers` returns machine-readable layer guidance and recommended recall order.
 Optional query `actor_level` includes effective read/write/promote profile for that level.
 `GET /v1/memory/access-profile` query:
@@ -71,6 +75,24 @@ Optional query `actor_level` includes effective read/write/promote profile for t
 - `principal`: ACL principal requesting inventory access (required)
 - `actor_level`: defaults to `A3_system_operator`
 - `limit`: `1..2000` (default `200`)
+`GET /v1/memory/grants` query:
+- `principal`: ACL principal requesting access (required)
+- `target_principal`: principal whose grants are returned (defaults to `principal`)
+- `actor_level`: defaults to `A3_system_operator`
+`POST /v1/memory/grants` body:
+- `principal`: ACL principal requesting mutation (required)
+- `target_principal`: principal whose grant will be set (required)
+- `layer`: memory layer (required)
+- `mode`: `read|write|promote|admin` (required)
+- `scope`: defaults to `global`
+- `actor_level`: defaults to `A4_orchestrator_full`
+`DELETE /v1/memory/grants` query:
+- `principal`: ACL principal requesting mutation (required)
+- `target_principal`: principal whose grant will be removed (required)
+- `layer`: memory layer (required)
+- `mode`: `read|write|promote|admin` (required)
+- `scope`: defaults to `global`
+- `actor_level`: defaults to `A4_orchestrator_full`
 `GET /v1/memory/catalog` query:
 - `principal`: ACL principal (required)
 - `actor_level`: defaults to `A1_worker`

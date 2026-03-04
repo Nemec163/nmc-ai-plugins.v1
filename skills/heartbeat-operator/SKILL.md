@@ -1,7 +1,7 @@
 ---
 name: heartbeat-operator
 description: Run proactive heartbeat operations for agent/task continuity. Use when periodic checks, stale-task detection, and operational nudges are required around kanban/cron workflows.
-metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.enabled"]}}}
+metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.enabled"],"anyBins":["openclaw"]}}}
 ---
 
 # Heartbeat Operator

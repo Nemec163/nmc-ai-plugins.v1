@@ -78,6 +78,14 @@ openclaw nmc-mem principals \
   --json
 ```
 
+### Inspect or tune principal grants (admin UI backend)
+
+```bash
+openclaw nmc-mem grants --principal orchestrator --target trader-01 --actor-level A3_system_operator --json
+openclaw nmc-mem grant-set --principal orchestrator --target trader-01 --layer M2_domain --mode read --scope finance --actor-level A4_orchestrator_full --json
+openclaw nmc-mem grant-delete --principal orchestrator --target trader-01 --layer M2_domain --mode read --scope finance --actor-level A4_orchestrator_full --json
+```
+
 ### Inspect and resolve memory conflicts
 
 ```bash

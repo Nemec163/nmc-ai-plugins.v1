@@ -190,6 +190,14 @@ for (const dir of allSkillDirs()) {
               }
             }
           }
+          if (requires.anyBins !== undefined) {
+            const bins = Array.isArray(requires.anyBins) ? requires.anyBins : [];
+            if (!bins.includes('openclaw')) {
+              report.skills.warnings.push(`${skillFile}: metadata.openclaw.requires.anyBins should include 'openclaw'`);
+            }
+          } else {
+            report.skills.warnings.push(`${skillFile}: metadata.openclaw.requires.anyBins missing (recommended: [\"openclaw\"])`);
+          }
         }
       }
     }
@@ -203,6 +211,28 @@ for (const dir of allSkillDirs()) {
   const openaiYaml = path.join(dir, 'agents', 'openai.yaml');
   if (!fs.existsSync(openaiYaml)) {
     report.skills.warnings.push(`${dir}: missing agents/openai.yaml`);
+  }
+}
+
+const templateChecks = [
+  {
+    file: path.join(root, 'templates', 'agent-md', 'BOOT.md'),
+    patterns: [/catalog/i, /\bplan\b/i, /layer/i],
+    note: 'should enforce catalog -> plan -> scoped recall bootstrap',
+  },
+  {
+    file: path.join(root, 'templates', 'agent-md', 'AGENTS.md'),
+    patterns: [/catalog/i, /\bplan\b/i, /narrow-first/i],
+    note: 'should enforce low-context recall policy',
+  },
+];
+
+for (const check of templateChecks) {
+  if (!fs.existsSync(check.file)) continue;
+  const text = fs.readFileSync(check.file, 'utf-8');
+  const ok = check.patterns.every((re) => re.test(text));
+  if (!ok) {
+    report.skills.warnings.push(`${check.file}: ${check.note}`);
   }
 }
 

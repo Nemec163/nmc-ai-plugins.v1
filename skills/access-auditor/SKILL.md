@@ -1,7 +1,7 @@
 ---
 name: access-auditor
 description: Audit memory access levels and grant consistency for managed agents. Use when validating ACL policy, detecting drift, or reviewing whether an agent is over-privileged.
-metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycle.enabled","plugins.entries.nmc-memory-fabric.enabled"]}}}
+metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycle.enabled","plugins.entries.nmc-memory-fabric.enabled"],"anyBins":["openclaw"]}}}
 ---
 
 # Access Auditor
@@ -18,6 +18,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycl
 - Snapshot: `scripts/access_snapshot.sh`
 - Compare: `scripts/access_check.sh`
 - Principals inventory: `openclaw nmc-mem principals --principal <id> --actor-level A3_system_operator --json`
+- Principal grants: `openclaw nmc-mem grants --principal <id> --target <id> --actor-level A3_system_operator --json`
 
 ## Policy
 

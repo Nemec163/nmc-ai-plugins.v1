@@ -81,6 +81,7 @@ type MemoryCatalog = {
 };
 
 type HookHandler = (event: Record<string, unknown>) => Promise<unknown> | unknown;
+type GrantMode = "read" | "write" | "promote" | "admin";
 
 function parseLayerFilter(value: unknown): MemoryLayer[] | undefined {
   if (!Array.isArray(value)) return undefined;
@@ -88,6 +89,15 @@ function parseLayerFilter(value: unknown): MemoryLayer[] | undefined {
     (layer): layer is MemoryLayer => typeof layer === "string" && MEMORY_LAYERS.includes(layer as MemoryLayer),
   );
   return out.length ? out : undefined;
+}
+
+function parseGrantMode(value: unknown): GrantMode | null {
+  if (typeof value !== "string") return null;
+  const mode = value.trim();
+  if (mode === "read" || mode === "write" || mode === "promote" || mode === "admin") {
+    return mode;
+  }
+  return null;
 }
 
 function extractHookPrompt(event: Record<string, unknown>): string {
@@ -1199,6 +1209,220 @@ const plugin = {
 
     api.registerTool(
       {
+        name: "nmc_memory_grants",
+        label: "NMC Memory Grants",
+        description: "List ACL memory grants for one principal (self or operator view).",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          required: ["principal"],
+          properties: {
+            principal: { type: "string" },
+            targetPrincipal: { type: "string" },
+            actorLevel: { type: "string" },
+          },
+        },
+        async execute(_toolCallId, rawParams) {
+          const params = rawParams as {
+            principal: string;
+            targetPrincipal?: string;
+            actorLevel?: string;
+          };
+          const level = parseAccessLevel(params.actorLevel);
+          const principalCheck = requirePrincipal(params.principal);
+          if (!principalCheck.ok) {
+            return {
+              content: [{ type: "text", text: "Grant listing denied: principal is required." }],
+              details: { ok: false, code: "principal_required" },
+            };
+          }
+          const targetPrincipal = (params.targetPrincipal ?? principalCheck.principal).trim();
+          if (!targetPrincipal) {
+            return {
+              content: [{ type: "text", text: "Grant listing denied: target principal is required." }],
+              details: { ok: false, code: "target_principal_required" },
+            };
+          }
+          const selfView = targetPrincipal === principalCheck.principal;
+          if (!selfView && !canAuditRead(level, principalCheck.principal)) {
+            return {
+              content: [{ type: "text", text: "Grant listing denied by ACL policy." }],
+              details: { ok: false, code: "access_denied" },
+            };
+          }
+          const rows = facts.listGrants(targetPrincipal);
+          return {
+            content: [{ type: "text", text: JSON.stringify({ count: rows.length, rows }, null, 2) }],
+            details: { ok: true, count: rows.length, principal: targetPrincipal, rows },
+          };
+        },
+      },
+      { name: "nmc_memory_grants" },
+    );
+
+    api.registerTool(
+      {
+        name: "nmc_memory_grant_set",
+        label: "NMC Memory Grant Set",
+        description: "Create one ACL grant for manual principal/layer/scope tuning.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          required: ["principal", "targetPrincipal", "layer", "mode"],
+          properties: {
+            principal: { type: "string" },
+            targetPrincipal: { type: "string" },
+            actorLevel: { type: "string" },
+            layer: { type: "string", enum: MEMORY_LAYERS },
+            scope: { type: "string" },
+            mode: { type: "string", enum: ["read", "write", "promote", "admin"] },
+          },
+        },
+        async execute(_toolCallId, rawParams) {
+          const params = rawParams as {
+            principal: string;
+            targetPrincipal: string;
+            actorLevel?: string;
+            layer: MemoryLayer;
+            scope?: string;
+            mode: GrantMode;
+          };
+          const level = parseAccessLevel(params.actorLevel);
+          const principalCheck = requirePrincipal(params.principal);
+          if (!principalCheck.ok) {
+            return {
+              content: [{ type: "text", text: "Grant mutation denied: principal is required." }],
+              details: { ok: false, code: "principal_required" },
+            };
+          }
+          if (!canAuditAdmin(level, principalCheck.principal)) {
+            return {
+              content: [{ type: "text", text: "Grant mutation denied by ACL policy." }],
+              details: { ok: false, code: "access_denied" },
+            };
+          }
+          const targetPrincipal = params.targetPrincipal.trim();
+          const mode = parseGrantMode(params.mode);
+          if (!targetPrincipal) {
+            return {
+              content: [{ type: "text", text: "Grant mutation denied: target principal is required." }],
+              details: { ok: false, code: "target_principal_required" },
+            };
+          }
+          if (!mode) {
+            return {
+              content: [{ type: "text", text: "Grant mutation denied: invalid mode." }],
+              details: { ok: false, code: "mode_required" },
+            };
+          }
+          const scope = normalizeScope(params.scope);
+          facts.upsertGrant(targetPrincipal, params.layer, scope, mode);
+          const rows = facts.listGrants(targetPrincipal);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Grant set: ${targetPrincipal} ${params.layer} ${scope} ${mode} (${rows.length} total grants).`,
+              },
+            ],
+            details: {
+              ok: true,
+              action: "grant_set",
+              principal: targetPrincipal,
+              grant: { layer: params.layer, scope, mode },
+              count: rows.length,
+              rows,
+            },
+          };
+        },
+      },
+      { name: "nmc_memory_grant_set" },
+    );
+
+    api.registerTool(
+      {
+        name: "nmc_memory_grant_delete",
+        label: "NMC Memory Grant Delete",
+        description: "Delete one ACL grant from a principal.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          required: ["principal", "targetPrincipal", "layer", "mode"],
+          properties: {
+            principal: { type: "string" },
+            targetPrincipal: { type: "string" },
+            actorLevel: { type: "string" },
+            layer: { type: "string", enum: MEMORY_LAYERS },
+            scope: { type: "string" },
+            mode: { type: "string", enum: ["read", "write", "promote", "admin"] },
+          },
+        },
+        async execute(_toolCallId, rawParams) {
+          const params = rawParams as {
+            principal: string;
+            targetPrincipal: string;
+            actorLevel?: string;
+            layer: MemoryLayer;
+            scope?: string;
+            mode: GrantMode;
+          };
+          const level = parseAccessLevel(params.actorLevel);
+          const principalCheck = requirePrincipal(params.principal);
+          if (!principalCheck.ok) {
+            return {
+              content: [{ type: "text", text: "Grant deletion denied: principal is required." }],
+              details: { ok: false, code: "principal_required" },
+            };
+          }
+          if (!canAuditAdmin(level, principalCheck.principal)) {
+            return {
+              content: [{ type: "text", text: "Grant deletion denied by ACL policy." }],
+              details: { ok: false, code: "access_denied" },
+            };
+          }
+          const targetPrincipal = params.targetPrincipal.trim();
+          const mode = parseGrantMode(params.mode);
+          if (!targetPrincipal) {
+            return {
+              content: [{ type: "text", text: "Grant deletion denied: target principal is required." }],
+              details: { ok: false, code: "target_principal_required" },
+            };
+          }
+          if (!mode) {
+            return {
+              content: [{ type: "text", text: "Grant deletion denied: invalid mode." }],
+              details: { ok: false, code: "mode_required" },
+            };
+          }
+          const scope = normalizeScope(params.scope);
+          const deleted = facts.deleteGrant(targetPrincipal, params.layer, scope, mode);
+          const rows = facts.listGrants(targetPrincipal);
+          return {
+            content: [
+              {
+                type: "text",
+                text: deleted
+                  ? `Grant deleted: ${targetPrincipal} ${params.layer} ${scope} ${mode}.`
+                  : `Grant not found: ${targetPrincipal} ${params.layer} ${scope} ${mode}.`,
+              },
+            ],
+            details: {
+              ok: true,
+              action: "grant_delete",
+              deleted,
+              principal: targetPrincipal,
+              grant: { layer: params.layer, scope, mode },
+              count: rows.length,
+              rows,
+            },
+          };
+        },
+      },
+      { name: "nmc_memory_grant_delete" },
+    );
+
+    api.registerTool(
+      {
         name: "nmc_memory_conflicts",
         label: "NMC Memory Conflicts",
         description: "List pending/resolved fact conflicts detected by natural-key upsert.",
@@ -1731,6 +1955,168 @@ const plugin = {
           });
 
         mem
+          .command("grants")
+          .requiredOption("--principal <principal>", "acl principal")
+          .option("--target <principal>", "target principal (defaults to --principal)")
+          .option("--actor-level <level>", "access level", "A3_system_operator")
+          .option("--json", "JSON output")
+          .action((opts: {
+            principal: string;
+            target?: string;
+            actorLevel?: string;
+            json?: boolean;
+          }) => {
+            const level = parseAccessLevel(String(opts.actorLevel ?? "A3_system_operator"));
+            const principalCheck = requirePrincipal(opts.principal);
+            if (!principalCheck.ok) {
+              const payload = { ok: false, code: "principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("principal_required");
+              return;
+            }
+            const targetPrincipal = String(opts.target ?? principalCheck.principal).trim();
+            if (!targetPrincipal) {
+              const payload = { ok: false, code: "target_principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("target_principal_required");
+              return;
+            }
+            if (targetPrincipal !== principalCheck.principal && !canAuditRead(level, principalCheck.principal)) {
+              const payload = { ok: false, code: "access_denied" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("Access denied");
+              return;
+            }
+            const rows = facts.listGrants(targetPrincipal);
+            const payload = { ok: true, principal: targetPrincipal, count: rows.length, rows };
+            if (opts.json) console.log(JSON.stringify(payload, null, 2));
+            else console.log(JSON.stringify(payload, null, 2));
+          });
+
+        mem
+          .command("grant-set")
+          .requiredOption("--principal <principal>", "acl principal")
+          .requiredOption("--target <principal>", "target principal")
+          .requiredOption("--layer <layer>", "memory layer")
+          .requiredOption("--mode <mode>", "read|write|promote|admin")
+          .option("--scope <scope>", "scope", "global")
+          .option("--actor-level <level>", "access level", "A4_orchestrator_full")
+          .option("--json", "JSON output")
+          .action((opts: {
+            principal: string;
+            target: string;
+            layer: MemoryLayer;
+            mode: string;
+            scope?: string;
+            actorLevel?: string;
+            json?: boolean;
+          }) => {
+            const level = parseAccessLevel(String(opts.actorLevel ?? "A4_orchestrator_full"));
+            const principalCheck = requirePrincipal(opts.principal);
+            if (!principalCheck.ok) {
+              const payload = { ok: false, code: "principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("principal_required");
+              return;
+            }
+            if (!canAuditAdmin(level, principalCheck.principal)) {
+              const payload = { ok: false, code: "access_denied" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("Access denied");
+              return;
+            }
+            const targetPrincipal = opts.target.trim();
+            const mode = parseGrantMode(opts.mode);
+            if (!targetPrincipal) {
+              const payload = { ok: false, code: "target_principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("target_principal_required");
+              return;
+            }
+            if (!mode) {
+              const payload = { ok: false, code: "mode_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("mode_required");
+              return;
+            }
+            const scope = normalizeScope(opts.scope);
+            facts.upsertGrant(targetPrincipal, opts.layer, scope, mode);
+            const rows = facts.listGrants(targetPrincipal);
+            const payload = {
+              ok: true,
+              action: "grant_set",
+              principal: targetPrincipal,
+              grant: { layer: opts.layer, scope, mode },
+              count: rows.length,
+              rows,
+            };
+            if (opts.json) console.log(JSON.stringify(payload, null, 2));
+            else console.log(JSON.stringify(payload, null, 2));
+          });
+
+        mem
+          .command("grant-delete")
+          .requiredOption("--principal <principal>", "acl principal")
+          .requiredOption("--target <principal>", "target principal")
+          .requiredOption("--layer <layer>", "memory layer")
+          .requiredOption("--mode <mode>", "read|write|promote|admin")
+          .option("--scope <scope>", "scope", "global")
+          .option("--actor-level <level>", "access level", "A4_orchestrator_full")
+          .option("--json", "JSON output")
+          .action((opts: {
+            principal: string;
+            target: string;
+            layer: MemoryLayer;
+            mode: string;
+            scope?: string;
+            actorLevel?: string;
+            json?: boolean;
+          }) => {
+            const level = parseAccessLevel(String(opts.actorLevel ?? "A4_orchestrator_full"));
+            const principalCheck = requirePrincipal(opts.principal);
+            if (!principalCheck.ok) {
+              const payload = { ok: false, code: "principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("principal_required");
+              return;
+            }
+            if (!canAuditAdmin(level, principalCheck.principal)) {
+              const payload = { ok: false, code: "access_denied" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("Access denied");
+              return;
+            }
+            const targetPrincipal = opts.target.trim();
+            const mode = parseGrantMode(opts.mode);
+            if (!targetPrincipal) {
+              const payload = { ok: false, code: "target_principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("target_principal_required");
+              return;
+            }
+            if (!mode) {
+              const payload = { ok: false, code: "mode_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("mode_required");
+              return;
+            }
+            const scope = normalizeScope(opts.scope);
+            const deleted = facts.deleteGrant(targetPrincipal, opts.layer, scope, mode);
+            const rows = facts.listGrants(targetPrincipal);
+            const payload = {
+              ok: true,
+              action: "grant_delete",
+              deleted,
+              principal: targetPrincipal,
+              grant: { layer: opts.layer, scope, mode },
+              count: rows.length,
+              rows,
+            };
+            if (opts.json) console.log(JSON.stringify(payload, null, 2));
+            else console.log(JSON.stringify(payload, null, 2));
+          });
+
+        mem
           .command("conflicts")
           .option("--limit <limit>", "max rows", "20")
           .option("--status <status>", "pending|resolved|all", "pending")
@@ -1843,6 +2229,9 @@ const plugin = {
           "nmc-mem decide",
           "nmc-mem prune",
           "nmc-mem principals",
+          "nmc-mem grants",
+          "nmc-mem grant-set",
+          "nmc-mem grant-delete",
           "nmc-mem conflicts",
           "nmc-mem resolve-conflict",
           "nmc-mem doctor",

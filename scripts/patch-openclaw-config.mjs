@@ -177,6 +177,8 @@ const baselineTools = [
   'nmc_memory_promote_decide',
   'nmc_memory_prune',
   'nmc_memory_stats',
+  'nmc_memory_principals',
+  'nmc_memory_grants',
   'nmc_memory_conflicts',
   'nmc_memory_conflict_resolve',
   'nmc_agent_list',

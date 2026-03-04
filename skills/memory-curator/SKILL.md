@@ -1,7 +1,7 @@
 ---
 name: memory-curator
 description: Curate long-term memory quality by running recall checks, promotion workflow, and prune/decay maintenance. Use when memory drift, duplicate facts, stale entries, or promotion decisions must be handled.
-metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.enabled"]}}}
+metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.enabled"],"anyBins":["openclaw"]}}}
 ---
 
 # Memory Curator
@@ -18,6 +18,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.
 
 - Stats/doctor: `scripts/memory_health.sh`
 - Catalog (manual): `openclaw nmc-mem catalog --principal <id> --actor-level A2_domain_builder --query "<query>" --json`
+- Grants (manual): `openclaw nmc-mem grants --principal <id> --target <id> --actor-level A3_system_operator --json`
 - Promote candidate: `scripts/promote_fact.sh`
 - Decide promotion: `scripts/decide_promotion.sh`
 - Prune: `scripts/prune_memory.sh`
