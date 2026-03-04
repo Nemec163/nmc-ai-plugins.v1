@@ -1,6 +1,7 @@
 ---
 name: control-plane-admin
 description: Operate and configure the local NMC control-plane API for monitoring and admin workflows. Use when checking service health, inspecting plugin setup, or applying safe plugin config patches.
+metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.enabled"]}}}
 ---
 
 # Control Plane Admin

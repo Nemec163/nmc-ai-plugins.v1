@@ -10,6 +10,11 @@ Mutating endpoints additionally require:
 
 - `x-nmc-mutation-token: <NMC_AI_PLUGINS_MUTATION_TOKEN>` unless plugin config `allowMutations=true`.
 
+## Browser admin UI integration
+
+- Configure `nmc-control-plane` `corsOrigins` with explicit allowed origins (for example, `["http://127.0.0.1:5173"]`).
+- Preflight `OPTIONS` is supported and uses the same origin allowlist.
+
 ## Endpoints
 
 - `GET /v1/health`
@@ -39,6 +44,7 @@ For `POST /v1/memory/recall`, `POST /v1/memory/store`, `POST /v1/memory/promote`
 Requests without `principal` return `400 {"error":"principal_required"}`.
 For `POST /v1/memory/recall`, optional `layers` array narrows retrieval to explicit memory layers.
 `GET /v1/memory/layers` returns machine-readable layer guidance and recommended recall order.
+Optional query `actor_level` includes effective read/write/promote profile for that level.
 
 `GET /v1/audit/events` returns parsed audit entries from lifecycle `events.ndjson`.
 Use optional query `limit` (1..2000, default 200) to control tail size.

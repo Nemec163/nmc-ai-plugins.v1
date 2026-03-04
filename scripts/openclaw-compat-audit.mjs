@@ -33,7 +33,17 @@ function parseFrontmatter(raw) {
   for (const line of lines) {
     const mm = line.match(/^([a-zA-Z0-9_-]+):\s*(.+)\s*$/);
     if (!mm) continue;
-    out[mm[1]] = mm[2].replace(/^"|"$/g, '');
+    const rawValue = mm[2].trim();
+    if (rawValue.startsWith('{') || rawValue.startsWith('[')) {
+      try {
+        out[mm[1]] = JSON.parse(rawValue);
+        continue;
+      } catch {
+        out[mm[1]] = rawValue;
+        continue;
+      }
+    }
+    out[mm[1]] = rawValue.replace(/^"|"$/g, '');
   }
   return out;
 }
@@ -68,10 +78,16 @@ for (const pluginFile of fs.readdirSync(path.join(root, 'packages')).map((name) 
     continue;
   }
 
-  for (const key of ['id', 'name', 'description', 'version']) {
+  if (typeof manifest.id !== 'string' || !manifest.id.trim()) {
+    report.plugins.errors.push(`${pluginFile}: missing/invalid id`);
+  }
+  for (const key of ['name', 'description', 'version']) {
     if (typeof manifest[key] !== 'string' || !manifest[key].trim()) {
-      report.plugins.errors.push(`${pluginFile}: missing/invalid ${key}`);
+      report.plugins.warnings.push(`${pluginFile}: missing optional '${key}' (recommended)`);
     }
+  }
+  if (manifest.kind !== undefined && (typeof manifest.kind !== 'string' || !manifest.kind.trim())) {
+    report.plugins.errors.push(`${pluginFile}: invalid kind (must be non-empty string when provided)`);
   }
 
   if (!manifest.configSchema || typeof manifest.configSchema !== 'object') {
@@ -128,6 +144,30 @@ for (const dir of allSkillDirs()) {
   }
   if (!fm.description || !String(fm.description).trim()) {
     report.skills.errors.push(`${skillFile}: frontmatter.description required`);
+  }
+  if (Object.prototype.hasOwnProperty.call(fm, 'metadata')) {
+    const metadata = fm.metadata;
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      report.skills.errors.push(`${skillFile}: frontmatter.metadata must be JSON object on one line`);
+    } else {
+      const openclaw = metadata.openclaw;
+      if (openclaw !== undefined && (!openclaw || typeof openclaw !== 'object' || Array.isArray(openclaw))) {
+        report.skills.errors.push(`${skillFile}: metadata.openclaw must be object`);
+      } else if (openclaw && typeof openclaw === 'object') {
+        const requires = openclaw.requires;
+        if (requires !== undefined && (!requires || typeof requires !== 'object' || Array.isArray(requires))) {
+          report.skills.errors.push(`${skillFile}: metadata.openclaw.requires must be object`);
+        } else if (requires && typeof requires === 'object') {
+          for (const key of ['config', 'anyBins', 'anyFiles']) {
+            if (requires[key] !== undefined) {
+              if (!Array.isArray(requires[key]) || requires[key].some((v) => typeof v !== 'string' || !v.trim())) {
+                report.skills.errors.push(`${skillFile}: metadata.openclaw.requires.${key} must be string[]`);
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   const lines = raw.split('\n').length;

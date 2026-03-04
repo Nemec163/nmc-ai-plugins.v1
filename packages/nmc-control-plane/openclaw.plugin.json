@@ -26,6 +26,11 @@
     "allowMutations": {
       "label": "Allow Mutations",
       "help": "If false, mutating endpoints require x-nmc-mutation-token."
+    },
+    "corsOrigins": {
+      "label": "CORS Origins",
+      "help": "Optional browser origins allowed to call the API (exact match).",
+      "advanced": true
     }
   },
   "configSchema": {
@@ -36,7 +41,8 @@
       "port": { "type": "integer" },
       "apiTokenEnv": { "type": "string" },
       "mutationTokenEnv": { "type": "string" },
-      "allowMutations": { "type": "boolean" }
+      "allowMutations": { "type": "boolean" },
+      "corsOrigins": { "type": "array", "items": { "type": "string" } }
     }
   }
 }

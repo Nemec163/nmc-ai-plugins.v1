@@ -1,6 +1,7 @@
 ---
 name: lifecycle-operator
 description: Operate agent lifecycle workflows with deterministic ACL and cleanup guarantees. Use when creating agents, changing access level, reconciling config, or deleting agents with full teardown.
+metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycle.enabled"]}}}
 ---
 
 # Lifecycle Operator

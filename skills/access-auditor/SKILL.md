@@ -1,6 +1,7 @@
 ---
 name: access-auditor
 description: Audit memory access levels and grant consistency for managed agents. Use when validating ACL policy, detecting drift, or reviewing whether an agent is over-privileged.
+metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycle.enabled","plugins.entries.nmc-memory-fabric.enabled"]}}}
 ---
 
 # Access Auditor

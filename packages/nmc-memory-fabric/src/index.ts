@@ -9,6 +9,7 @@ import {
   canWrite,
   MEMORY_LAYERS,
   MEMORY_LAYER_GUIDE,
+  ACCESS_MATRIX,
   type AccessLevel,
   type MemoryLayer,
 } from "./acl.js";
@@ -140,6 +141,21 @@ const plugin = {
       const principal = resolvePrincipal(value);
       if (!principal) return { ok: false };
       return { ok: true, principal };
+    }
+
+    function buildLayersPayload(actorLevel?: string) {
+      const level = parseAccessLevel(actorLevel);
+      const matrix = ACCESS_MATRIX[level];
+      return {
+        count: MEMORY_LAYER_GUIDE.length,
+        layers: MEMORY_LAYER_GUIDE,
+        accessProfile: {
+          actorLevel: level,
+          read: matrix.read,
+          write: matrix.write,
+          canPromote: matrix.promote,
+        },
+      };
     }
 
     function registerCompatHook(kind: string, legacyEvent: string, handler: HookHandler): void {
@@ -690,13 +706,13 @@ const plugin = {
         parameters: {
           type: "object",
           additionalProperties: false,
-          properties: {},
+          properties: {
+            actorLevel: { type: "string" },
+          },
         },
-        async execute() {
-          const payload = {
-            count: MEMORY_LAYER_GUIDE.length,
-            layers: MEMORY_LAYER_GUIDE,
-          };
+        async execute(_toolCallId, rawParams) {
+          const params = rawParams as { actorLevel?: string };
+          const payload = buildLayersPayload(params.actorLevel);
           return {
             content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
             details: payload,
@@ -807,9 +823,10 @@ const plugin = {
 
         mem
           .command("layers")
+          .option("--actor-level <level>", "access level", "A1_worker")
           .option("--json", "JSON output")
-          .action((opts: { json?: boolean }) => {
-            const payload = { count: MEMORY_LAYER_GUIDE.length, layers: MEMORY_LAYER_GUIDE };
+          .action((opts: { actorLevel?: string; json?: boolean }) => {
+            const payload = buildLayersPayload(opts.actorLevel);
             if (opts.json) {
               console.log(JSON.stringify(payload, null, 2));
               return;
@@ -819,6 +836,9 @@ const plugin = {
                 `${row.defaultRecallOrder}. ${row.layer} - ${row.purpose} [defaultWrite=${row.defaultWrite ? "yes" : "no"}]`,
               );
             }
+            console.log(
+              `Access ${payload.accessProfile.actorLevel}: read=${payload.accessProfile.read.join(", ")} | write=${payload.accessProfile.write.join(", ")} | promote=${payload.accessProfile.canPromote ? "yes" : "no"}`,
+            );
           });
 
         mem

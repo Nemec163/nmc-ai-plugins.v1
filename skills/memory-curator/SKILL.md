@@ -1,6 +1,7 @@
 ---
 name: memory-curator
 description: Curate long-term memory quality by running recall checks, promotion workflow, and prune/decay maintenance. Use when memory drift, duplicate facts, stale entries, or promotion decisions must be handled.
+metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.enabled"]}}}
 ---
 
 # Memory Curator

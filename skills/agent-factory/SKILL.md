@@ -1,6 +1,7 @@
 ---
 name: agent-factory
 description: Create, reconfigure, and hard-delete managed agents in the NMC plugin stack. Use when a request involves adding a new specialist agent, changing access level, assigning domain scopes, or removing an agent with deterministic cleanup.
+metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycle.enabled"]}}}
 ---
 
 # Agent Factory

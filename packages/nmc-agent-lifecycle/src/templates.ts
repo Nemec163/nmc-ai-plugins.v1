@@ -13,12 +13,14 @@ const FILES = [
 
 const DEFAULTS: Record<string, string> = {
   "IDENTITY.md": "# {display_name}\n\n- Agent ID: `{agent_id}`\n- Access level: `{access_level}`\n- Domain scopes: `{domain_scopes}`\n",
-  "MEMORY.md": "# MEMORY\n\n## Core\n- Agent: `{agent_id}`\n- Access: `{access_level}`\n\n## Local Competence\n- Keep concise lessons and patterns here.\n",
+  "MEMORY.md":
+    "# MEMORY\n\n## Core\n- Agent: `{agent_id}`\n- Access: `{access_level}`\n\n## Layer Routing\n- Default recall path: `M1_local -> M2_domain -> M4_global_facts`.\n- Use `M3_shared` only as explicit expansion.\n- Treat `M4_global_facts` as promotion-only for non-A4 actors.\n\n## Local Competence\n- Keep concise lessons and patterns here.\n",
   "HEARTBEAT.md": "# HEARTBEAT\n\n- Default routine: `{default_routines}`\n- Cadence: `{heartbeat_every}`\n",
   "BOOT.md": "# BOOT\n\n1. Validate current task.\n2. Recall relevant memory by scope.\n3. Execute minimal safe step.\n",
   "USER.md": "# USER\n\nTreat user intent as source of truth. Ask only when ambiguity is high-impact.\n",
   "SOUL.md": "# SOUL\n\nOperate with rigor and stable memory hygiene.\n",
-  "AGENTS.md": "# AGENTS\n\n- Use assigned access level.\n- Promote only curated facts.\n- Avoid noisy writes to global layers.\n",
+  "AGENTS.md":
+    "# AGENTS\n\n- Use assigned access level.\n- Promote only curated facts.\n- Avoid noisy writes to global layers.\n- Use narrow-first recall order: `M1_local -> M2_domain -> M4_global_facts`.\n- Expand to `M3_shared` only when narrow layers are insufficient.\n- Always pass explicit `principal` and layer filters for memory tools/CLI.\n",
 };
 
 function render(input: string, vars: Record<string, string>): string {

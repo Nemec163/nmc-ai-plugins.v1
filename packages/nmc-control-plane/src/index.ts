@@ -12,6 +12,7 @@ type Cfg = {
   apiTokenEnv: string;
   mutationTokenEnv: string;
   allowMutations: boolean;
+  corsOrigins: string[];
 };
 
 type JsonSchema = {
@@ -36,6 +37,12 @@ type PluginDescriptor = {
 
 function parseCfg(raw: unknown): Cfg {
   const cfg = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const corsOrigins = Array.isArray(cfg.corsOrigins)
+    ? cfg.corsOrigins
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : [];
   return {
     host: typeof cfg.host === "string" ? cfg.host : "127.0.0.1",
     port: typeof cfg.port === "number" ? Math.trunc(cfg.port) : 4466,
@@ -46,6 +53,7 @@ function parseCfg(raw: unknown): Cfg {
         ? cfg.mutationTokenEnv
         : "NMC_AI_PLUGINS_MUTATION_TOKEN",
     allowMutations: cfg.allowMutations === true,
+    corsOrigins,
   };
 }
 
@@ -87,6 +95,20 @@ function parseBoundedInt(value: string | null, fallback: number, min: number, ma
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, Math.trunc(n)));
+}
+
+function applyCors(req: IncomingMessage, res: ServerResponse, cfg: Cfg): boolean {
+  const origin = typeof req.headers.origin === "string" ? req.headers.origin.trim() : "";
+  if (!origin) return false;
+  const allowed = cfg.corsOrigins.includes(origin);
+  if (!allowed) return false;
+
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization,Content-Type,x-nmc-mutation-token");
+  res.setHeader("Access-Control-Max-Age", "600");
+  return true;
 }
 
 async function runOpenClawJson(args: string[]): Promise<Record<string, unknown>> {
@@ -258,6 +280,7 @@ const plugin = {
       apiTokenEnv: { type: "string" },
       mutationTokenEnv: { type: "string" },
       allowMutations: { type: "boolean" },
+      corsOrigins: { type: "array", items: { type: "string" } },
     },
   },
 
@@ -286,6 +309,7 @@ const plugin = {
             allowMutations: cfg.allowMutations,
             hasApiToken: Boolean(apiToken),
             hasMutationToken: Boolean(mutationToken),
+            corsOrigins: cfg.corsOrigins,
           };
           return {
             content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
@@ -312,6 +336,7 @@ const plugin = {
                 apiToken: Boolean(apiToken),
                 mutationToken: Boolean(mutationToken),
               },
+              corsOrigins: cfg.corsOrigins,
             };
             if (opts.json) {
               console.log(JSON.stringify(payload, null, 2));
@@ -332,6 +357,13 @@ const plugin = {
           const method = req.method ?? "GET";
           const url = new URL(req.url ?? "/", `http://${cfg.host}:${cfg.port}`);
           const path = url.pathname;
+          applyCors(req, res, cfg);
+
+          if (method === "OPTIONS") {
+            res.statusCode = 204;
+            res.end();
+            return;
+          }
 
           const auth = parseAuth(req);
           if (!apiToken || auth.bearer !== apiToken) {
@@ -658,7 +690,10 @@ const plugin = {
             }
 
             if (method === "GET" && path === "/v1/memory/layers") {
-              const payload = await runOpenClawJson(["nmc-mem", "layers", "--json"]);
+              const actorLevel = String(url.searchParams.get("actor_level") ?? "").trim();
+              const args = ["nmc-mem", "layers", "--json"];
+              if (actorLevel) args.push("--actor-level", actorLevel);
+              const payload = await runOpenClawJson(args);
               json(res, 200, { ok: true, data: payload });
               return;
             }

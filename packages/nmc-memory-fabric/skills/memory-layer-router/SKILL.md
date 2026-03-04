@@ -1,6 +1,7 @@
 ---
 name: memory-layer-router
 description: Route recall/store actions through the right memory layers with minimal context usage. Use when deciding which layer(s) to query, when applying scoped recall, or when avoiding broad context injection.
+metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.enabled"]}}}
 ---
 
 # Memory Layer Router
