@@ -621,6 +621,34 @@ const plugin = {
               return;
             }
 
+            if (method === "GET" && path === "/v1/memory/plan") {
+              const query = String(url.searchParams.get("query") ?? "").trim();
+              if (!query) {
+                json(res, 400, { ok: false, error: "query_required" });
+                return;
+              }
+              const args = [
+                "nmc-mem",
+                "plan",
+                query,
+                "--actor-level",
+                String(url.searchParams.get("actor_level") ?? "A1_worker"),
+                "--json",
+              ];
+              const scope = String(url.searchParams.get("scope") ?? "").trim();
+              if (scope) {
+                args.push("--scope", scope);
+              }
+              for (const layer of url.searchParams.getAll("layer")) {
+                const trimmed = String(layer ?? "").trim();
+                if (!trimmed) continue;
+                args.push("--layer", trimmed);
+              }
+              const payload = await runOpenClawJson(args);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
             if (method === "POST" && path === "/v1/memory/store") {
               const body = await readJsonBody(req);
               const principal = String(body.principal ?? "").trim();

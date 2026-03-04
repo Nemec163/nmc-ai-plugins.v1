@@ -14,6 +14,7 @@
 6. Auto-recall uses bounded context budget and explicit layer allowlist.
 7. Default recall path is narrow-first (`M1_local -> M2_domain -> M4_global_facts`), with `M3_shared` as explicit expansion layer.
 8. Conflict queue (`fact_conflicts`) prevents noisy overwrites for the same natural key and supports manual resolve.
+9. Recall planning is explicit (`nmc-mem plan` / `/v1/memory/plan`) so agents can choose layers before loading memory snippets.
 
 ## Multi-agent best practice
 

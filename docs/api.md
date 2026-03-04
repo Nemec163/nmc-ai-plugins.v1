@@ -23,6 +23,7 @@ Mutating endpoints additionally require:
 - `DELETE /v1/agents/:id?mode=hard`
 - `POST /v1/agents/:id/access-level`
 - `POST /v1/memory/recall`
+- `GET /v1/memory/plan?query=...`
 - `POST /v1/memory/store`
 - `POST /v1/memory/promote`
 - `POST /v1/memory/promotions/:id/decide`
@@ -46,6 +47,8 @@ For `POST /v1/memory/recall`, `POST /v1/memory/store`, `POST /v1/memory/promote`
 `POST /v1/memory/promotions/:id/decide`, request body must include `principal` (string).
 Requests without `principal` return `400 {"error":"principal_required"}`.
 For `POST /v1/memory/recall`, optional `layers` array narrows retrieval to explicit memory layers.
+`GET /v1/memory/plan` returns a narrow-first layer strategy (no memory content), useful for
+agents/UI to choose minimal retrieval scope before calling recall.
 `GET /v1/memory/layers` returns machine-readable layer guidance and recommended recall order.
 Optional query `actor_level` includes effective read/write/promote profile for that level.
 `GET /v1/memory/conflicts` returns conflict queue rows. Required/optional query:

@@ -30,6 +30,14 @@ type RecallResult = {
   backend: "facts" | "qmd" | "vector";
 };
 
+type RecallPlan = {
+  actorLevel: AccessLevel;
+  scope: string;
+  layers: MemoryLayer[];
+  reasons: string[];
+  strategy: "narrow_first" | "explicit_layers";
+};
+
 type HookHandler = (event: Record<string, unknown>) => Promise<unknown> | unknown;
 
 function parseLayerFilter(value: unknown): MemoryLayer[] | undefined {
@@ -65,6 +73,60 @@ function parseExactRequest(query: string): { entity?: string; key?: string } {
   return {
     entity: entityMatch?.[1],
     key: keyMatch?.[1],
+  };
+}
+
+function buildRecallPlan(input: {
+  query: string;
+  actorLevel: AccessLevel;
+  scope?: string;
+  layers?: MemoryLayer[];
+}): RecallPlan {
+  const scope = normalizeScope(input.scope);
+  const explicit = input.layers && input.layers.length > 0 ? [...new Set(input.layers)] : null;
+  if (explicit) {
+    return {
+      actorLevel: input.actorLevel,
+      scope,
+      layers: explicit.filter((layer) => canRead(input.actorLevel, layer)),
+      reasons: ["explicit_layers_requested"],
+      strategy: "explicit_layers",
+    };
+  }
+
+  const query = input.query.toLowerCase();
+  const out: MemoryLayer[] = [];
+  const reasons: string[] = [];
+  const add = (layer: MemoryLayer, reason: string) => {
+    if (!canRead(input.actorLevel, layer)) return;
+    if (!out.includes(layer)) out.push(layer);
+    reasons.push(reason);
+  };
+
+  if (/\b(now|current|wip|debug|session|checkpoint|today)\b/.test(query)) {
+    add("M1_local", "session_or_active_work");
+  }
+  if (/\b(domain|project|service|playbook|scope|team)\b/.test(query) || scope !== "global") {
+    add("M2_domain", "domain_signal");
+  }
+  if (/\b(decision|policy|architecture|standard|rule|convention)\b/.test(query)) {
+    add("M4_global_facts", "curated_fact_signal");
+  }
+  if (/\b(docs?|readme|guide|how|reference|manual)\b/.test(query)) {
+    add("M3_shared", "corpus_signal");
+  }
+
+  // Default narrow-first route.
+  add("M1_local", "default_local_first");
+  add("M2_domain", "default_domain_second");
+  add("M4_global_facts", "default_curated_third");
+
+  return {
+    actorLevel: input.actorLevel,
+    scope,
+    layers: out,
+    reasons: [...new Set(reasons)],
+    strategy: "narrow_first",
   };
 }
 
@@ -231,8 +293,16 @@ const plugin = {
       if (!principalCheck.ok) return [];
       const principal = principalCheck.principal;
       const limit = Math.max(1, Math.min(input.limit ?? 5, 20));
-      const layerFilter = new Set(input.layers ?? []);
-      const includeLayer = (layer: MemoryLayer) => layerFilter.size === 0 || layerFilter.has(layer);
+      const plan = buildRecallPlan({
+        query: input.query,
+        actorLevel: level,
+        scope,
+        layers: input.layers,
+      });
+      const layerFilter = new Set(plan.layers);
+      const hasExplicitLayerRequest = Array.isArray(input.layers);
+      const enforceLayerFilter = hasExplicitLayerRequest || layerFilter.size > 0;
+      const includeLayer = (layer: MemoryLayer) => !enforceLayerFilter || layerFilter.has(layer);
 
       const requestedExact = input.entity
         ? { entity: input.entity, key: input.key }
@@ -249,34 +319,40 @@ const plugin = {
         .search(input.query, scope, limit * 2)
         .filter((hit) => includeLayer(hit.layer) && canReadScoped(level, principal, hit.layer, hit.scope));
 
-      const qmdHits = cfg.qmd.enabled
+      const strongStructuredHits = [...exactHits, ...factsHits].filter((hit) => hit.score >= 0.82).length;
+      const shouldRunQmd = cfg.qmd.enabled && strongStructuredHits < Math.min(2, limit);
+      const shouldRunVector = strongStructuredHits < Math.min(3, limit);
+
+      const qmdHits = shouldRunQmd
         ? qmd
             .search(input.query, limit * 2)
             .filter((hit) => includeLayer(hit.layer) && canReadScoped(level, principal, hit.layer, hit.scope))
         : [];
 
       let vectorHits: RecallResult[] = [];
-      try {
-        const vec = await embeddings.embed(input.query);
-        const rawVectorHits = await vectors.search(vec, limit * 2, scope);
-        const activeFacts = facts.activeFactRows(rawVectorHits.map((hit) => hit.id));
-        vectorHits = rawVectorHits
-          .map((hit) => {
-            const fact = activeFacts.get(hit.id);
-            if (!fact) return null;
-            return {
-              ...hit,
-              text: fact.text,
-              layer: fact.layer,
-              scope: fact.scope,
-            };
-          })
-          .filter(
-            (hit): hit is RecallResult =>
-              Boolean(hit) && includeLayer(hit.layer) && canReadScoped(level, principal, hit.layer, hit.scope),
-          );
-      } catch (err) {
-        api.logger.warn(`nmc-memory-fabric: vector recall failed: ${String(err)}`);
+      if (shouldRunVector) {
+        try {
+          const vec = await embeddings.embed(input.query);
+          const rawVectorHits = await vectors.search(vec, limit * 2, scope);
+          const activeFacts = facts.activeFactRows(rawVectorHits.map((hit) => hit.id));
+          vectorHits = rawVectorHits
+            .map((hit) => {
+              const fact = activeFacts.get(hit.id);
+              if (!fact) return null;
+              return {
+                ...hit,
+                text: fact.text,
+                layer: fact.layer,
+                scope: fact.scope,
+              };
+            })
+            .filter(
+              (hit): hit is RecallResult =>
+                Boolean(hit) && includeLayer(hit.layer) && canReadScoped(level, principal, hit.layer, hit.scope),
+            );
+        } catch (err) {
+          api.logger.warn(`nmc-memory-fabric: vector recall failed: ${String(err)}`);
+        }
       }
 
       const merged = uniqBy(
@@ -286,6 +362,46 @@ const plugin = {
 
       return merged;
     }
+
+    api.registerTool(
+      {
+        name: "nmc_memory_plan",
+        label: "NMC Memory Plan",
+        description: "Build narrow-first recall plan without loading memory content.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          required: ["query"],
+          properties: {
+            query: { type: "string" },
+            scope: { type: "string" },
+            actorLevel: { type: "string" },
+            layers: { type: "array", items: { type: "string" } },
+          },
+        },
+        async execute(_toolCallId, rawParams) {
+          const params = rawParams as {
+            query: string;
+            scope?: string;
+            actorLevel?: AccessLevel;
+            layers?: MemoryLayer[];
+          };
+          const level = parseAccessLevel(params.actorLevel);
+          const parsedLayers = parseLayerFilter(params.layers);
+          const payload = buildRecallPlan({
+            query: params.query,
+            actorLevel: level,
+            scope: params.scope,
+            layers: parsedLayers,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+            details: payload,
+          };
+        },
+      },
+      { name: "nmc_memory_plan" },
+    );
 
     api.registerTool(
       {
@@ -896,6 +1012,35 @@ const plugin = {
           });
 
         mem
+          .command("plan")
+          .argument("<query>")
+          .option("--scope <scope>")
+          .option("--actor-level <level>", "access level", "A1_worker")
+          .option("--layer <layer>", "repeatable memory layer override", (value, prev: string[]) => {
+            prev.push(value);
+            return prev;
+          }, [])
+          .option("--json", "JSON output")
+          .action((query: string, opts: { scope?: string; actorLevel?: string; layer?: string[]; json?: boolean }) => {
+            const payload = buildRecallPlan({
+              query,
+              scope: opts.scope,
+              actorLevel: parseAccessLevel(opts.actorLevel),
+              layers: parseLayerFilter(opts.layer),
+            });
+            if (opts.json) {
+              console.log(JSON.stringify(payload, null, 2));
+              return;
+            }
+            console.log(
+              `${payload.strategy} (${payload.actorLevel}) scope=${payload.scope} -> ${payload.layers.join(" -> ")}`,
+            );
+            if (payload.reasons.length) {
+              console.log(`reasons: ${payload.reasons.join(", ")}`);
+            }
+          });
+
+        mem
           .command("recall")
           .argument("<query>")
           .option("--scope <scope>")
@@ -1220,6 +1365,7 @@ const plugin = {
           "nmc-mem",
           "nmc-mem stats",
           "nmc-mem layers",
+          "nmc-mem plan",
           "nmc-mem recall",
           "nmc-mem store",
           "nmc-mem promote",

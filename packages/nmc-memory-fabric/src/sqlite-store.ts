@@ -191,8 +191,12 @@ export class FactsStore {
       CREATE INDEX IF NOT EXISTS idx_facts_owner ON facts(owner);
       CREATE INDEX IF NOT EXISTS idx_facts_layer ON facts(layer);
       CREATE INDEX IF NOT EXISTS idx_facts_valid_until ON facts(valid_until);
+      CREATE INDEX IF NOT EXISTS idx_facts_natural_key
+        ON facts(lower(entity), lower(key), scope, updated_at DESC);
       CREATE INDEX IF NOT EXISTS idx_promotions_status ON promotions(status);
       CREATE INDEX IF NOT EXISTS idx_acl_principal ON acl_grants(principal);
+      CREATE INDEX IF NOT EXISTS idx_acl_lookup
+        ON acl_grants(principal, layer, mode, scope);
     `);
 
     this.ensureColumn("facts", "idempotency_key", "TEXT");
@@ -217,6 +221,8 @@ export class FactsStore {
 
       CREATE INDEX IF NOT EXISTS idx_fact_conflicts_status
         ON fact_conflicts(status, detected_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_fact_conflicts_existing_status
+        ON fact_conflicts(existing_fact_id, status);
     `);
     this.ensureColumn("fact_conflicts", "resolution", "TEXT");
     this.ensureColumn("fact_conflicts", "resolved_at", "INTEGER");
@@ -332,6 +338,29 @@ export class FactsStore {
         }
 
         const conflictId = randomUUID();
+        const duplicateConflict = this.db
+          .prepare(
+            `
+            SELECT id
+            FROM fact_conflicts
+            WHERE existing_fact_id = ?
+              AND status = 'pending'
+              AND lower(incoming_text) = lower(?)
+            LIMIT 1
+          `,
+          )
+          .get(existing.id, input.text) as { id: string } | undefined;
+        if (duplicateConflict?.id) {
+          return {
+            id: existing.id,
+            validUntil: existing.valid_until,
+            created: false,
+            idempotent: false,
+            mutated: false,
+            conflictId: duplicateConflict.id,
+          };
+        }
+
         this.db
           .prepare(
             `
@@ -857,6 +886,7 @@ export class FactsStore {
             FROM promotions p
             WHERE p.candidate_id = f.id
               AND p.to_layer = 'M4_global_facts'
+              AND p.status IN ('pending', 'approved')
           )
         ORDER BY f.confidence DESC, f.updated_at DESC
         LIMIT ?
