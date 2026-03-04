@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import {
   parseAccessLevel,
   canApprove,
@@ -128,6 +128,18 @@ const plugin = {
 
     function canPromoteScoped(level: AccessLevel, principal: string | undefined, layer: MemoryLayer, scope: string): boolean {
       return canPromote(level) && facts.hasGrant(principal, layer, scope, "promote");
+    }
+
+    function canAuditRead(level: AccessLevel, principal: string | undefined): boolean {
+      return (
+        canRead(level, "M5_audit_ops") &&
+        (facts.hasGrant(principal, "M5_audit_ops", "global", "read") ||
+          facts.hasGrant(principal, "M5_audit_ops", "global", "write"))
+      );
+    }
+
+    function canAuditAdmin(level: AccessLevel, principal: string | undefined): boolean {
+      return canApprove(level) && facts.hasGrant(principal, "M5_audit_ops", "global", "admin");
     }
 
     function resolvePrincipal(value?: string): string | undefined {
@@ -733,14 +745,35 @@ const plugin = {
           properties: {
             limit: { type: "integer", minimum: 1, maximum: 200 },
             status: { type: "string", enum: ["pending", "resolved", "all"] },
+            actorLevel: { type: "string" },
+            principal: { type: "string" },
           },
         },
         async execute(_toolCallId, rawParams) {
-          const params = rawParams as { limit?: number; status?: "pending" | "resolved" | "all" };
+          const params = rawParams as {
+            limit?: number;
+            status?: "pending" | "resolved" | "all";
+            actorLevel?: AccessLevel;
+            principal?: string;
+          };
+          const level = parseAccessLevel(params.actorLevel);
+          const principalCheck = requirePrincipal(params.principal);
+          if (!principalCheck.ok) {
+            return {
+              content: [{ type: "text", text: "Conflict queue access denied: principal is required." }],
+              details: { ok: false, code: "principal_required" },
+            };
+          }
+          if (!canAuditRead(level, principalCheck.principal)) {
+            return {
+              content: [{ type: "text", text: "Conflict queue access denied by ACL policy." }],
+              details: { ok: false, code: "access_denied" },
+            };
+          }
           const rows = facts.listConflicts(params.limit ?? 20, params.status ?? "pending");
           return {
             content: [{ type: "text", text: JSON.stringify({ count: rows.length, rows }, null, 2) }],
-            details: { count: rows.length, rows },
+            details: { ok: true, count: rows.length, rows },
           };
         },
       },
@@ -755,14 +788,35 @@ const plugin = {
         parameters: {
           type: "object",
           additionalProperties: false,
-          required: ["conflictId"],
+          required: ["conflictId", "principal"],
           properties: {
             conflictId: { type: "string" },
             resolution: { type: "string", enum: ["apply_incoming", "keep_existing"] },
+            actorLevel: { type: "string" },
+            principal: { type: "string" },
           },
         },
         async execute(_toolCallId, rawParams) {
-          const params = rawParams as { conflictId: string; resolution?: ConflictResolution };
+          const params = rawParams as {
+            conflictId: string;
+            resolution?: ConflictResolution;
+            actorLevel?: AccessLevel;
+            principal: string;
+          };
+          const level = parseAccessLevel(params.actorLevel);
+          const principalCheck = requirePrincipal(params.principal);
+          if (!principalCheck.ok) {
+            return {
+              content: [{ type: "text", text: "Conflict resolve denied: principal is required." }],
+              details: { ok: false, code: "principal_required" },
+            };
+          }
+          if (!canAuditAdmin(level, principalCheck.principal)) {
+            return {
+              content: [{ type: "text", text: "Conflict resolve denied by ACL policy." }],
+              details: { ok: false, code: "access_denied" },
+            };
+          }
           const resolved = facts.resolveConflict(params.conflictId, params.resolution ?? "apply_incoming");
           if (resolved.ok && resolved.applied && resolved.fact) {
             try {
@@ -1066,10 +1120,32 @@ const plugin = {
           .command("conflicts")
           .option("--limit <limit>", "max rows", "20")
           .option("--status <status>", "pending|resolved|all", "pending")
+          .option("--actor-level <level>", "access level", "A3_system_operator")
+          .option("--principal <principal>", "acl principal")
           .option("--json", "JSON output")
-          .action((opts: { limit?: string; status?: "pending" | "resolved" | "all"; json?: boolean }) => {
+          .action((opts: {
+            limit?: string;
+            status?: "pending" | "resolved" | "all";
+            actorLevel?: string;
+            principal?: string;
+            json?: boolean;
+          }) => {
+            const level = parseAccessLevel(String(opts.actorLevel ?? "A3_system_operator"));
+            const principalCheck = requirePrincipal(opts.principal);
+            if (!principalCheck.ok) {
+              const payload = { ok: false, code: "principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("principal_required");
+              return;
+            }
+            if (!canAuditRead(level, principalCheck.principal)) {
+              const payload = { ok: false, code: "access_denied" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("Access denied");
+              return;
+            }
             const rows = facts.listConflicts(Number(opts.limit ?? "20"), opts.status ?? "pending");
-            const payload = { count: rows.length, rows };
+            const payload = { ok: true, count: rows.length, rows };
             if (opts.json) console.log(JSON.stringify(payload, null, 2));
             else console.log(JSON.stringify(payload, null, 2));
           });
@@ -1078,8 +1154,30 @@ const plugin = {
           .command("resolve-conflict")
           .requiredOption("--id <id>")
           .option("--resolution <resolution>", "apply_incoming|keep_existing", "apply_incoming")
+          .option("--actor-level <level>", "access level", "A4_orchestrator_full")
+          .option("--principal <principal>", "acl principal")
           .option("--json", "JSON output")
-          .action(async (opts: { id: string; resolution?: ConflictResolution; json?: boolean }) => {
+          .action(async (opts: {
+            id: string;
+            resolution?: ConflictResolution;
+            actorLevel?: string;
+            principal?: string;
+            json?: boolean;
+          }) => {
+            const level = parseAccessLevel(String(opts.actorLevel ?? "A4_orchestrator_full"));
+            const principalCheck = requirePrincipal(opts.principal);
+            if (!principalCheck.ok) {
+              const payload = { ok: false, code: "principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("principal_required");
+              return;
+            }
+            if (!canAuditAdmin(level, principalCheck.principal)) {
+              const payload = { ok: false, code: "access_denied" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("Access denied");
+              return;
+            }
             const result = facts.resolveConflict(opts.id, opts.resolution ?? "apply_incoming");
             if (result.ok && result.applied && result.fact) {
               try {

@@ -3,6 +3,7 @@
   "name": "NMC Control Plane",
   "description": "Local HTTP control-plane for memory and agent lifecycle operations",
   "version": "0.1.0",
+  "source": "./index.ts",
   "skills": [
     "./skills/control-plane-admin"
   ],
@@ -37,12 +38,83 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "host": { "type": "string" },
-      "port": { "type": "integer" },
-      "apiTokenEnv": { "type": "string" },
-      "mutationTokenEnv": { "type": "string" },
-      "allowMutations": { "type": "boolean" },
-      "corsOrigins": { "type": "array", "items": { "type": "string" } }
+      "host": {
+        "type": "string"
+      },
+      "port": {
+        "type": "integer"
+      },
+      "apiTokenEnv": {
+        "type": "string"
+      },
+      "mutationTokenEnv": {
+        "type": "string"
+      },
+      "allowMutations": {
+        "type": "boolean"
+      },
+      "corsOrigins": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "config": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "apiTokenEnv": {
+          "type": "string"
+        },
+        "mutationTokenEnv": {
+          "type": "string"
+        },
+        "allowMutations": {
+          "type": "boolean"
+        },
+        "corsOrigins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "uiHints": {
+      "host": {
+        "label": "Bind Host",
+        "placeholder": "127.0.0.1"
+      },
+      "port": {
+        "label": "Port",
+        "placeholder": "4466"
+      },
+      "apiTokenEnv": {
+        "label": "API Token Env",
+        "placeholder": "NMC_AI_PLUGINS_API_TOKEN"
+      },
+      "mutationTokenEnv": {
+        "label": "Mutation Token Env",
+        "placeholder": "NMC_AI_PLUGINS_MUTATION_TOKEN"
+      },
+      "allowMutations": {
+        "label": "Allow Mutations",
+        "help": "If false, mutating endpoints require x-nmc-mutation-token."
+      },
+      "corsOrigins": {
+        "label": "CORS Origins",
+        "help": "Optional browser origins allowed to call the API (exact match).",
+        "advanced": true
+      }
     }
   }
 }

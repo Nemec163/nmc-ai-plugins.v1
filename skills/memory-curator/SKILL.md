@@ -19,6 +19,8 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.
 - Promote candidate: `scripts/promote_fact.sh`
 - Decide promotion: `scripts/decide_promotion.sh`
 - Prune: `scripts/prune_memory.sh`
+- Conflicts (manual queue): `openclaw nmc-mem conflicts --status pending --principal <id> --actor-level A3_system_operator --json`
+- Resolve conflict: `openclaw nmc-mem resolve-conflict --id <conflict-id> --principal <id> --actor-level A4_orchestrator_full --json`
 
 Use a stable principal for ACL-aware commands:
 - Example: `NMC_PRINCIPAL=orchestrator scripts/promote_fact.sh <id> "reason" A3_system_operator`

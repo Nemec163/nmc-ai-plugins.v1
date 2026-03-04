@@ -2,7 +2,7 @@ import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { readFile, writeFile } from "node:fs/promises";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 
 const execFileAsync = promisify(execFile);
 
@@ -192,6 +192,19 @@ function collectPluginDescriptors(discovered: Record<string, unknown>): Record<s
   for (const row of rows) {
     const id = typeof row.id === "string" ? row.id : "";
     if (!id) continue;
+    const config = asObject(row.config);
+    const schemaFromLegacy = row.configSchema && typeof row.configSchema === "object"
+      ? (row.configSchema as JsonSchema)
+      : undefined;
+    const schemaFromConfig = config.schema && typeof config.schema === "object"
+      ? (config.schema as JsonSchema)
+      : undefined;
+    const uiHintsFromLegacy = row.uiHints && typeof row.uiHints === "object"
+      ? (row.uiHints as Record<string, unknown>)
+      : undefined;
+    const uiHintsFromConfig = config.uiHints && typeof config.uiHints === "object"
+      ? (config.uiHints as Record<string, unknown>)
+      : undefined;
     out[id] = {
       id,
       name: typeof row.name === "string" ? row.name : undefined,
@@ -200,10 +213,8 @@ function collectPluginDescriptors(discovered: Record<string, unknown>): Record<s
       skills: Array.isArray(row.skills)
         ? row.skills.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
         : undefined,
-      configSchema: (row.configSchema && typeof row.configSchema === "object" ? row.configSchema : undefined) as JsonSchema | undefined,
-      uiHints: (row.uiHints && typeof row.uiHints === "object" ? row.uiHints : undefined) as
-        | Record<string, unknown>
-        | undefined,
+      configSchema: schemaFromConfig ?? schemaFromLegacy,
+      uiHints: uiHintsFromConfig ?? uiHintsFromLegacy,
     };
   }
   return out;
@@ -716,8 +727,14 @@ const plugin = {
             }
 
             if (method === "GET" && path === "/v1/memory/conflicts") {
+              const principal = String(url.searchParams.get("principal") ?? "").trim();
+              if (!principal) {
+                json(res, 400, { ok: false, error: "principal_required" });
+                return;
+              }
               const limit = parseBoundedInt(url.searchParams.get("limit"), 20, 1, 200);
               const status = String(url.searchParams.get("status") ?? "pending");
+              const actorLevel = String(url.searchParams.get("actor_level") ?? "A3_system_operator");
               const payload = await runOpenClawJson([
                 "nmc-mem",
                 "conflicts",
@@ -725,6 +742,10 @@ const plugin = {
                 String(limit),
                 "--status",
                 status,
+                "--actor-level",
+                actorLevel,
+                "--principal",
+                principal,
                 "--json",
               ]);
               json(res, 200, { ok: true, data: payload });
@@ -740,7 +761,13 @@ const plugin = {
                 return;
               }
               const body = await readJsonBody(req);
+              const principal = String(body.principal ?? "").trim();
+              if (!principal) {
+                json(res, 400, { ok: false, error: "principal_required" });
+                return;
+              }
               const resolution = String(body.resolution ?? "apply_incoming");
+              const actorLevel = String(body.actor_level ?? "A4_orchestrator_full");
               const payload = await runOpenClawJson([
                 "nmc-mem",
                 "resolve-conflict",
@@ -748,6 +775,10 @@ const plugin = {
                 conflictId,
                 "--resolution",
                 resolution,
+                "--actor-level",
+                actorLevel,
+                "--principal",
+                principal,
                 "--json",
               ]);
               json(res, 200, { ok: true, data: payload });

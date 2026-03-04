@@ -90,10 +90,29 @@ for (const pluginFile of fs.readdirSync(path.join(root, 'packages')).map((name) 
     report.plugins.errors.push(`${pluginFile}: invalid kind (must be non-empty string when provided)`);
   }
 
-  if (!manifest.configSchema || typeof manifest.configSchema !== 'object') {
-    report.plugins.errors.push(`${pluginFile}: missing configSchema object`);
-  } else if (manifest.configSchema.additionalProperties !== false) {
-    report.plugins.warnings.push(`${pluginFile}: configSchema.additionalProperties should be false`);
+  if (typeof manifest.source !== 'string' || !manifest.source.trim()) {
+    report.plugins.errors.push(`${pluginFile}: missing source`);
+  } else {
+    const sourcePath = path.resolve(path.dirname(pluginFile), manifest.source);
+    if (!fs.existsSync(sourcePath)) {
+      report.plugins.errors.push(`${pluginFile}: source path not found ${manifest.source}`);
+    }
+  }
+
+  const legacyConfigSchema = manifest.configSchema && typeof manifest.configSchema === 'object'
+    ? manifest.configSchema
+    : null;
+  const configObj = manifest.config && typeof manifest.config === 'object' && !Array.isArray(manifest.config)
+    ? manifest.config
+    : null;
+  const nestedConfigSchema = configObj && configObj.schema && typeof configObj.schema === 'object'
+    ? configObj.schema
+    : null;
+  const effectiveConfigSchema = nestedConfigSchema || legacyConfigSchema;
+  if (!effectiveConfigSchema) {
+    report.plugins.errors.push(`${pluginFile}: missing config schema (config.schema or configSchema)`);
+  } else if (effectiveConfigSchema.additionalProperties !== false) {
+    report.plugins.warnings.push(`${pluginFile}: config schema additionalProperties should be false`);
   }
 
   if (Array.isArray(manifest.skills)) {
@@ -115,9 +134,15 @@ for (const pluginFile of fs.readdirSync(path.join(root, 'packages')).map((name) 
     }
   }
 
-  if (manifest.uiHints && typeof manifest.uiHints === 'object' && manifest.configSchema) {
-    for (const key of Object.keys(manifest.uiHints)) {
-      if (!resolveSchemaPath(manifest.configSchema, key)) {
+  const legacyUiHints = manifest.uiHints && typeof manifest.uiHints === 'object' ? manifest.uiHints : null;
+  const nestedUiHints = configObj && configObj.uiHints && typeof configObj.uiHints === 'object'
+    ? configObj.uiHints
+    : null;
+  const effectiveUiHints = nestedUiHints || legacyUiHints;
+
+  if (effectiveUiHints && effectiveConfigSchema) {
+    for (const key of Object.keys(effectiveUiHints)) {
+      if (!resolveSchemaPath(effectiveConfigSchema, key)) {
         report.plugins.warnings.push(`${pluginFile}: uiHints key '${key}' not found in configSchema path`);
       }
     }

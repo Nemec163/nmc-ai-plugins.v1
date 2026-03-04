@@ -27,7 +27,7 @@ Mutating endpoints additionally require:
 - `POST /v1/memory/promote`
 - `POST /v1/memory/promotions/:id/decide`
 - `POST /v1/memory/prune`
-- `GET /v1/memory/conflicts?status=pending&limit=20`
+- `GET /v1/memory/conflicts?status=pending&limit=20&principal=orchestrator`
 - `POST /v1/memory/conflicts/:id/resolve`
 - `GET /v1/memory/layers`
 - `GET /v1/memory/stats`
@@ -48,10 +48,14 @@ Requests without `principal` return `400 {"error":"principal_required"}`.
 For `POST /v1/memory/recall`, optional `layers` array narrows retrieval to explicit memory layers.
 `GET /v1/memory/layers` returns machine-readable layer guidance and recommended recall order.
 Optional query `actor_level` includes effective read/write/promote profile for that level.
-`GET /v1/memory/conflicts` returns conflict queue rows. Supported query:
+`GET /v1/memory/conflicts` returns conflict queue rows. Required/optional query:
+- `principal`: ACL principal (required)
+- `actor_level`: defaults to `A3_system_operator`
 - `status`: `pending|resolved|all`
 - `limit`: `1..200` (default `20`)
 `POST /v1/memory/conflicts/:id/resolve` resolves conflict with body:
+- `principal`: ACL principal (required)
+- `actor_level`: defaults to `A4_orchestrator_full`
 - `resolution`: `apply_incoming` or `keep_existing`
 
 `GET /v1/audit/events` returns parsed audit entries from lifecycle `events.ndjson`.

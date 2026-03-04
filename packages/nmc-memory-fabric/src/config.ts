@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { DEFAULT_QMD_ALLOWLIST } from "./qmd-store.js";
-import type { AccessLevel, MemoryLayer } from "./acl.js";
+import { MEMORY_LAYERS, type AccessLevel, type MemoryLayer } from "./acl.js";
 import { resolvePath } from "./utils.js";
 
 export type FabricConfig = {
@@ -95,7 +95,9 @@ export function parseConfig(raw: unknown): FabricConfig {
   const embeddingApiKeyRaw = typeof embeddingRaw.apiKey === "string" ? embeddingRaw.apiKey : "${OPENAI_API_KEY}";
   const pluginQmd = (cfg.qmd ?? {}) as Record<string, unknown>;
   const autoRecallLayers = Array.isArray(cfg.autoRecallLayers)
-    ? cfg.autoRecallLayers.filter((v): v is MemoryLayer => typeof v === "string")
+    ? cfg.autoRecallLayers.filter(
+        (v): v is MemoryLayer => typeof v === "string" && MEMORY_LAYERS.includes(v as MemoryLayer),
+      )
     : DEFAULTS.autoRecallLayers;
   const autoRecallMaxContextChars = typeof cfg.autoRecallMaxContextChars === "number"
     ? Math.max(256, Math.min(6000, Math.trunc(cfg.autoRecallMaxContextChars)))

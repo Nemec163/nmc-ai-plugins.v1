@@ -29,4 +29,5 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - Use mutation token for config updates.
 - Patch only required fields; preserve existing config.
 - Avoid bulk edits across many plugins in one operation.
-- For memory operations, inspect pending conflicts first; resolve one conflict at a time.
+- For memory conflict endpoints, always pass `principal` and explicit `actor_level` (`A3` list, `A4` resolve).
+- Inspect pending conflicts first; resolve one conflict at a time.

@@ -2,7 +2,7 @@ import { mkdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import Database from "better-sqlite3";
 import * as lancedb from "@lancedb/lancedb";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import { parseConfig } from "./config.js";
 import { parseAccessLevel, grantsForLevel, type AccessLevel, type MemoryLayer } from "./acl.js";
 import { AgentRegistry } from "./registry.js";

@@ -48,8 +48,8 @@ openclaw nmc-mem layers --json
 ### Inspect and resolve memory conflicts
 
 ```bash
-openclaw nmc-mem conflicts --status pending --limit 20 --json
-openclaw nmc-mem resolve-conflict --id <conflict-id> --resolution apply_incoming --json
+openclaw nmc-mem conflicts --status pending --limit 20 --actor-level A3_system_operator --principal orchestrator --json
+openclaw nmc-mem resolve-conflict --id <conflict-id> --resolution apply_incoming --actor-level A4_orchestrator_full --principal orchestrator --json
 ```
 
 ### Promote fact candidate
