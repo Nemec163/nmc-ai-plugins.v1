@@ -573,6 +573,17 @@ const plugin = {
                 "admin capabilities bootstrap",
                 "--json",
               ]);
+              const memoryCatalog = await runOpenClawJson([
+                "nmc-mem",
+                "catalog",
+                "--principal",
+                cfg.adminPrincipal,
+                "--actor-level",
+                actorLevel,
+                "--query",
+                "admin capabilities bootstrap",
+                "--json",
+              ]);
               const { path: configPath, cfg: openclawCfg } = await readOpenClawConfigJson();
               const plugins = asObject(openclawCfg.plugins);
               const pluginSkills = Object.values(descriptors)
@@ -605,6 +616,7 @@ const plugin = {
                     actorLevel,
                     layers,
                     accessProfile,
+                    catalog: memoryCatalog,
                   },
                   endpoints: {
                     admin: [
@@ -618,6 +630,7 @@ const plugin = {
                     memory: [
                       "/v1/memory/plan",
                       "/v1/memory/access-profile",
+                      "/v1/memory/catalog",
                       "/v1/memory/principals",
                       "/v1/memory/recall",
                       "/v1/memory/store",
@@ -648,6 +661,19 @@ const plugin = {
                 ? await runOpenClawJson([
                     "nmc-mem",
                     "access-profile",
+                    "--principal",
+                    principal,
+                    "--actor-level",
+                    actorLevel,
+                    "--query",
+                    "monitoring dashboard",
+                    "--json",
+                  ])
+                : null;
+              const catalog = principal
+                ? await runOpenClawJson([
+                    "nmc-mem",
+                    "catalog",
                     "--principal",
                     principal,
                     "--actor-level",
@@ -701,6 +727,7 @@ const plugin = {
                     stats,
                     layers,
                     accessProfile,
+                    catalog,
                     principalsCount: principals ? extractCount(principals) : null,
                     principals,
                     conflictsPending: conflicts ? extractCount(conflicts) : null,
@@ -849,6 +876,35 @@ const plugin = {
               const args = [
                 "nmc-mem",
                 "access-profile",
+                "--principal",
+                principal,
+                "--actor-level",
+                String(url.searchParams.get("actor_level") ?? "A1_worker"),
+                "--scope",
+                String(url.searchParams.get("scope") ?? "global"),
+                "--query",
+                String(url.searchParams.get("query") ?? "default recall"),
+                "--json",
+              ];
+              for (const layer of url.searchParams.getAll("layer")) {
+                const trimmed = String(layer ?? "").trim();
+                if (!trimmed) continue;
+                args.push("--layer", trimmed);
+              }
+              const payload = await runOpenClawJson(args);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
+            if (method === "GET" && path === "/v1/memory/catalog") {
+              const principal = String(url.searchParams.get("principal") ?? "").trim();
+              if (!principal) {
+                json(res, 400, { ok: false, error: "principal_required" });
+                return;
+              }
+              const args = [
+                "nmc-mem",
+                "catalog",
                 "--principal",
                 principal,
                 "--actor-level",

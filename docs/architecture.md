@@ -17,6 +17,7 @@
 9. Recall planning is explicit (`nmc-mem plan` / `/v1/memory/plan`) so agents can choose layers before loading memory snippets.
 10. Principal access bootstrap is explicit (`nmc-mem access-profile` / `/v1/memory/access-profile`) so UI/agents can apply ACL-aware layer routing and context budget defaults before recall.
 11. Principal grant inventory is explicit (`nmc-mem principals` / `/v1/memory/principals`) so admin UI can render ACL coverage without scanning full memory content.
+12. Principal memory catalog is explicit (`nmc-mem catalog` / `/v1/memory/catalog`) so agents can orient by visible layers/counters before any recall.
 
 ## Multi-agent best practice
 
@@ -24,7 +25,7 @@
 - Require explicit `principal` for recall/store/promote/decide flows.
 - Treat `M4_global_facts` as curated memory only via promotion workflow.
 - Keep context tight: layer filters + small limits first, then controlled expansion.
-- Use control-plane admin endpoints for observability (`/v1/memory/stats`, `/v1/memory/layers`, `/v1/memory/access-profile`, `/v1/memory/conflicts`).
+- Use control-plane admin endpoints for observability (`/v1/memory/stats`, `/v1/memory/layers`, `/v1/memory/access-profile`, `/v1/memory/catalog`, `/v1/memory/conflicts`).
 
 ## Lifecycle
 

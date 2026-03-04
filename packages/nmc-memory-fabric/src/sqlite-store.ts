@@ -107,6 +107,12 @@ export type PrincipalGrantSummary = {
   admin: number;
 };
 
+export type PrincipalLayerVisibility = {
+  layer: MemoryLayer;
+  visibleFacts: number;
+  visibleScopes: number;
+};
+
 export type PruneResult = {
   hardDeleted: number;
   hardDeletedIds: string[];
@@ -786,6 +792,44 @@ export class FactsStore {
       write: row.write_cnt,
       promote: row.promote_cnt,
       admin: row.admin_cnt,
+    }));
+  }
+
+  listPrincipalLayerVisibility(principal: string, layers: MemoryLayer[]): PrincipalLayerVisibility[] {
+    const cleanedLayers = [...new Set(layers)];
+    if (!principal.trim() || cleanedLayers.length === 0) return [];
+    const placeholders = cleanedLayers.map(() => "?").join(", ");
+    const rows = this.db
+      .prepare(
+        `
+        SELECT
+          f.layer AS layer,
+          COUNT(*) AS visible_facts,
+          COUNT(DISTINCT f.scope) AS visible_scopes
+        FROM facts f
+        WHERE f.layer IN (${placeholders})
+          AND (f.valid_until IS NULL OR f.valid_until > ?)
+          AND EXISTS (
+            SELECT 1
+            FROM acl_grants g
+            WHERE g.principal = ?
+              AND g.layer = f.layer
+              AND g.mode IN ('read', 'admin')
+              AND g.scope IN (f.scope, 'global', '*')
+          )
+        GROUP BY f.layer
+      `,
+      )
+      .all(...cleanedLayers, nowSec(), principal.trim()) as Array<{
+      layer: MemoryLayer;
+      visible_facts: number;
+      visible_scopes: number;
+    }>;
+
+    return rows.map((row) => ({
+      layer: row.layer,
+      visibleFacts: row.visible_facts,
+      visibleScopes: row.visible_scopes,
     }));
   }
 

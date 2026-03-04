@@ -16,12 +16,13 @@ function run(args) {
 
 const checks = {
   memDoctor: run(['nmc-mem', 'doctor', '--json']),
+  memCatalog: run(['nmc-mem', 'catalog', '--principal', 'system:auto-recall', '--json']),
   agentDoctor: run(['nmc-agent', 'doctor', '--json']),
   opsHealth: run(['nmc-ops', 'health', '--json']),
 };
 
 const report = {
-  ok: checks.memDoctor.ok && checks.agentDoctor.ok && checks.opsHealth.ok,
+  ok: checks.memDoctor.ok && checks.memCatalog.ok && checks.agentDoctor.ok && checks.opsHealth.ok,
   checks,
 };
 

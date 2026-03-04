@@ -25,6 +25,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - `POST /v1/admin/plugins/:id/config`
 - `GET /v1/memory/plan?query=...`
 - `GET /v1/memory/access-profile?principal=...`
+- `GET /v1/memory/catalog?principal=...`
 - `GET /v1/memory/principals?principal=...`
 - `GET /v1/memory/conflicts`
 - `POST /v1/memory/conflicts/:id/resolve`
@@ -37,5 +38,6 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - For UI bootstrap, prefer `GET /v1/admin/capabilities` over multiple fragmented calls.
 - For dashboard monitoring, prefer `GET /v1/admin/monitoring` with explicit `principal` for accurate conflict counters.
 - For principal-aware UI defaults, fetch `GET /v1/memory/access-profile` before recall/store actions.
+- For zero-content memory orientation, fetch `GET /v1/memory/catalog` before recall (layer visibility + counters + strategy).
 - For memory conflict endpoints, always pass `principal` and explicit `actor_level` (`A3` list, `A4` resolve).
 - Inspect pending conflicts first; resolve one conflict at a time.

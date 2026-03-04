@@ -25,6 +25,7 @@ Mutating endpoints additionally require:
 - `POST /v1/memory/recall`
 - `GET /v1/memory/plan?query=...`
 - `GET /v1/memory/access-profile?principal=orchestrator`
+- `GET /v1/memory/catalog?principal=orchestrator`
 - `GET /v1/memory/principals?principal=orchestrator`
 - `POST /v1/memory/store`
 - `POST /v1/memory/promote`
@@ -55,6 +56,8 @@ For `POST /v1/memory/recall`, optional `layers` array narrows retrieval to expli
 agents/UI to choose minimal retrieval scope before calling recall.
 `GET /v1/memory/access-profile` returns principal-specific ACL summary, suggested recall layers,
 and a bounded context budget recommendation without loading memory snippets.
+`GET /v1/memory/catalog` returns principal-aware layer orientation (ACL grants, visible counts,
+and suggested strategy) without loading memory snippets.
 `GET /v1/memory/principals` returns ACL principal inventory (grant counts by mode/layer/scope) for admin UI and operator audits.
 `GET /v1/memory/layers` returns machine-readable layer guidance and recommended recall order.
 Optional query `actor_level` includes effective read/write/promote profile for that level.
@@ -68,6 +71,12 @@ Optional query `actor_level` includes effective read/write/promote profile for t
 - `principal`: ACL principal requesting inventory access (required)
 - `actor_level`: defaults to `A3_system_operator`
 - `limit`: `1..2000` (default `200`)
+`GET /v1/memory/catalog` query:
+- `principal`: ACL principal (required)
+- `actor_level`: defaults to `A1_worker`
+- `scope`: defaults to `global`
+- `query`: optional routing seed for suggested recall layers
+- `layer`: repeatable explicit layer override
 `GET /v1/memory/conflicts` returns conflict queue rows. Required/optional query:
 - `principal`: ACL principal (required)
 - `actor_level`: defaults to `A3_system_operator`
@@ -86,14 +95,14 @@ and plugin-manifest skill bindings (`pluginSkills`) for admin UI inventory.
 `GET /v1/admin/capabilities` returns a single payload for admin UI bootstrapping:
 - plugin contracts + redacted plugin entries
 - skill inventory + plugin-skill bindings
-- memory layer guide + principal access profile for selected actor level
+- memory layer guide + principal access profile + principal memory catalog for selected actor level
 - endpoint groups for memory/admin feature wiring
 Optional query:
 - `actor_level`: defaults to control-plane config `adminActorLevel`
 
 `GET /v1/admin/monitoring` returns dashboard-oriented runtime summary:
 - managed agents count + raw agent list payload
-- memory stats + memory layers + principal access profile + pending conflicts (ACL-aware)
+- memory stats + memory layers + principal access profile + principal memory catalog + pending conflicts (ACL-aware)
 - control-plane runtime settings + `nmc-agent doctor` payload
 Optional query:
 - `principal`: defaults to control-plane config `adminPrincipal`

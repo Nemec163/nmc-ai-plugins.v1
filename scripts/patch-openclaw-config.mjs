@@ -167,6 +167,10 @@ cfg.agents ??= {};
 cfg.agents.defaults ??= {};
 cfg.agents.defaults.toolsAllowlist ??= [];
 const baselineTools = [
+  'nmc_memory_plan',
+  'nmc_memory_access_profile',
+  'nmc_memory_catalog',
+  'nmc_memory_layers',
   'nmc_memory_recall',
   'nmc_memory_store',
   'nmc_memory_promote',

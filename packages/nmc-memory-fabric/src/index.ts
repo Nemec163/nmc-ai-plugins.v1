@@ -54,6 +54,32 @@ type AccessProfile = {
   }>;
 };
 
+type MemoryCatalogLayer = {
+  layer: MemoryLayer;
+  purpose: string;
+  defaultRecallOrder: number;
+  actorCanRead: boolean;
+  actorCanWrite: boolean;
+  aclReadGranted: boolean;
+  grantedScopes: string[];
+  visibleFacts: number;
+  visibleScopes: number;
+};
+
+type MemoryCatalog = {
+  principal: string;
+  actorLevel: AccessLevel;
+  scope: string;
+  contextBudgetChars: number;
+  strategy: RecallPlan;
+  layers: MemoryCatalogLayer[];
+  summary: {
+    readableLayers: number;
+    aclReadableLayers: number;
+    visibleFacts: number;
+  };
+};
+
 type HookHandler = (event: Record<string, unknown>) => Promise<unknown> | unknown;
 
 function parseLayerFilter(value: unknown): MemoryLayer[] | undefined {
@@ -340,6 +366,74 @@ const plugin = {
           CONTEXT_BUDGET_BY_ACCESS[actorLevel],
         ),
         grantSummary,
+      };
+    }
+
+    function buildMemoryCatalog(input: {
+      principal: string;
+      actorLevel?: string;
+      scope?: string;
+      query?: string;
+      layers?: MemoryLayer[];
+    }): MemoryCatalog {
+      const profile = buildAccessProfile(input);
+      const allowedLayers = profile.readLayers;
+      const grants = facts.listGrants(profile.principal);
+      const readGrantScopes = new Map<MemoryLayer, Set<string>>();
+      for (const grant of grants) {
+        if (grant.mode !== "read" && grant.mode !== "admin") continue;
+        const bucket = readGrantScopes.get(grant.layer) ?? new Set<string>();
+        bucket.add(grant.scope);
+        readGrantScopes.set(grant.layer, bucket);
+      }
+
+      const visibilityRows = facts.listPrincipalLayerVisibility(profile.principal, allowedLayers);
+      const visibilityByLayer = new Map<
+        MemoryLayer,
+        { visibleFacts: number; visibleScopes: number }
+      >();
+      for (const row of visibilityRows) {
+        visibilityByLayer.set(row.layer, {
+          visibleFacts: row.visibleFacts,
+          visibleScopes: row.visibleScopes,
+        });
+      }
+
+      const layerRows: MemoryCatalogLayer[] = MEMORY_LAYER_GUIDE.map((guideRow) => {
+        const actorCanRead = profile.readLayers.includes(guideRow.layer);
+        const actorCanWrite = profile.writeLayers.includes(guideRow.layer);
+        const grantScopes = Array.from(readGrantScopes.get(guideRow.layer) ?? []);
+        const visibility = visibilityByLayer.get(guideRow.layer);
+        return {
+          layer: guideRow.layer,
+          purpose: guideRow.purpose,
+          defaultRecallOrder: guideRow.defaultRecallOrder,
+          actorCanRead,
+          actorCanWrite,
+          aclReadGranted: grantScopes.length > 0,
+          grantedScopes: grantScopes.sort((a, b) => a.localeCompare(b)),
+          visibleFacts: visibility?.visibleFacts ?? 0,
+          visibleScopes: visibility?.visibleScopes ?? 0,
+        };
+      });
+
+      return {
+        principal: profile.principal,
+        actorLevel: profile.actorLevel,
+        scope: profile.scope,
+        contextBudgetChars: profile.suggestedContextBudgetChars,
+        strategy: buildRecallPlan({
+          query: input.query?.trim() || "default recall",
+          actorLevel: profile.actorLevel,
+          scope: profile.scope,
+          layers: input.layers,
+        }),
+        layers: layerRows,
+        summary: {
+          readableLayers: layerRows.filter((row) => row.actorCanRead).length,
+          aclReadableLayers: layerRows.filter((row) => row.actorCanRead && row.aclReadGranted).length,
+          visibleFacts: layerRows.reduce((acc, row) => acc + row.visibleFacts, 0),
+        },
       };
     }
 
@@ -1012,6 +1106,54 @@ const plugin = {
 
     api.registerTool(
       {
+        name: "nmc_memory_catalog",
+        label: "NMC Memory Catalog",
+        description: "Return ACL-aware memory layer orientation without loading memory content.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          required: ["principal"],
+          properties: {
+            principal: { type: "string" },
+            actorLevel: { type: "string" },
+            scope: { type: "string" },
+            query: { type: "string" },
+            layers: { type: "array", items: { type: "string" } },
+          },
+        },
+        async execute(_toolCallId, rawParams) {
+          const params = rawParams as {
+            principal: string;
+            actorLevel?: string;
+            scope?: string;
+            query?: string;
+            layers?: MemoryLayer[];
+          };
+          const principalCheck = requirePrincipal(params.principal);
+          if (!principalCheck.ok) {
+            return {
+              content: [{ type: "text", text: "Catalog denied: principal is required for ACL checks." }],
+              details: { ok: false, code: "principal_required" },
+            };
+          }
+          const payload = buildMemoryCatalog({
+            principal: principalCheck.principal,
+            actorLevel: params.actorLevel,
+            scope: params.scope,
+            query: params.query,
+            layers: parseLayerFilter(params.layers),
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+            details: payload,
+          };
+        },
+      },
+      { name: "nmc_memory_catalog" },
+    );
+
+    api.registerTool(
+      {
         name: "nmc_memory_principals",
         label: "NMC Memory Principals",
         description: "List principals that currently have memory ACL grants.",
@@ -1288,6 +1430,51 @@ const plugin = {
             );
             console.log(`suggested recall: ${payload.suggestedRecallLayers.join(" -> ")}`);
             console.log(`suggested context budget: ${payload.suggestedContextBudgetChars}`);
+          });
+
+        mem
+          .command("catalog")
+          .requiredOption("--principal <principal>", "acl principal")
+          .option("--actor-level <level>", "access level", "A1_worker")
+          .option("--scope <scope>", "scope", "global")
+          .option("--query <query>", "optional recall query seed", "default recall")
+          .option("--layer <layer>", "repeatable memory layer override", (value, prev: string[]) => {
+            prev.push(value);
+            return prev;
+          }, [])
+          .option("--json", "JSON output")
+          .action((opts: {
+            principal: string;
+            actorLevel?: string;
+            scope?: string;
+            query?: string;
+            layer?: string[];
+            json?: boolean;
+          }) => {
+            const principalCheck = requirePrincipal(opts.principal);
+            if (!principalCheck.ok) {
+              const payload = { ok: false, code: "principal_required" };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error("principal_required");
+              return;
+            }
+            const payload = buildMemoryCatalog({
+              principal: principalCheck.principal,
+              actorLevel: opts.actorLevel,
+              scope: opts.scope,
+              query: opts.query,
+              layers: parseLayerFilter(opts.layer),
+            });
+            if (opts.json) {
+              console.log(JSON.stringify(payload, null, 2));
+              return;
+            }
+            console.log(
+              `${payload.principal} (${payload.actorLevel}) scope=${payload.scope} ` +
+                `visibleFacts=${payload.summary.visibleFacts} ` +
+                `aclReadableLayers=${payload.summary.aclReadableLayers}`,
+            );
+            console.log(`strategy: ${payload.strategy.layers.join(" -> ")}`);
           });
 
         mem
@@ -1649,6 +1836,7 @@ const plugin = {
           "nmc-mem layers",
           "nmc-mem plan",
           "nmc-mem access-profile",
+          "nmc-mem catalog",
           "nmc-mem recall",
           "nmc-mem store",
           "nmc-mem promote",

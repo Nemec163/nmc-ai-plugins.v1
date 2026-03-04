@@ -9,13 +9,15 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.
 ## Workflow
 
 1. Inspect memory health and layer distribution.
-2. Run targeted recall for task context.
-3. Promote stable facts into `M4_global_facts` through the workflow.
-4. Execute prune and verify resulting counters.
+2. Inspect principal memory catalog before recall expansion.
+3. Run targeted recall for task context.
+4. Promote stable facts into `M4_global_facts` through the workflow.
+5. Execute prune and verify resulting counters.
 
 ## Commands
 
 - Stats/doctor: `scripts/memory_health.sh`
+- Catalog (manual): `openclaw nmc-mem catalog --principal <id> --actor-level A2_domain_builder --query "<query>" --json`
 - Promote candidate: `scripts/promote_fact.sh`
 - Decide promotion: `scripts/decide_promotion.sh`
 - Prune: `scripts/prune_memory.sh`

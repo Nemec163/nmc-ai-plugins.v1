@@ -31,6 +31,13 @@ openclaw nmc-agent delete --agent-id trader-01 --mode hard --json
 ### Recall
 
 ```bash
+openclaw nmc-mem catalog \
+  --principal trader-01 \
+  --actor-level A2_domain_builder \
+  --scope finance \
+  --query "portfolio rebalance decision" \
+  --json
+
 openclaw nmc-mem plan "portfolio rebalance decision" \
   --scope finance \
   --actor-level A2_domain_builder \
