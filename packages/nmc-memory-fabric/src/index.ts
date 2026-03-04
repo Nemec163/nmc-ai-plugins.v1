@@ -1,7 +1,17 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { parseAccessLevel, canApprove, canPromote, canRead, canWrite, MEMORY_LAYERS, type AccessLevel, type MemoryLayer } from "./acl.js";
+import {
+  parseAccessLevel,
+  canApprove,
+  canPromote,
+  canRead,
+  canWrite,
+  MEMORY_LAYERS,
+  MEMORY_LAYER_GUIDE,
+  type AccessLevel,
+  type MemoryLayer,
+} from "./acl.js";
 import { parseConfig } from "./config.js";
 import { FactsStore, type ConflictResolution, type FactCategory, type DecayClass } from "./sqlite-store.js";
 import { Embeddings, VectorStore } from "./vector-store.js";
@@ -34,6 +44,13 @@ function extractHookPrompt(event: Record<string, unknown>): string {
   if (typeof event.userPrompt === "string") return event.userPrompt;
   if (typeof event.input === "string") return event.input;
   return "";
+}
+
+function looksLikeStructuredMemory(text: string): boolean {
+  if (text.length < 20 || text.length > 400) return false;
+  if (text.includes("```")) return false;
+  if (/<[a-z][\s\S]*>/i.test(text)) return false;
+  return /\b(decide|decision|remember|always|never|prefer|because|chosen|choose)\b/i.test(text);
 }
 
 function parseExactRequest(query: string): { entity?: string; key?: string } {
@@ -667,6 +684,30 @@ const plugin = {
 
     api.registerTool(
       {
+        name: "nmc_memory_layers",
+        label: "NMC Memory Layers",
+        description: "Describe memory layers and recommended narrow-to-broad recall order.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          properties: {},
+        },
+        async execute() {
+          const payload = {
+            count: MEMORY_LAYER_GUIDE.length,
+            layers: MEMORY_LAYER_GUIDE,
+          };
+          return {
+            content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+            details: payload,
+          };
+        },
+      },
+      { name: "nmc_memory_layers" },
+    );
+
+    api.registerTool(
+      {
         name: "nmc_memory_conflicts",
         label: "NMC Memory Conflicts",
         description: "List pending/resolved fact conflicts detected by natural-key upsert.",
@@ -761,6 +802,22 @@ const plugin = {
               console.log(`Pending promotions: ${payload.pendingPromotions}`);
               console.log(`Pending conflicts: ${payload.pendingConflicts}`);
               console.log(`By layer: ${JSON.stringify(payload.byLayer)}`);
+            }
+          });
+
+        mem
+          .command("layers")
+          .option("--json", "JSON output")
+          .action((opts: { json?: boolean }) => {
+            const payload = { count: MEMORY_LAYER_GUIDE.length, layers: MEMORY_LAYER_GUIDE };
+            if (opts.json) {
+              console.log(JSON.stringify(payload, null, 2));
+              return;
+            }
+            for (const row of payload.layers) {
+              console.log(
+                `${row.defaultRecallOrder}. ${row.layer} - ${row.purpose} [defaultWrite=${row.defaultWrite ? "yes" : "no"}]`,
+              );
             }
           });
 
@@ -1044,6 +1101,7 @@ const plugin = {
         commands: [
           "nmc-mem",
           "nmc-mem stats",
+          "nmc-mem layers",
           "nmc-mem recall",
           "nmc-mem store",
           "nmc-mem promote",
@@ -1105,6 +1163,8 @@ const plugin = {
         for (const msg of messages) {
           if (!msg || typeof msg !== "object") continue;
           const m = msg as Record<string, unknown>;
+          const role = typeof m.role === "string" ? m.role.toLowerCase() : "";
+          if (role !== "user") continue;
           const content = m.content;
           if (typeof content === "string") {
             candidates.push(content);
@@ -1120,11 +1180,7 @@ const plugin = {
           }
         }
 
-        const filtered = candidates
-          .map((t) => t.trim())
-          .filter((t) => t.length >= 20 && t.length <= 400)
-          .filter((t) => /\b(decide|decision|remember|always|never|prefer|because|chosen|choose)\b/i.test(t))
-          .slice(0, 3);
+        const filtered = candidates.map((t) => t.trim()).filter(looksLikeStructuredMemory).slice(0, 3);
 
         for (const text of filtered) {
           const category: FactCategory = /\b(decide|decision|chosen|choose|because)\b/i.test(text)

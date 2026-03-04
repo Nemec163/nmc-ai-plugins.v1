@@ -22,4 +22,6 @@ description: Route recall/store actions through the right memory layers with min
 ## Commands
 
 - Tool: `nmc_memory_recall` with `layers`
+- Tool: `nmc_memory_layers` (inspect layer guide)
 - CLI: `openclaw nmc-mem recall "<query>" --principal <id> --layer M2_domain --layer M4_global_facts --json`
+- CLI: `openclaw nmc-mem layers --json`

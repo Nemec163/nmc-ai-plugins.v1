@@ -49,8 +49,9 @@ Installer behavior:
 - Bind: `127.0.0.1:4466`
 - Auth: `Authorization: Bearer $NMC_AI_PLUGINS_API_TOKEN`
 - Mutation gate: `x-nmc-mutation-token: $NMC_AI_PLUGINS_MUTATION_TOKEN` (unless `allowMutations=true`)
-- Admin/UI hooks: `GET /v1/admin/plugins`, `POST /v1/admin/plugins/:id/config`
+- Admin/UI hooks: `GET /v1/admin/plugins`, `GET /v1/admin/plugins/contracts`, `POST /v1/admin/plugins/:id/config`
 - Memory recall supports optional layer routing (`layers` in API or `--layer` in CLI)
+- Memory layer metadata for agents/UI: `GET /v1/memory/layers` (`openclaw nmc-mem layers --json`)
 
 See [docs/api.md](./docs/api.md).
 
@@ -73,3 +74,4 @@ See [docs/api.md](./docs/api.md).
 - This repo is intentionally greenfield and does not depend on legacy docs/code.
 - Delete policy is hard delete (no snapshot retention).
 - Embeddings are OpenAI-only in v1.
+- OpenClaw plugin+skill compatibility audit: `npm run audit:openclaw`.

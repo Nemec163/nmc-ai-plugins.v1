@@ -6,6 +6,7 @@
 openclaw nmc-mem doctor --json
 openclaw nmc-agent doctor --json
 openclaw nmc-ops health --json
+npm run audit:openclaw
 ```
 
 ## Common workflows
@@ -36,6 +37,12 @@ openclaw nmc-mem recall "portfolio rebalance decision" \
   --layer M4_global_facts \
   --principal trader-01 \
   --json
+```
+
+### Inspect layer routing defaults
+
+```bash
+openclaw nmc-mem layers --json
 ```
 
 ### Promote fact candidate

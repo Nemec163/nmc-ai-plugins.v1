@@ -4,7 +4,6 @@
   "description": "Local HTTP control-plane for memory and agent lifecycle operations",
   "version": "0.1.0",
   "skills": [
-    "skills/control-plane-admin",
     "./skills/control-plane-admin"
   ],
   "uiHints": {

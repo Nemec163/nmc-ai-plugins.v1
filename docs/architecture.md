@@ -12,6 +12,7 @@
    - merge + dedup + rerank + citations
 5. Recall is ACL-gated by `principal` and can be layer-scoped to avoid loading irrelevant context.
 6. Auto-recall uses bounded context budget and explicit layer allowlist.
+7. Default recall path is narrow-first (`M1_local -> M2_domain -> M4_global_facts`), with `M3_shared` as explicit expansion layer.
 
 ## Lifecycle
 

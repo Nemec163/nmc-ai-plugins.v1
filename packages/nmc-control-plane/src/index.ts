@@ -14,6 +14,26 @@ type Cfg = {
   allowMutations: boolean;
 };
 
+type JsonSchema = {
+  type?: string | string[];
+  enum?: unknown[];
+  minimum?: number;
+  maximum?: number;
+  required?: string[];
+  additionalProperties?: boolean;
+  properties?: Record<string, JsonSchema>;
+  items?: JsonSchema;
+};
+
+type PluginDescriptor = {
+  id: string;
+  name?: string;
+  kind?: string;
+  version?: string;
+  configSchema?: JsonSchema;
+  uiHints?: Record<string, unknown>;
+};
+
 function parseCfg(raw: unknown): Cfg {
   const cfg = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   return {
@@ -133,6 +153,96 @@ function isMutating(method: string, path: string): boolean {
   if (method === "GET") return false;
   if (path === "/v1/health") return false;
   return true;
+}
+
+function pickPluginRows(raw: Record<string, unknown>): Array<Record<string, unknown>> {
+  if (Array.isArray(raw.plugins)) return raw.plugins.filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  if (Array.isArray(raw.items)) return raw.items.filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  if (Array.isArray(raw.results)) return raw.results.filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  if (Array.isArray(raw.data)) return raw.data.filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  return [];
+}
+
+function collectPluginDescriptors(discovered: Record<string, unknown>): Record<string, PluginDescriptor> {
+  const rows = pickPluginRows(discovered);
+  const out: Record<string, PluginDescriptor> = {};
+  for (const row of rows) {
+    const id = typeof row.id === "string" ? row.id : "";
+    if (!id) continue;
+    out[id] = {
+      id,
+      name: typeof row.name === "string" ? row.name : undefined,
+      kind: typeof row.kind === "string" ? row.kind : undefined,
+      version: typeof row.version === "string" ? row.version : undefined,
+      configSchema: (row.configSchema && typeof row.configSchema === "object" ? row.configSchema : undefined) as JsonSchema | undefined,
+      uiHints: (row.uiHints && typeof row.uiHints === "object" ? row.uiHints : undefined) as
+        | Record<string, unknown>
+        | undefined,
+    };
+  }
+  return out;
+}
+
+function schemaAllowsType(schema: JsonSchema, value: unknown): boolean {
+  if (!schema.type) return true;
+  const allowed = Array.isArray(schema.type) ? schema.type : [schema.type];
+  return allowed.some((type) => {
+    if (type === "null") return value === null;
+    if (type === "array") return Array.isArray(value);
+    if (type === "integer") return typeof value === "number" && Number.isInteger(value);
+    if (type === "number") return typeof value === "number";
+    return typeof value === type;
+  });
+}
+
+function validateBySchema(value: unknown, schema: JsonSchema, path = "config"): string[] {
+  const errors: string[] = [];
+  if (!schemaAllowsType(schema, value)) {
+    errors.push(`${path}: invalid type`);
+    return errors;
+  }
+
+  if (schema.enum && schema.enum.length > 0 && !schema.enum.some((x) => JSON.stringify(x) === JSON.stringify(value))) {
+    errors.push(`${path}: must be one of enum values`);
+    return errors;
+  }
+
+  if (typeof value === "number") {
+    if (typeof schema.minimum === "number" && value < schema.minimum) errors.push(`${path}: must be >= ${schema.minimum}`);
+    if (typeof schema.maximum === "number" && value > schema.maximum) errors.push(`${path}: must be <= ${schema.maximum}`);
+  }
+
+  if (Array.isArray(value)) {
+    if (schema.items) {
+      for (let i = 0; i < value.length; i += 1) {
+        errors.push(...validateBySchema(value[i], schema.items, `${path}[${i}]`));
+      }
+    }
+    return errors;
+  }
+
+  if (!value || typeof value !== "object") {
+    return errors;
+  }
+
+  const obj = value as Record<string, unknown>;
+  const props = schema.properties ?? {};
+  const required = schema.required ?? [];
+  for (const key of required) {
+    if (!(key in obj)) errors.push(`${path}.${key}: required`);
+  }
+
+  if (schema.additionalProperties === false) {
+    for (const key of Object.keys(obj)) {
+      if (!(key in props)) errors.push(`${path}.${key}: additional property not allowed`);
+    }
+  }
+
+  for (const [key, childSchema] of Object.entries(props)) {
+    if (key in obj) errors.push(...validateBySchema(obj[key], childSchema, `${path}.${key}`));
+  }
+
+  return errors;
 }
 
 const plugin = {
@@ -318,6 +428,7 @@ const plugin = {
 
             if (method === "GET" && path === "/v1/admin/plugins") {
               const discovered = await runOpenClawJson(["plugins", "list", "--json"]);
+              const descriptors = collectPluginDescriptors(discovered);
               const { path: configPath, cfg: openclawCfg } = await readOpenClawConfigJson();
               const plugins = asObject(openclawCfg.plugins);
               json(res, 200, {
@@ -326,7 +437,23 @@ const plugin = {
                   configPath,
                   slots: asObject(plugins.slots),
                   entries: sanitizePluginEntries(openclawCfg),
+                  descriptors,
                   discovered,
+                },
+              });
+              return;
+            }
+
+            if (method === "GET" && path === "/v1/admin/plugins/contracts") {
+              const discovered = await runOpenClawJson(["plugins", "list", "--json"]);
+              const descriptors = collectPluginDescriptors(discovered);
+              const { cfg: openclawCfg } = await readOpenClawConfigJson();
+              json(res, 200, {
+                ok: true,
+                data: {
+                  count: Object.keys(descriptors).length,
+                  descriptors,
+                  entries: sanitizePluginEntries(openclawCfg),
                 },
               });
               return;
@@ -339,6 +466,8 @@ const plugin = {
                 return;
               }
               const body = await readJsonBody(req);
+              const discovered = await runOpenClawJson(["plugins", "list", "--json"]);
+              const descriptors = collectPluginDescriptors(discovered);
               const { path: configPath, cfg: openclawCfg } = await readOpenClawConfigJson();
 
               openclawCfg.plugins = asObject(openclawCfg.plugins);
@@ -360,6 +489,21 @@ const plugin = {
                   ...patchConfig,
                 },
               };
+
+              const mergedConfig = asObject((entries[pluginId] as Record<string, unknown>).config);
+              const schema = descriptors[pluginId]?.configSchema;
+              if (schema) {
+                const errors = validateBySchema(mergedConfig, schema, "config");
+                if (errors.length > 0) {
+                  json(res, 400, {
+                    ok: false,
+                    error: "invalid_plugin_config",
+                    pluginId,
+                    validationErrors: errors,
+                  });
+                  return;
+                }
+              }
 
               plugins.entries = entries;
               openclawCfg.plugins = plugins;
@@ -509,6 +653,12 @@ const plugin = {
                 String(body.mode ?? "both"),
                 "--json",
               ]);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
+            if (method === "GET" && path === "/v1/memory/layers") {
+              const payload = await runOpenClawJson(["nmc-mem", "layers", "--json"]);
               json(res, 200, { ok: true, data: payload });
               return;
             }

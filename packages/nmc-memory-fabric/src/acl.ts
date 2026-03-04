@@ -22,6 +22,57 @@ export const MEMORY_LAYERS: MemoryLayer[] = [
   "M5_audit_ops",
 ];
 
+export const MEMORY_LAYER_GUIDE: Array<{
+  layer: MemoryLayer;
+  purpose: string;
+  typicalData: string;
+  defaultRecallOrder: number;
+  defaultWrite: boolean;
+}> = [
+  {
+    layer: "M1_local",
+    purpose: "Short-lived and agent-local working context.",
+    typicalData: "Current task notes, temporary facts, checkpoints.",
+    defaultRecallOrder: 1,
+    defaultWrite: true,
+  },
+  {
+    layer: "M2_domain",
+    purpose: "Domain-specific reusable knowledge per scope.",
+    typicalData: "Playbooks, stable conventions, domain decisions.",
+    defaultRecallOrder: 2,
+    defaultWrite: true,
+  },
+  {
+    layer: "M4_global_facts",
+    purpose: "Curated cross-agent global facts and approved decisions.",
+    typicalData: "Promoted org rules, architecture decisions, canonical facts.",
+    defaultRecallOrder: 3,
+    defaultWrite: false,
+  },
+  {
+    layer: "M3_shared",
+    purpose: "Broad shared narrative/corpus, useful as expansion layer.",
+    typicalData: "Docs corpus and shared notes with mixed signal quality.",
+    defaultRecallOrder: 4,
+    defaultWrite: true,
+  },
+  {
+    layer: "M5_audit_ops",
+    purpose: "Operational and audit traces.",
+    typicalData: "Operational telemetry and maintenance records.",
+    defaultRecallOrder: 5,
+    defaultWrite: false,
+  },
+  {
+    layer: "M0_core",
+    purpose: "Platform/system memory maintained by orchestrator.",
+    typicalData: "Core runtime/system facts.",
+    defaultRecallOrder: 6,
+    defaultWrite: false,
+  },
+];
+
 export const ACCESS_LEVELS: AccessLevel[] = [
   "A0_isolated",
   "A1_worker",

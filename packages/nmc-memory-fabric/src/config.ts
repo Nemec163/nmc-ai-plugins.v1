@@ -34,10 +34,8 @@ const DEFAULTS = {
   autoRecallPrincipal: "system:auto-recall",
   autoRecallActorLevel: "A4_orchestrator_full" as AccessLevel,
   autoRecallLayers: [
-    "M0_core",
     "M1_local",
     "M2_domain",
-    "M3_shared",
     "M4_global_facts",
   ] as MemoryLayer[],
   autoRecallMaxContextChars: 1800,

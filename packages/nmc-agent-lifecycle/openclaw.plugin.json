@@ -4,7 +4,6 @@
   "description": "Create/delete agents with deterministic cleanup and reconciler",
   "version": "0.1.0",
   "skills": [
-    "skills/lifecycle-operator",
     "./skills/lifecycle-operator"
   ],
   "uiHints": {
