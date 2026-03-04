@@ -14,6 +14,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycl
 4. Execute lifecycle operation via `openclaw nmc-agent`.
 5. Verify ACL-aware memory routing with `openclaw nmc-mem bootstrap`.
 6. Verify with `openclaw nmc-agent list --json` and `openclaw nmc-agent doctor --json`.
+7. Confirm principal-isolated scope (`agent:<agent_id>`) exists in grant inventory.
 
 ## Commands
 
@@ -21,6 +22,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycl
 - Set access: `scripts/set_access.sh`
 - Hard delete: `scripts/delete_agent.sh`
 - Memory bootstrap (manual): `openclaw nmc-mem bootstrap --principal <agent_id> --actor-level <level> --json`
+- Grant inventory (manual): `openclaw nmc-mem grants --principal orchestrator --target <agent_id> --actor-level A3_system_operator --json`
 
 ## Constraints
 

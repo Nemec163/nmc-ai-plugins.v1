@@ -11,7 +11,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-agent-lifecycl
 1. Validate requested `agent_id`, access level, and domain scopes.
 2. Create or update the agent via lifecycle tools.
 3. Verify registry/config reconciliation and ACL grants.
-4. For deletion, use hard-delete and confirm facts/vectors/grants cleanup.
+4. For deletion, use hard-delete and confirm facts/vectors/grants/promotions/conflicts cleanup.
 
 ## Commands
 

@@ -113,6 +113,15 @@ if (discoverableIds.has('nmc-memory-fabric')) {
       autoRecallActorLevel: 'A4_orchestrator_full',
       autoRecallLayers: ['M1_local', 'M2_domain', 'M4_global_facts'],
       autoRecallMaxContextChars: 1800,
+      autoRecallMaxItems: 5,
+      autoRecallMinScore: 0.45,
+      autoCaptureMaxPerRun: 3,
+      recallMinScore: 0.32,
+      maxFactChars: 1200,
+      bootstrapAclEnabled: true,
+      bootstrapAdminPrincipal: 'orchestrator',
+      bootstrapAdminActorLevel: 'A4_orchestrator_full',
+      bootstrapScopes: ['global'],
       embedding: {
         apiKey: '${OPENAI_API_KEY}',
         model: 'text-embedding-3-small',
@@ -178,6 +187,7 @@ const baselineTools = [
   'nmc_memory_promote_decide',
   'nmc_memory_prune',
   'nmc_memory_stats',
+  'nmc_memory_quality',
   'nmc_memory_principals',
   'nmc_memory_grants',
   'nmc_memory_grant_set',
@@ -186,6 +196,7 @@ const baselineTools = [
   'nmc_memory_conflict_resolve',
   'nmc_agent_list',
   'nmc_ops_health',
+  'nmc_ops_heartbeat',
 ];
 for (const t of baselineTools) {
   if (!cfg.agents.defaults.toolsAllowlist.includes(t)) {

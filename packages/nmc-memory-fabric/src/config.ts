@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { DEFAULT_QMD_ALLOWLIST } from "./qmd-store.js";
-import { MEMORY_LAYERS, type AccessLevel, type MemoryLayer } from "./acl.js";
+import { MEMORY_LAYERS, parseAccessLevel, type AccessLevel, type MemoryLayer } from "./acl.js";
 import { resolvePath } from "./utils.js";
 
 export type FabricConfig = {
@@ -15,6 +15,15 @@ export type FabricConfig = {
   autoRecallActorLevel: AccessLevel;
   autoRecallLayers: MemoryLayer[];
   autoRecallMaxContextChars: number;
+  autoRecallMaxItems: number;
+  autoRecallMinScore: number;
+  autoCaptureMaxPerRun: number;
+  recallMinScore: number;
+  maxFactChars: number;
+  bootstrapAclEnabled: boolean;
+  bootstrapAdminPrincipal: string;
+  bootstrapAdminActorLevel: AccessLevel;
+  bootstrapScopes: string[];
   embedding: {
     apiKey: string;
     model: string;
@@ -39,6 +48,15 @@ const DEFAULTS = {
     "M4_global_facts",
   ] as MemoryLayer[],
   autoRecallMaxContextChars: 1800,
+  autoRecallMaxItems: 5,
+  autoRecallMinScore: 0.45,
+  autoCaptureMaxPerRun: 3,
+  recallMinScore: 0.32,
+  maxFactChars: 1200,
+  bootstrapAclEnabled: true,
+  bootstrapAdminPrincipal: "orchestrator",
+  bootstrapAdminActorLevel: "A4_orchestrator_full" as AccessLevel,
+  bootstrapScopes: ["global"],
 };
 
 const DEFAULT_EXCLUDES = ["**/node_modules/**", "**/.git/**", "**/dist/**", "**/.next/**"];
@@ -102,6 +120,30 @@ export function parseConfig(raw: unknown): FabricConfig {
   const autoRecallMaxContextChars = typeof cfg.autoRecallMaxContextChars === "number"
     ? Math.max(256, Math.min(6000, Math.trunc(cfg.autoRecallMaxContextChars)))
     : DEFAULTS.autoRecallMaxContextChars;
+  const autoRecallMaxItems = typeof cfg.autoRecallMaxItems === "number"
+    ? Math.max(1, Math.min(12, Math.trunc(cfg.autoRecallMaxItems)))
+    : DEFAULTS.autoRecallMaxItems;
+  const autoRecallMinScore = typeof cfg.autoRecallMinScore === "number"
+    ? Math.max(0, Math.min(1, cfg.autoRecallMinScore))
+    : DEFAULTS.autoRecallMinScore;
+  const autoCaptureMaxPerRun = typeof cfg.autoCaptureMaxPerRun === "number"
+    ? Math.max(1, Math.min(10, Math.trunc(cfg.autoCaptureMaxPerRun)))
+    : DEFAULTS.autoCaptureMaxPerRun;
+  const recallMinScore = typeof cfg.recallMinScore === "number"
+    ? Math.max(0, Math.min(1, cfg.recallMinScore))
+    : DEFAULTS.recallMinScore;
+  const maxFactChars = typeof cfg.maxFactChars === "number"
+    ? Math.max(128, Math.min(4000, Math.trunc(cfg.maxFactChars)))
+    : DEFAULTS.maxFactChars;
+  const bootstrapScopesRaw = Array.isArray(cfg.bootstrapScopes)
+    ? cfg.bootstrapScopes
+    : DEFAULTS.bootstrapScopes;
+  const bootstrapScopes = [...new Set(
+    bootstrapScopesRaw
+      .filter((v): v is string => typeof v === "string")
+      .map((v) => normalizeScope(v))
+      .filter(Boolean),
+  )];
 
   const rawPaths = Array.isArray(pluginQmd.paths)
     ? pluginQmd.paths
@@ -126,10 +168,25 @@ export function parseConfig(raw: unknown): FabricConfig {
         : DEFAULTS.autoRecallPrincipal,
     autoRecallActorLevel:
       typeof cfg.autoRecallActorLevel === "string" && cfg.autoRecallActorLevel.trim()
-        ? (cfg.autoRecallActorLevel.trim() as AccessLevel)
+        ? parseAccessLevel(cfg.autoRecallActorLevel.trim())
         : DEFAULTS.autoRecallActorLevel,
     autoRecallLayers: autoRecallLayers.length ? autoRecallLayers : DEFAULTS.autoRecallLayers,
     autoRecallMaxContextChars,
+    autoRecallMaxItems,
+    autoRecallMinScore,
+    autoCaptureMaxPerRun,
+    recallMinScore,
+    maxFactChars,
+    bootstrapAclEnabled: cfg.bootstrapAclEnabled !== false,
+    bootstrapAdminPrincipal:
+      typeof cfg.bootstrapAdminPrincipal === "string" && cfg.bootstrapAdminPrincipal.trim()
+        ? cfg.bootstrapAdminPrincipal.trim()
+        : DEFAULTS.bootstrapAdminPrincipal,
+    bootstrapAdminActorLevel:
+      typeof cfg.bootstrapAdminActorLevel === "string" && cfg.bootstrapAdminActorLevel.trim()
+        ? parseAccessLevel(cfg.bootstrapAdminActorLevel.trim())
+        : DEFAULTS.bootstrapAdminActorLevel,
+    bootstrapScopes: bootstrapScopes.length ? bootstrapScopes : DEFAULTS.bootstrapScopes,
     embedding: {
       apiKey: resolveEnvVars(embeddingApiKeyRaw),
       model: typeof embeddingRaw.model === "string" ? embeddingRaw.model : DEFAULTS.embeddingModel,

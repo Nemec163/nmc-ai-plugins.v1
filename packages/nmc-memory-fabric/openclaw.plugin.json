@@ -13,6 +13,7 @@
     "uiHandles": {
       "monitoring": [
         "/v1/memory/stats",
+        "/v1/memory/quality",
         "/v1/memory/layers",
         "/v1/memory/catalog",
         "/v1/memory/conflicts"
@@ -53,6 +54,50 @@
     "autoRecallMaxContextChars": {
       "label": "Auto Recall Context Budget",
       "placeholder": "1800",
+      "advanced": true
+    },
+    "autoRecallMaxItems": {
+      "label": "Auto Recall Max Items",
+      "placeholder": "5",
+      "advanced": true
+    },
+    "autoRecallMinScore": {
+      "label": "Auto Recall Min Score",
+      "placeholder": "0.45",
+      "advanced": true
+    },
+    "autoCaptureMaxPerRun": {
+      "label": "Auto Capture Max Per Run",
+      "placeholder": "3",
+      "advanced": true
+    },
+    "recallMinScore": {
+      "label": "Recall Min Score",
+      "placeholder": "0.32",
+      "advanced": true
+    },
+    "maxFactChars": {
+      "label": "Max Fact Chars",
+      "placeholder": "1200",
+      "advanced": true
+    },
+    "bootstrapAclEnabled": {
+      "label": "Bootstrap ACL",
+      "help": "Seed baseline grants for orchestrator and auto-recall principal."
+    },
+    "bootstrapAdminPrincipal": {
+      "label": "Bootstrap Admin Principal",
+      "placeholder": "orchestrator",
+      "advanced": true
+    },
+    "bootstrapAdminActorLevel": {
+      "label": "Bootstrap Admin Actor Level",
+      "placeholder": "A4_orchestrator_full",
+      "advanced": true
+    },
+    "bootstrapScopes": {
+      "label": "Bootstrap Scopes",
+      "help": "Scopes seeded for baseline ACL grants.",
       "advanced": true
     },
     "embedding.apiKey": {
@@ -110,6 +155,46 @@
         "type": "integer",
         "minimum": 256,
         "maximum": 6000
+      },
+      "autoRecallMaxItems": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12
+      },
+      "autoRecallMinScore": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "autoCaptureMaxPerRun": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10
+      },
+      "recallMinScore": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "maxFactChars": {
+        "type": "integer",
+        "minimum": 128,
+        "maximum": 4000
+      },
+      "bootstrapAclEnabled": {
+        "type": "boolean"
+      },
+      "bootstrapAdminPrincipal": {
+        "type": "string"
+      },
+      "bootstrapAdminActorLevel": {
+        "type": "string"
+      },
+      "bootstrapScopes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       },
       "embedding": {
         "type": "object",
@@ -186,6 +271,46 @@
           "minimum": 256,
           "maximum": 6000
         },
+        "autoRecallMaxItems": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "autoRecallMinScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "autoCaptureMaxPerRun": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "recallMinScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maxFactChars": {
+          "type": "integer",
+          "minimum": 128,
+          "maximum": 4000
+        },
+        "bootstrapAclEnabled": {
+          "type": "boolean"
+        },
+        "bootstrapAdminPrincipal": {
+          "type": "string"
+        },
+        "bootstrapAdminActorLevel": {
+          "type": "string"
+        },
+        "bootstrapScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "embedding": {
           "type": "object",
           "additionalProperties": false,
@@ -256,6 +381,50 @@
       "autoRecallMaxContextChars": {
         "label": "Auto Recall Context Budget",
         "placeholder": "1800",
+        "advanced": true
+      },
+      "autoRecallMaxItems": {
+        "label": "Auto Recall Max Items",
+        "placeholder": "5",
+        "advanced": true
+      },
+      "autoRecallMinScore": {
+        "label": "Auto Recall Min Score",
+        "placeholder": "0.45",
+        "advanced": true
+      },
+      "autoCaptureMaxPerRun": {
+        "label": "Auto Capture Max Per Run",
+        "placeholder": "3",
+        "advanced": true
+      },
+      "recallMinScore": {
+        "label": "Recall Min Score",
+        "placeholder": "0.32",
+        "advanced": true
+      },
+      "maxFactChars": {
+        "label": "Max Fact Chars",
+        "placeholder": "1200",
+        "advanced": true
+      },
+      "bootstrapAclEnabled": {
+        "label": "Bootstrap ACL",
+        "help": "Seed baseline grants for orchestrator and auto-recall principal."
+      },
+      "bootstrapAdminPrincipal": {
+        "label": "Bootstrap Admin Principal",
+        "placeholder": "orchestrator",
+        "advanced": true
+      },
+      "bootstrapAdminActorLevel": {
+        "label": "Bootstrap Admin Actor Level",
+        "placeholder": "A4_orchestrator_full",
+        "advanced": true
+      },
+      "bootstrapScopes": {
+        "label": "Bootstrap Scopes",
+        "help": "Scopes seeded for baseline ACL grants.",
         "advanced": true
       },
       "embedding.apiKey": {

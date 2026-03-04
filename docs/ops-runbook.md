@@ -4,8 +4,10 @@
 
 ```bash
 openclaw nmc-mem doctor --json
+openclaw nmc-mem quality --json
 openclaw nmc-agent doctor --json
 openclaw nmc-ops health --json
+openclaw nmc-ops heartbeat --principal orchestrator --actor-level A3_system_operator --json
 npm run audit:openclaw
 ```
 

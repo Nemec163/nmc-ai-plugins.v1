@@ -210,6 +210,82 @@ function extractCount(raw: Record<string, unknown>): number {
   return pickRows(raw).length;
 }
 
+function pickMetric(raw: Record<string, unknown>, key: string): number | null {
+  const candidates = [
+    raw,
+    asObject(raw.data),
+    asObject(raw.details),
+  ];
+  for (const candidate of candidates) {
+    const value = candidate[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
+async function buildHeartbeatState(
+  principal: string,
+  actorLevel: string,
+): Promise<Record<string, unknown>> {
+  const [agents, stats, quality] = await Promise.all([
+    runOpenClawJson(["nmc-agent", "list", "--json"]),
+    runOpenClawJson(["nmc-mem", "stats", "--json"]),
+    runOpenClawJson(["nmc-mem", "quality", "--json"]),
+  ]);
+
+  const agentCount = extractCount(agents);
+  const pendingConflicts = pickMetric(quality, "pendingConflicts") ?? pickMetric(stats, "pendingConflicts") ?? 0;
+  const pendingPromotions = pickMetric(quality, "pendingPromotions") ?? pickMetric(stats, "pendingPromotions") ?? 0;
+  const staleFacts30d = pickMetric(quality, "staleFacts30d") ?? 0;
+  const expiringIn24h = pickMetric(quality, "expiringIn24h") ?? 0;
+  const lowConfidenceFacts = pickMetric(quality, "lowConfidenceFacts") ?? 0;
+  const oldestPendingConflictAgeSec = pickMetric(quality, "oldestPendingConflictAgeSec");
+
+  const degradedReasons: string[] = [];
+  if (pendingConflicts >= 50) degradedReasons.push("high_pending_conflicts");
+  if (pendingPromotions >= 100) degradedReasons.push("high_pending_promotions");
+  if (staleFacts30d >= 1000) degradedReasons.push("high_staleness");
+  if (expiringIn24h >= 500) degradedReasons.push("high_expiry_pressure");
+  if (lowConfidenceFacts >= 500) degradedReasons.push("high_low_confidence");
+  if ((oldestPendingConflictAgeSec ?? 0) >= 7 * 24 * 3600) {
+    degradedReasons.push("stale_conflict_queue");
+  }
+
+  const status = degradedReasons.length > 0 ? "degraded" : "healthy";
+  const recommendedActions = degradedReasons.length > 0
+    ? [
+        "Run nmc-mem prune --mode both",
+        "Review nmc-mem conflicts --status pending",
+        "Review promotion queue nmc-mem decide",
+      ]
+    : ["No immediate maintenance required."];
+
+  return {
+    status,
+    principal,
+    actorLevel,
+    ts: new Date().toISOString(),
+    metrics: {
+      agentCount,
+      pendingConflicts,
+      pendingPromotions,
+      staleFacts30d,
+      expiringIn24h,
+      lowConfidenceFacts,
+      oldestPendingConflictAgeSec,
+    },
+    degradedReasons,
+    recommendedActions,
+    raw: {
+      agents,
+      stats,
+      quality,
+    },
+  };
+}
+
 function collectPluginDescriptors(discovered: Record<string, unknown>): Record<string, PluginDescriptor> {
   const rows = pickPluginRows(discovered);
   const out: Record<string, PluginDescriptor> = {};
@@ -366,11 +442,46 @@ const plugin = {
       { name: "nmc_ops_health" },
     );
 
+    api.registerTool(
+      {
+        name: "nmc_ops_heartbeat",
+        label: "NMC Ops Heartbeat",
+        description: "Runtime heartbeat summary for agents + memory quality pressure.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            principal: { type: "string" },
+            actorLevel: { type: "string" },
+          },
+        },
+        async execute(_toolCallId, rawParams) {
+          const params = asObject(rawParams);
+          const principal =
+            typeof params.principal === "string" && params.principal.trim()
+              ? params.principal.trim()
+              : cfg.adminPrincipal;
+          const actorLevel =
+            typeof params.actorLevel === "string" && params.actorLevel.trim()
+              ? params.actorLevel.trim()
+              : cfg.adminActorLevel;
+          const payload = await buildHeartbeatState(principal, actorLevel);
+          return {
+            content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+            details: payload,
+          };
+        },
+      },
+      { name: "nmc_ops_heartbeat" },
+    );
+
     api.registerCli(
       ({ program }) => {
-        program
+        const cmd = program
           .command("nmc-ops")
-          .description("Control-plane helper commands")
+          .description("Control-plane helper commands");
+
+        cmd
           .command("health")
           .option("--json", "JSON output")
           .action(async (opts: { json?: boolean }) => {
@@ -392,9 +503,26 @@ const plugin = {
               console.log(JSON.stringify(payload, null, 2));
             }
           });
+
+        cmd
+          .command("heartbeat")
+          .option("--principal <principal>", "principal", cfg.adminPrincipal)
+          .option("--actor-level <level>", "actor level", cfg.adminActorLevel)
+          .option("--json", "JSON output")
+          .action(async (opts: { principal?: string; actorLevel?: string; json?: boolean }) => {
+            const payload = await buildHeartbeatState(
+              typeof opts.principal === "string" && opts.principal.trim() ? opts.principal.trim() : cfg.adminPrincipal,
+              typeof opts.actorLevel === "string" && opts.actorLevel.trim() ? opts.actorLevel.trim() : cfg.adminActorLevel,
+            );
+            if (opts.json) {
+              console.log(JSON.stringify(payload, null, 2));
+            } else {
+              console.log(JSON.stringify(payload, null, 2));
+            }
+          });
       },
       {
-        commands: ["nmc-ops", "nmc-ops health"],
+        commands: ["nmc-ops", "nmc-ops health", "nmc-ops heartbeat"],
       },
     );
 
@@ -568,6 +696,7 @@ const plugin = {
               const descriptors = collectPluginDescriptors(discovered);
               const listedSkills = await runOpenClawJson(["skills", "list", "--json"]);
               const layers = await runOpenClawJson(["nmc-mem", "layers", "--actor-level", actorLevel, "--json"]);
+              const quality = await runOpenClawJson(["nmc-mem", "quality", "--json"]);
               const bootstrap = await runOpenClawJson([
                 "nmc-mem",
                 "bootstrap",
@@ -601,6 +730,7 @@ const plugin = {
                 "admin capabilities bootstrap",
                 "--json",
               ]);
+              const heartbeat = await buildHeartbeatState(cfg.adminPrincipal, actorLevel);
               const { path: configPath, cfg: openclawCfg } = await readOpenClawConfigJson();
               const plugins = asObject(openclawCfg.plugins);
               const pluginSkills = Object.values(descriptors)
@@ -632,9 +762,11 @@ const plugin = {
                   memory: {
                     actorLevel,
                     layers,
+                    quality,
                     bootstrap,
                     accessProfile,
                     catalog: memoryCatalog,
+                    heartbeat,
                   },
                   endpoints: {
                     admin: [
@@ -644,6 +776,7 @@ const plugin = {
                       "/v1/admin/capabilities",
                       "/v1/admin/monitoring",
                       "/v1/admin/plugins/:id/config",
+                      "/v1/heartbeat/state",
                     ],
                     memory: [
                       "/v1/memory/plan",
@@ -660,6 +793,7 @@ const plugin = {
                       "/v1/memory/conflicts/:id/resolve",
                       "/v1/memory/prune",
                       "/v1/memory/stats",
+                      "/v1/memory/quality",
                       "/v1/memory/layers",
                     ],
                   },
@@ -671,11 +805,13 @@ const plugin = {
             if (method === "GET" && path === "/v1/admin/monitoring") {
               const actorLevel = String(url.searchParams.get("actor_level") ?? cfg.adminActorLevel).trim() || cfg.adminActorLevel;
               const principal = String(url.searchParams.get("principal") ?? cfg.adminPrincipal).trim();
-              const [agents, stats, layers, auditEvents] = await Promise.all([
+              const [agents, stats, quality, layers, auditEvents, heartbeat] = await Promise.all([
                 runOpenClawJson(["nmc-agent", "list", "--json"]),
                 runOpenClawJson(["nmc-mem", "stats", "--json"]),
+                runOpenClawJson(["nmc-mem", "quality", "--json"]),
                 runOpenClawJson(["nmc-mem", "layers", "--actor-level", actorLevel, "--json"]),
                 runOpenClawJson(["nmc-agent", "doctor", "--json"]),
+                buildHeartbeatState(principal || cfg.adminPrincipal, actorLevel),
               ]);
               const accessProfile = principal
                 ? await runOpenClawJson([
@@ -758,6 +894,7 @@ const plugin = {
                   },
                   memory: {
                     stats,
+                    quality,
                     layers,
                     accessProfile,
                     catalog,
@@ -774,6 +911,7 @@ const plugin = {
                       port: cfg.port,
                       allowMutations: cfg.allowMutations,
                     },
+                    heartbeat,
                     doctor: auditEvents,
                   },
                 },
@@ -868,6 +1006,9 @@ const plugin = {
                 for (const layer of body.layers) {
                   args.push("--layer", String(layer));
                 }
+              }
+              if (typeof body.min_score === "number" && Number.isFinite(body.min_score)) {
+                args.push("--min-score", String(body.min_score));
               }
               const payload = await runOpenClawJson(args);
               json(res, 200, { ok: true, data: payload });
@@ -1295,6 +1436,12 @@ const plugin = {
               return;
             }
 
+            if (method === "GET" && path === "/v1/memory/quality") {
+              const payload = await runOpenClawJson(["nmc-mem", "quality", "--json"]);
+              json(res, 200, { ok: true, data: payload });
+              return;
+            }
+
             if (method === "GET" && path === "/v1/audit/events") {
               const doctor = await runOpenClawJson(["nmc-agent", "doctor", "--json"]);
               const paths = (doctor.paths ?? {}) as Record<string, unknown>;
@@ -1333,13 +1480,10 @@ const plugin = {
             }
 
             if (method === "GET" && path === "/v1/heartbeat/state") {
-              json(res, 200, {
-                ok: true,
-                data: {
-                  status: "not_configured_in_v1",
-                  note: "Heartbeat orchestration hooks are exposed via plugins/CLI and can be wired by ops policy.",
-                },
-              });
+              const principal = String(url.searchParams.get("principal") ?? cfg.adminPrincipal).trim() || cfg.adminPrincipal;
+              const actorLevel = String(url.searchParams.get("actor_level") ?? cfg.adminActorLevel).trim() || cfg.adminActorLevel;
+              const payload = await buildHeartbeatState(principal, actorLevel);
+              json(res, 200, { ok: true, data: payload });
               return;
             }
 

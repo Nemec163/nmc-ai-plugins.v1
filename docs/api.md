@@ -39,6 +39,7 @@ Mutating endpoints additionally require:
 - `POST /v1/memory/conflicts/:id/resolve`
 - `GET /v1/memory/layers`
 - `GET /v1/memory/stats`
+- `GET /v1/memory/quality`
 - `GET /v1/admin/plugins`
 - `GET /v1/admin/plugins/contracts`
 - `GET /v1/admin/skills`
@@ -46,7 +47,7 @@ Mutating endpoints additionally require:
 - `GET /v1/admin/monitoring`
 - `POST /v1/admin/plugins/:id/config`
 - `GET /v1/audit/events?limit=200`
-- `GET /v1/heartbeat/state`
+- `GET /v1/heartbeat/state?principal=orchestrator&actor_level=A3_system_operator`
 
 All responses are JSON.
 
@@ -56,6 +57,7 @@ For `POST /v1/memory/recall`, `POST /v1/memory/store`, `POST /v1/memory/promote`
 `POST /v1/memory/promotions/:id/decide`, request body must include `principal` (string).
 Requests without `principal` return `400 {"error":"principal_required"}`.
 For `POST /v1/memory/recall`, optional `layers` array narrows retrieval to explicit memory layers.
+Optional `min_score` (0..1) drops low-confidence recall hits before they reach agent context.
 `GET /v1/memory/plan` returns a narrow-first layer strategy (no memory content), useful for
 agents/UI to choose minimal retrieval scope before calling recall.
 `GET /v1/memory/bootstrap` returns principal-aware access profile + layer catalog + narrow-first
@@ -68,6 +70,7 @@ and suggested strategy) without loading memory snippets.
 `GET /v1/memory/grants` returns explicit grants for one target principal, used by admin UI manual ACL editors.
 `GET /v1/memory/layers` returns machine-readable layer guidance and recommended recall order.
 Optional query `actor_level` includes effective read/write/promote profile for that level.
+`GET /v1/memory/quality` returns quality pressure metrics (staleness, low-confidence count, pending conflicts/promotions, top scopes).
 `GET /v1/memory/access-profile` query:
 - `principal`: ACL principal (required)
 - `actor_level`: defaults to `A1_worker`
@@ -135,8 +138,17 @@ Optional query:
 
 `GET /v1/admin/monitoring` returns dashboard-oriented runtime summary:
 - managed agents count + raw agent list payload
-- memory stats + memory layers + principal access profile + principal memory catalog + pending conflicts (ACL-aware)
+- memory stats + memory quality + memory layers + principal access profile + principal memory catalog + pending conflicts (ACL-aware)
 - control-plane runtime settings + `nmc-agent doctor` payload
+Optional query:
+- `principal`: defaults to control-plane config `adminPrincipal`
+- `actor_level`: defaults to control-plane config `adminActorLevel`
+
+`GET /v1/heartbeat/state` returns heartbeat status (`healthy|degraded`) plus objective metrics:
+- agent count
+- pending conflict/promotion pressure
+- stale facts / expiring facts / low-confidence facts
+- recommended maintenance actions
 Optional query:
 - `principal`: defaults to control-plane config `adminPrincipal`
 - `actor_level`: defaults to control-plane config `adminActorLevel`

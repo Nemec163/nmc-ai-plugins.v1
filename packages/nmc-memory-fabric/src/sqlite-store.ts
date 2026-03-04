@@ -119,6 +119,18 @@ export type PruneResult = {
   softDecayed: number;
 };
 
+export type MemoryQuality = {
+  totalFacts: number;
+  staleFacts30d: number;
+  expiringIn24h: number;
+  lowConfidenceFacts: number;
+  pendingConflicts: number;
+  pendingPromotions: number;
+  oldestPendingConflictAgeSec: number | null;
+  byDecayClass: Record<string, number>;
+  topScopes: Array<{ scope: string; facts: number }>;
+};
+
 const TTL_DEFAULTS: Record<DecayClass, number | null> = {
   permanent: null,
   stable: 90 * 24 * 3600,
@@ -1101,6 +1113,77 @@ export class FactsStore {
       pendingPromotions: pendingPromotions.n,
       pendingConflicts: pendingConflicts.n,
       dbPath: this.dbPath,
+    };
+  }
+
+  quality(topScopesLimit = 10): MemoryQuality {
+    const now = nowSec();
+    const total = this.db.prepare(`SELECT COUNT(*) AS n FROM facts`).get() as { n: number };
+    const stale = this.db
+      .prepare(
+        `
+        SELECT COUNT(*) AS n
+        FROM facts
+        WHERE last_access_at IS NULL OR (? - last_access_at) > 30 * 24 * 3600
+      `,
+      )
+      .get(now) as { n: number };
+    const expiring = this.db
+      .prepare(
+        `
+        SELECT COUNT(*) AS n
+        FROM facts
+        WHERE valid_until IS NOT NULL
+          AND valid_until > ?
+          AND valid_until <= ? + 24 * 3600
+      `,
+      )
+      .get(now, now) as { n: number };
+    const lowConfidence = this.db
+      .prepare(`SELECT COUNT(*) AS n FROM facts WHERE confidence < 0.4`)
+      .get() as { n: number };
+    const pendingConflicts = this.db
+      .prepare(`SELECT COUNT(*) AS n FROM fact_conflicts WHERE status = 'pending'`)
+      .get() as { n: number };
+    const pendingPromotions = this.db
+      .prepare(`SELECT COUNT(*) AS n FROM promotions WHERE status = 'pending'`)
+      .get() as { n: number };
+    const oldestPending = this.db
+      .prepare(
+        `SELECT detected_at FROM fact_conflicts WHERE status = 'pending' ORDER BY detected_at ASC LIMIT 1`,
+      )
+      .get() as { detected_at: number } | undefined;
+
+    const byDecayRows = this.db
+      .prepare(`SELECT decay_class, COUNT(*) AS n FROM facts GROUP BY decay_class`)
+      .all() as Array<{ decay_class: string; n: number }>;
+    const byDecayClass: Record<string, number> = {};
+    for (const row of byDecayRows) {
+      byDecayClass[row.decay_class] = row.n;
+    }
+
+    const topScopes = this.db
+      .prepare(
+        `
+        SELECT scope, COUNT(*) AS facts
+        FROM facts
+        GROUP BY scope
+        ORDER BY facts DESC, scope ASC
+        LIMIT ?
+      `,
+      )
+      .all(Math.max(1, Math.min(topScopesLimit, 50))) as Array<{ scope: string; facts: number }>;
+
+    return {
+      totalFacts: total.n,
+      staleFacts30d: stale.n,
+      expiringIn24h: expiring.n,
+      lowConfidenceFacts: lowConfidence.n,
+      pendingConflicts: pendingConflicts.n,
+      pendingPromotions: pendingPromotions.n,
+      oldestPendingConflictAgeSec: oldestPending ? Math.max(0, now - Math.floor(oldestPending.detected_at / 1000)) : null,
+      byDecayClass,
+      topScopes,
     };
   }
 

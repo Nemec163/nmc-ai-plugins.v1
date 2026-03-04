@@ -17,6 +17,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.
 ## Commands
 
 - Stats/doctor: `scripts/memory_health.sh`
+- Quality only (manual): `openclaw nmc-mem quality --json`
 - Catalog (manual): `openclaw nmc-mem catalog --principal <id> --actor-level A2_domain_builder --query "<query>" --json`
 - Grants (manual): `openclaw nmc-mem grants --principal <id> --target <id> --actor-level A3_system_operator --json`
 - Promote candidate: `scripts/promote_fact.sh`

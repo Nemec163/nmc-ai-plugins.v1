@@ -89,7 +89,7 @@ EOF
 
 cat "$REPORT_PATH"
 
-if [ "$INSTALL_SMOKE_OK" != true ]; then
+if [ "$INSTALL_SMOKE_OK" != true ] || [ "$RUNTIME_SMOKE_OK" != true ]; then
   exit 1
 fi
 

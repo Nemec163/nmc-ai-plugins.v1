@@ -23,10 +23,12 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - `GET /v1/admin/capabilities`
 - `GET /v1/admin/monitoring`
 - `POST /v1/admin/plugins/:id/config`
+- `GET /v1/heartbeat/state`
 - `GET /v1/memory/plan?query=...`
 - `GET /v1/memory/bootstrap?principal=...`
 - `GET /v1/memory/access-profile?principal=...`
 - `GET /v1/memory/catalog?principal=...`
+- `GET /v1/memory/quality`
 - `GET /v1/memory/principals?principal=...`
 - `GET /v1/memory/grants?principal=...&target_principal=...`
 - `POST /v1/memory/grants`
@@ -41,6 +43,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 - Avoid bulk edits across many plugins in one operation.
 - For UI bootstrap, prefer `GET /v1/admin/capabilities` over multiple fragmented calls.
 - For dashboard monitoring, prefer `GET /v1/admin/monitoring` with explicit `principal` for accurate conflict counters.
+- For heartbeat widgets, prefer `GET /v1/heartbeat/state` over custom rollups.
 - For principal-aware UI defaults, fetch `GET /v1/memory/bootstrap` before recall/store actions.
 - Use `GET /v1/memory/catalog` only for catalog refresh (bootstrap already includes initial catalog + plan).
 - For manual ACL tuning, inspect `GET /v1/memory/grants` before `POST`/`DELETE` changes.

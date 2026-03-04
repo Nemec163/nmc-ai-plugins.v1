@@ -11,7 +11,11 @@
   "admin": {
     "uiHandles": {
       "capabilities": "/v1/admin/capabilities",
-      "monitoring": "/v1/admin/monitoring",
+      "monitoring": [
+        "/v1/admin/monitoring",
+        "/v1/heartbeat/state",
+        "/v1/memory/quality"
+      ],
       "pluginContracts": "/v1/admin/plugins/contracts",
       "pluginConfigPatch": "/v1/admin/plugins/:id/config"
     }

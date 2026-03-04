@@ -9,14 +9,16 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-control-plane.
 ## Workflow
 
 1. Check control-plane health.
-2. Check managed agents list and status.
-3. Trigger memory hygiene pass when needed.
+2. Read heartbeat state (agents + memory quality pressure).
+3. Trigger memory hygiene pass when quality pressure rises.
 4. Emit concise operational report.
 
 ## Commands
 
-- Health: `scripts/ops_health.sh`
-- Cycle: `scripts/heartbeat_cycle.sh`
+- Health: `scripts/ops_health.sh [principal] [actor_level]`
+- Cycle: `scripts/heartbeat_cycle.sh [principal] [actor_level]`
+- API heartbeat: `GET /v1/heartbeat/state?principal=<id>&actor_level=<level>`
+- Memory quality: `openclaw nmc-mem quality --json`
 
 ## Guardrails
 

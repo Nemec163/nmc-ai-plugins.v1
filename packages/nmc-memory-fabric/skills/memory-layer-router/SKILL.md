@@ -31,6 +31,7 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.
 - Tool: `nmc_memory_principals` (ACL principal inventory for operators/admin UI)
 - Tool: `nmc_memory_grants` (inspect grants for one principal without loading memory snippets)
 - Tool: `nmc_memory_recall` with `layers`
+- Tool: `nmc_memory_quality` (check drift pressure before broadening recall)
 - Tool: `nmc_memory_layers` (inspect layer guide)
 - CLI: `openclaw nmc-mem bootstrap --principal <id> --actor-level A1_worker --scope <scope> --query "<query>" --json`
 - CLI: `openclaw nmc-mem catalog --principal <id> --actor-level A1_worker --scope <scope> --query "<query>" --json`
@@ -38,5 +39,6 @@ metadata: {"openclaw":{"requires":{"config":["plugins.entries.nmc-memory-fabric.
 - CLI: `openclaw nmc-mem access-profile --principal <id> --actor-level A2_domain_builder --json`
 - CLI: `openclaw nmc-mem principals --principal <id> --actor-level A3_system_operator --json`
 - CLI: `openclaw nmc-mem grants --principal <id> --target <id> --actor-level A3_system_operator --json`
-- CLI: `openclaw nmc-mem recall "<query>" --principal <id> --layer M2_domain --layer M4_global_facts --json`
+- CLI: `openclaw nmc-mem recall "<query>" --principal <id> --layer M2_domain --layer M4_global_facts --min-score 0.35 --json`
+- CLI: `openclaw nmc-mem quality --json`
 - CLI: `openclaw nmc-mem layers --json`

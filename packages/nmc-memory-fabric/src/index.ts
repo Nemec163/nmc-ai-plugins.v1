@@ -153,6 +153,26 @@ function parseExactRequest(query: string): { entity?: string; key?: string } {
   };
 }
 
+function normalizeFactText(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function principalScope(principal: string): string {
+  return normalizeScope(`agent:${principal.trim().toLowerCase()}`);
+}
+
+function grantsForAccessLevel(level: AccessLevel): Array<{ layer: MemoryLayer; mode: GrantMode }> {
+  if (level === "A4_orchestrator_full") {
+    return MEMORY_LAYERS.map((layer) => ({ layer, mode: "admin" as const }));
+  }
+  const matrix = ACCESS_MATRIX[level];
+  const out: Array<{ layer: MemoryLayer; mode: GrantMode }> = [];
+  for (const layer of matrix.read) out.push({ layer, mode: "read" });
+  for (const layer of matrix.write) out.push({ layer, mode: "write" });
+  if (matrix.promote) out.push({ layer: "M4_global_facts", mode: "promote" });
+  return uniqBy(out, (row) => `${row.layer}:${row.mode}`);
+}
+
 function buildRecallPlan(input: {
   query: string;
   actorLevel: AccessLevel;
@@ -232,6 +252,15 @@ const plugin = {
       autoRecallActorLevel: { type: "string" },
       autoRecallLayers: { type: "array", items: { type: "string" } },
       autoRecallMaxContextChars: { type: "integer", minimum: 256, maximum: 6000 },
+      autoRecallMaxItems: { type: "integer", minimum: 1, maximum: 12 },
+      autoRecallMinScore: { type: "number", minimum: 0, maximum: 1 },
+      autoCaptureMaxPerRun: { type: "integer", minimum: 1, maximum: 10 },
+      recallMinScore: { type: "number", minimum: 0, maximum: 1 },
+      maxFactChars: { type: "integer", minimum: 128, maximum: 4000 },
+      bootstrapAclEnabled: { type: "boolean" },
+      bootstrapAdminPrincipal: { type: "string" },
+      bootstrapAdminActorLevel: { type: "string" },
+      bootstrapScopes: { type: "array", items: { type: "string" } },
       embedding: {
         type: "object",
         additionalProperties: false,
@@ -317,6 +346,64 @@ const plugin = {
       const principal = resolvePrincipal(value);
       if (!principal) return { ok: false };
       return { ok: true, principal };
+    }
+
+    function sanitizeFactText(rawText: string): string | null {
+      const text = normalizeFactText(rawText);
+      if (text.length < 8) return null;
+      if (text.length > cfg.maxFactChars) return null;
+      return text;
+    }
+
+    function pickCaptureScope(principal: string, actorLevel: AccessLevel, requestedScope?: string): string | null {
+      const ownerScope = principalScope(principal);
+      if (canWriteScoped(actorLevel, principal, "M1_local", ownerScope)) return ownerScope;
+      const scope = normalizeScope(requestedScope);
+      if (canWriteScoped(actorLevel, principal, "M1_local", scope)) return scope;
+      if (canWriteScoped(actorLevel, principal, "M1_local", "global")) return "global";
+      return null;
+    }
+
+    function seedPrincipalGrants(
+      principal: string,
+      actorLevel: AccessLevel,
+      scopes: string[],
+    ): number {
+      const cleanPrincipal = principal.trim();
+      if (!cleanPrincipal) return 0;
+      const uniqueScopes = [...new Set(scopes.map((scope) => normalizeScope(scope)).filter(Boolean))];
+      const grantRows = grantsForAccessLevel(actorLevel);
+      let created = 0;
+      for (const grant of grantRows) {
+        for (const scope of uniqueScopes) {
+          const alreadyGranted = facts.hasGrant(cleanPrincipal, grant.layer, scope, grant.mode);
+          facts.upsertGrant(cleanPrincipal, grant.layer, scope, grant.mode);
+          if (!alreadyGranted) created += 1;
+        }
+      }
+      return created;
+    }
+
+    function seedBootstrapAcl(): { enabled: boolean; created: number } {
+      if (!cfg.bootstrapAclEnabled) return { enabled: false, created: 0 };
+      const seedScopes = [...new Set([
+        "global",
+        ...cfg.bootstrapScopes,
+        principalScope(cfg.autoRecallPrincipal),
+        principalScope(cfg.bootstrapAdminPrincipal),
+      ])];
+      let created = 0;
+      created += seedPrincipalGrants(
+        cfg.autoRecallPrincipal,
+        cfg.autoRecallActorLevel,
+        seedScopes,
+      );
+      created += seedPrincipalGrants(
+        cfg.bootstrapAdminPrincipal,
+        cfg.bootstrapAdminActorLevel,
+        seedScopes,
+      );
+      return { enabled: true, created };
     }
 
     function buildLayersPayload(actorLevel?: string) {
@@ -549,6 +636,7 @@ const plugin = {
       query: string;
       scope?: string;
       limit?: number;
+      minScore?: number;
       actorLevel?: AccessLevel;
       principal?: string;
       entity?: string;
@@ -561,6 +649,11 @@ const plugin = {
       if (!principalCheck.ok) return [];
       const principal = principalCheck.principal;
       const limit = Math.max(1, Math.min(input.limit ?? 5, 20));
+      const rawMinScore =
+        typeof input.minScore === "number" && Number.isFinite(input.minScore)
+          ? input.minScore
+          : cfg.recallMinScore;
+      const minScore = Math.max(0, Math.min(1, rawMinScore));
       const plan = buildRecallPlan({
         query: input.query,
         actorLevel: level,
@@ -626,7 +719,9 @@ const plugin = {
       const merged = uniqBy(
         [...exactHits, ...factsHits, ...qmdHits, ...vectorHits].sort((a, b) => b.score - a.score),
         (item) => `${item.layer}:${item.scope}:${item.text.trim().toLowerCase().replace(/\s+/g, " ")}`,
-      ).slice(0, limit);
+      )
+        .filter((hit) => hit.score >= minScore)
+        .slice(0, limit);
 
       return merged;
     }
@@ -735,6 +830,7 @@ const plugin = {
             entity: { type: "string" },
             key: { type: "string" },
             limit: { type: "integer", minimum: 1, maximum: 20 },
+            minScore: { type: "number", minimum: 0, maximum: 1 },
             actorLevel: { type: "string" },
             principal: { type: "string" },
             layers: { type: "array", items: { type: "string" } },
@@ -747,6 +843,7 @@ const plugin = {
             entity?: string;
             key?: string;
             limit?: number;
+            minScore?: number;
             actorLevel?: AccessLevel;
             principal?: string;
             layers?: MemoryLayer[];
@@ -859,16 +956,27 @@ const plugin = {
             };
           }
 
+          const sanitizedText = sanitizeFactText(params.text);
+          if (!sanitizedText) {
+            return {
+              content: [{
+                type: "text",
+                text: `Write denied: text must be 8..${cfg.maxFactChars} chars after normalization.`,
+              }],
+              details: { ok: false, code: "invalid_text" },
+            };
+          }
+
           const validUntil = params.validForSec ? Math.floor(Date.now() / 1000) + params.validForSec : undefined;
 
           const stored = facts.store({
-            text: params.text,
+            text: sanitizedText,
             entity: params.entity,
             key: params.key,
             value: params.value,
             category: params.category,
             source: params.source ?? "manual",
-            scope: params.scope,
+            scope: writeScope,
             owner: params.owner ?? "system",
             layer: params.layer,
             confidence: params.confidence,
@@ -879,10 +987,10 @@ const plugin = {
 
           if (stored.mutated) {
             try {
-              const vector = await embeddings.embed(params.text);
+              const vector = await embeddings.embed(sanitizedText);
               await vectors.store({
                 id: stored.id,
-                text: params.text,
+                text: sanitizedText,
                 vector,
                 layer: params.layer,
                 scope: writeScope,
@@ -1141,6 +1249,35 @@ const plugin = {
         },
       },
       { name: "nmc_memory_stats" },
+    );
+
+    api.registerTool(
+      {
+        name: "nmc_memory_quality",
+        label: "NMC Memory Quality",
+        description: "Return memory quality indicators (staleness, expiry pressure, and confidence drift).",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          properties: {},
+        },
+        async execute() {
+          const quality = facts.quality();
+          const vectorCount = await vectors.count().catch(() => -1);
+          const payload = {
+            ...quality,
+            vectorCount,
+            recallMinScore: cfg.recallMinScore,
+            autoRecallMinScore: cfg.autoRecallMinScore,
+            maxFactChars: cfg.maxFactChars,
+          };
+          return {
+            content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+            details: payload,
+          };
+        },
+      },
+      { name: "nmc_memory_quality" },
     );
 
     api.registerTool(
@@ -1665,6 +1802,31 @@ const plugin = {
           });
 
         mem
+          .command("quality")
+          .option("--json", "JSON output")
+          .action(async (opts: { json?: boolean }) => {
+            const quality = facts.quality();
+            const vectorCount = await vectors.count().catch(() => -1);
+            const payload = {
+              ...quality,
+              vectorCount,
+              recallMinScore: cfg.recallMinScore,
+              autoRecallMinScore: cfg.autoRecallMinScore,
+              maxFactChars: cfg.maxFactChars,
+            };
+            if (opts.json) {
+              console.log(JSON.stringify(payload, null, 2));
+              return;
+            }
+            console.log(`Total facts: ${payload.totalFacts}`);
+            console.log(`Stale facts (30d): ${payload.staleFacts30d}`);
+            console.log(`Expiring in 24h: ${payload.expiringIn24h}`);
+            console.log(`Low confidence facts: ${payload.lowConfidenceFacts}`);
+            console.log(`Pending conflicts: ${payload.pendingConflicts}`);
+            console.log(`Pending promotions: ${payload.pendingPromotions}`);
+          });
+
+        mem
           .command("layers")
           .option("--actor-level <level>", "access level", "A1_worker")
           .option("--json", "JSON output")
@@ -1853,6 +2015,7 @@ const plugin = {
           .option("--entity <entity>")
           .option("--key <key>")
           .option("--limit <limit>", "result limit", "5")
+          .option("--min-score <score>", "minimum score 0..1", String(cfg.recallMinScore))
           .option("--actor-level <level>", "access level", "A1_worker")
           .option("--principal <principal>", "acl principal")
           .option("--layer <layer>", "repeatable memory layer filter", (value, prev: string[]) => {
@@ -1860,7 +2023,7 @@ const plugin = {
             return prev;
           }, [])
           .option("--json", "JSON output")
-          .action(async (query: string, opts: { scope?: string; entity?: string; key?: string; limit?: string; actorLevel?: string; principal?: string; layer?: string[]; json?: boolean }) => {
+          .action(async (query: string, opts: { scope?: string; entity?: string; key?: string; limit?: string; minScore?: string; actorLevel?: string; principal?: string; layer?: string[]; json?: boolean }) => {
             const principalCheck = requirePrincipal(opts.principal);
             if (!principalCheck.ok) {
               const payload = { ok: false, code: "principal_required" };
@@ -1874,6 +2037,7 @@ const plugin = {
               entity: opts.entity,
               key: opts.key,
               limit: Number(opts.limit ?? "5"),
+              minScore: Number(opts.minScore ?? String(cfg.recallMinScore)),
               actorLevel: parseAccessLevel(opts.actorLevel),
               principal: principalCheck.principal,
               layers: parseLayerFilter(opts.layer),
@@ -1921,8 +2085,16 @@ const plugin = {
               return;
             }
 
+            const text = sanitizeFactText(String(opts.text));
+            if (!text) {
+              const payload = { ok: false, code: "invalid_text", maxFactChars: cfg.maxFactChars };
+              if (opts.json) console.log(JSON.stringify(payload, null, 2));
+              else console.error(`invalid_text (must be 8..${cfg.maxFactChars} chars after normalization)`);
+              return;
+            }
+
             const out = facts.store({
-              text: String(opts.text),
+              text,
               layer,
               scope,
               owner: String(opts.owner ?? "system"),
@@ -1933,10 +2105,10 @@ const plugin = {
 
             if (out.mutated) {
               try {
-                const vector = await embeddings.embed(String(opts.text));
+                const vector = await embeddings.embed(text);
                 await vectors.store({
                   id: out.id,
-                  text: String(opts.text),
+                  text,
                   vector,
                   layer,
                   scope,
@@ -2364,6 +2536,7 @@ const plugin = {
         commands: [
           "nmc-mem",
           "nmc-mem stats",
+          "nmc-mem quality",
           "nmc-mem layers",
           "nmc-mem bootstrap",
           "nmc-mem plan",
@@ -2386,10 +2559,14 @@ const plugin = {
     );
 
     if (cfg.autoRecall) {
-      function buildContextSnippet(hits: RecallResult[], maxChars: number): string {
+      function buildContextSnippet(
+        hits: RecallResult[],
+        maxChars: number,
+        maxItems: number,
+      ): string {
         const lines: string[] = [];
         let used = 0;
-        for (const hit of hits) {
+        for (const hit of hits.slice(0, maxItems)) {
           const line = `- [${hit.layer}/${hit.backend}] ${hit.text} (${hit.citation})`;
           const next = line.length + 1;
           if (used + next > maxChars) break;
@@ -2410,18 +2587,19 @@ const plugin = {
         if (!principal) return;
         const hits = await runRecall({
           query: prompt,
-          limit: 5,
+          limit: cfg.autoRecallMaxItems,
+          minScore: cfg.autoRecallMinScore,
           scope,
           actorLevel,
           principal,
-          layers: cfg.autoRecallLayers,
+          layers: cfg.autoRecallLayers.length ? cfg.autoRecallLayers : undefined,
         });
         if (!hits.length) return;
         const maxChars = Math.min(
           cfg.autoRecallMaxContextChars,
           CONTEXT_BUDGET_BY_ACCESS[actorLevel],
         );
-        const text = buildContextSnippet(hits, maxChars);
+        const text = buildContextSnippet(hits, maxChars, cfg.autoRecallMaxItems);
         if (!text) return;
         const addendum = `<nmc-memory>\n${text}\n</nmc-memory>`;
         return {
@@ -2437,6 +2615,11 @@ const plugin = {
         const success = event.success !== false;
         const messageLike = event.messages ?? event.outputMessages ?? event.output ?? null;
         if (!success || !messageLike) return;
+        const principal = resolveHookPrincipal(event);
+        if (!principal) return;
+        const actorLevel = resolveHookActorLevel(event);
+        const scope = pickCaptureScope(principal, actorLevel, resolveHookScope(event));
+        if (!scope) return;
         const candidates: string[] = [];
 
         const messages = Array.isArray(messageLike) ? messageLike : [messageLike];
@@ -2460,7 +2643,10 @@ const plugin = {
           }
         }
 
-        const filtered = candidates.map((t) => t.trim()).filter(looksLikeStructuredMemory).slice(0, 3);
+        const filtered = candidates
+          .map((t) => sanitizeFactText(t) ?? "")
+          .filter((t) => t && looksLikeStructuredMemory(t))
+          .slice(0, cfg.autoCaptureMaxPerRun);
 
         for (const text of filtered) {
           const category: FactCategory = /\b(decide|decision|chosen|choose|because)\b/i.test(text)
@@ -2480,11 +2666,11 @@ const plugin = {
             category,
             layer: "M1_local",
             source: "auto_capture",
-            scope: "global",
-            owner: "session",
+            scope,
+            owner: principal,
             confidence: 0.75,
             decayClass,
-            idempotencyKey: `auto_capture:${text.slice(0, 80).toLowerCase()}`,
+            idempotencyKey: `auto_capture:${principal}:${scope}:${text.slice(0, 80).toLowerCase()}`,
           });
 
           if (storeOut.mutated) {
@@ -2495,8 +2681,8 @@ const plugin = {
                 text,
                 vector,
                 layer: "M1_local",
-                scope: "global",
-                owner: "session",
+                scope,
+                owner: principal,
                 source: "auto_capture",
                 validUntil: storeOut.validUntil,
               });
@@ -2512,6 +2698,13 @@ const plugin = {
     api.registerService({
       id: "nmc-memory-fabric",
       start: () => {
+        const aclSeed = seedBootstrapAcl();
+        if (aclSeed.enabled && aclSeed.created > 0) {
+          api.logger.info?.(
+            `nmc-memory-fabric: bootstrapped acl grants created=${aclSeed.created} ` +
+              `(autoRecallPrincipal=${cfg.autoRecallPrincipal}, adminPrincipal=${cfg.bootstrapAdminPrincipal})`,
+          );
+        }
         api.logger.info?.(`nmc-memory-fabric: started (db=${factsDbPath}, vectors=${vectorsPath})`);
         const runNightlyBackfill = () => {
           try {

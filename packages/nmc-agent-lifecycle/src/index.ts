@@ -22,6 +22,10 @@ type CreateSpec = {
   actor?: string;
 };
 
+function principalScope(principal: string): string {
+  return `agent:${principal.trim().toLowerCase()}`;
+}
+
 async function deleteVectorsByOwner(vectorsPath: string, owner: string): Promise<void> {
   const db = await lancedb.connect(vectorsPath);
   const tables = await db.tableNames();
@@ -54,7 +58,13 @@ function upsertGrants(db: Database.Database, principal: string, level: AccessLev
      VALUES (lower(hex(randomblob(16))), ?, ?, ?, ?, ?)`,
   );
 
-  const scopeList = [...new Set(["global", ...scopes.map((scope) => scope.trim().toLowerCase()).filter(Boolean)])];
+  const scopeList = [
+    ...new Set([
+      "global",
+      principalScope(principal),
+      ...scopes.map((scope) => scope.trim().toLowerCase()).filter(Boolean),
+    ]),
+  ];
 
   const tx = db.transaction(() => {
     for (const grant of grants) {
@@ -71,11 +81,49 @@ function deleteGrants(db: Database.Database, principal: string): number {
   return res.changes;
 }
 
-function deleteFactsByOwner(dbPath: string, owner: string): number {
+function tableExists(db: Database.Database, tableName: string): boolean {
+  const row = db
+    .prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1`)
+    .get(tableName);
+  return Boolean(row);
+}
+
+function deleteFactsByOwner(dbPath: string, owner: string): { facts: number; promotions: number; conflicts: number } {
   const db = new Database(dbPath);
-  const res = db.prepare(`DELETE FROM facts WHERE owner = ?`).run(owner);
-  db.close();
-  return res.changes;
+  const cleanup = { facts: 0, promotions: 0, conflicts: 0 };
+  try {
+    if (!tableExists(db, "facts")) return cleanup;
+
+    const ids = (db.prepare(`SELECT id FROM facts WHERE owner = ?`).all(owner) as Array<{ id: string }>)
+      .map((row) => row.id)
+      .filter(Boolean);
+    if (ids.length === 0) return cleanup;
+
+    const tx = db.transaction(() => {
+      if (tableExists(db, "promotions")) {
+        const placeholders = ids.map(() => "?").join(", ");
+        const res = db
+          .prepare(`DELETE FROM promotions WHERE candidate_id IN (${placeholders})`)
+          .run(...ids);
+        cleanup.promotions = res.changes;
+      }
+
+      if (tableExists(db, "fact_conflicts")) {
+        const placeholders = ids.map(() => "?").join(", ");
+        const res = db
+          .prepare(`DELETE FROM fact_conflicts WHERE existing_fact_id IN (${placeholders})`)
+          .run(...ids);
+        cleanup.conflicts = res.changes;
+      }
+
+      const factsRes = db.prepare(`DELETE FROM facts WHERE owner = ?`).run(owner);
+      cleanup.facts = factsRes.changes;
+    });
+    tx();
+    return cleanup;
+  } finally {
+    db.close();
+  }
 }
 
 const plugin = {
@@ -189,8 +237,13 @@ const plugin = {
 
       const workspace = join(cfg.workspaceRoot, agentId);
       let removedFacts = 0;
+      let removedPromotions = 0;
+      let removedConflicts = 0;
       try {
-        removedFacts = deleteFactsByOwner(cfg.factsDbPath, agentId);
+        const cleaned = deleteFactsByOwner(cfg.factsDbPath, agentId);
+        removedFacts = cleaned.facts;
+        removedPromotions = cleaned.promotions;
+        removedConflicts = cleaned.conflicts;
       } catch {}
 
       let removedVectors = 0;
@@ -216,6 +269,8 @@ const plugin = {
         outcome: "ok",
         details: {
           removedFacts,
+          removedPromotions,
+          removedConflicts,
           removedVectors,
           removedGrants,
           removedRegistry,
@@ -227,6 +282,8 @@ const plugin = {
         ok: true,
         code: "deleted" as const,
         removedFacts,
+        removedPromotions,
+        removedConflicts,
         removedVectors,
         removedGrants,
       };
