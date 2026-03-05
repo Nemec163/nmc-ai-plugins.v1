@@ -209,7 +209,7 @@ Tombstone фиксирует:
 - `tombstones` включаются для global/критичных доменов, где ошибка дорогая.
 
 ## 6) Контракт каноничной записи (обязательные поля)
-Для любых каноничных записей в `workspace/memory/core/agents/*/{COURSE,PLAYBOOK,PITFALLS,DECISIONS}.md` и в `workspace/memory/core/user/L3_semantic/*`, `workspace/memory/core/user/L4_identity/*`, `workspace/memory/core/user/L5_state/*`:
+Для любых каноничных записей в `workspace/memory/core/agents/*/{COURSE,PLAYBOOK,PITFALLS,DECISIONS}.md` и в `workspace/memory/core/user/L2_episodic/*`, `workspace/memory/core/user/L3_semantic/*`, `workspace/memory/core/user/L4_identity/*`, `workspace/memory/core/user/L5_state/*`:
 
 ```yaml
 record_id: "uuid-or-stable-id"
@@ -222,15 +222,17 @@ source_ref:
   - "workspace/memory/intake/L1/2026-03-05/claim_000123.json"
 evidence:
   - "workspace/memory/core/user/L2_episodic/2026/03/05.md#event_20260305T091500Z_meeting_preference"
-confidence: 0.0
+confidence: 0.6
 supersedes: null
-status: "active|deprecated|retracted"
+status: "event=active|corrected|retracted; fact|state|identity|competence=active|deprecated|retracted"
 ```
 
 Примечания:
 - `record_id`, `source_ref`, `evidence`, `updated_at`, `supersedes` — обязательный минимум.
 - `created_by` — опциональное (рекомендуемое) поле для фиксации curator pipeline, создавшего запись.
 - `created_by` упрощает аудит и воспроизводимость генерации памяти.
+- `confidence` обязателен и назначается только curator pipeline по дискретной шкале `0.3 | 0.6 | 0.9` (`low | medium | high`).
+- `status` нормируется по `record_type`: `event -> active|corrected|retracted`; `fact|state|identity|competence -> active|deprecated|retracted`.
 - `L2_episodic` остается append-only: исправления добавляются отдельной `correction_*` записью в дневном файле (или на следующий день).
 
 ## 7) Правила по слоям
@@ -392,8 +394,12 @@ meta/
 Фиксировать:
 - вход/выход каждого этапа,
 - критерии `curated` vs `rejected`,
-- идемпотентность (`apply_id`, запрет повторного применения одного и того же claim batch),
-- порядок обработки (детерминированный, стабильная сортировка по времени + id).
+- идемпотентность (`apply_batch_id`, запрет повторного применения одного и того же claim batch),
+- двухфазный Apply (MUST): `Phase 1 (staging)` — собрать все новые файлы/патчи и пройти schema-validation; `Phase 2 (commit switch)` — выполнить атомарный rename/snapshot switch; при ошибке validation — fail-closed и очистка staging,
+- `apply_batch_id` фиксируется одновременно в `manifest` и runtime `applied ledger` (file/sqlite) в runtime-path (например `~/.openclaw/memory/applied_ledger.sqlite` или `~/.openclaw/memory/curator/applied_ledger.jsonl`), строго вне `workspace/memory/*` и вне git, для детерминированного recovery после crash (`replay-safe` или `already-applied skip`),
+- порядок обработки (детерминированный, стабильная сортировка по времени + id),
+- обязательный `full reindex` при смене fingerprint (`provider/model/endpoint/chunking`) без частичных “догрузок”,
+- `views/*` не используется как evidence для `L3/L4/L5` (только навигация/чтение).
 
 #### `system/policies/access.md`
 Отвечает за модель прав и запретов.
@@ -401,7 +407,9 @@ meta/
 Фиксировать:
 - матрицу `actor x path x action`,
 - явный deny на запись в `core/*` для всех кроме Memory Curator,
-- режим аудита (кто и когда читал/писал критичные файлы).
+- режим аудита (кто и когда читал/писал критичные файлы),
+- техническое enforcement на FS-уровне: `core/*` в read-only через POSIX perms/ACL для всех кроме curator-service account,
+- отдельное правило для `views/*`: read-only, non-authoritative, без права быть источником `evidence`.
 
 #### `system/policies/retention.md`
 Отвечает за сроки хранения и архив.
@@ -444,7 +452,7 @@ meta/
 - `timestamp` (UTC, RFC3339),
 - `payload` (object),
 - `evidence` (непустой массив ссылок),
-- `confidence` (`0..1`),
+- `confidence` (`MVP: 0..1; Production: enum 0.3|0.6|0.9`),
 - `status` (`active|corrected|retracted`),
 - `updated_at`.
 
@@ -463,14 +471,87 @@ meta/
 - `predicate`,
 - `value`,
 - `evidence`,
-- `confidence`,
+- `confidence` (`MVP: 0..1; Production: enum 0.3|0.6|0.9`),
 - `updated_at`,
-- `status`.
+- `status` (`active|deprecated|retracted`).
 
-Рекомендации надежности:
-- поддержка `valid_from/valid_to` для временных фактов,
-- обязательный `source_event_id` для state-проекций,
-- запрет пустых `evidence`.
+Production-контракт (strict, fail-closed):
+- `oneOf` MUST разделять ветки по `record_type`, чтобы схема отбрасывала кривые формы до Apply.
+- общие поля MUST быть объявлены в верхнеуровневом `properties`, чтобы при `unevaluatedProperties: false` валидатор не рубил корректные записи как “не evaluated”.
+- `record_type=state` MUST требовать `source_event_id` (L5 всегда проекция из L2).
+- `record_type=identity` MUST требовать минимум одно поле времени актуальности: `valid_from` или `as_of` в формате RFC3339 UTC.
+- `record_type=competence` MUST требовать `domain`, `role`, `scope`.
+- `evidence` MUST быть непустым массивом во всех ветках.
+- для critical-mode при `oneOf` MUST использоваться `unevaluatedProperties: false` (draft 2019-09/2020-12); `additionalProperties: false` считать fallback для legacy-валидаторов.
+- наличие `record_type` уже обеспечено глобальным `required`, поэтому дублировать `required: ["record_type"]` в каждой ветке не обязательно.
+
+Минимальный шаблон `oneOf` для production:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "record_id": { "type": "string", "minLength": 1 },
+    "record_type": { "enum": ["fact", "state", "identity", "competence"] },
+    "subject": { "type": "string", "minLength": 1 },
+    "predicate": { "type": "string", "minLength": 1 },
+    "value": {},
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "confidence": { "enum": [0.3, 0.6, 0.9] },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["active", "deprecated", "retracted"] }
+  },
+  "required": [
+    "record_id",
+    "record_type",
+    "subject",
+    "predicate",
+    "value",
+    "evidence",
+    "confidence",
+    "updated_at",
+    "status"
+  ],
+  "oneOf": [
+    {
+      "properties": { "record_type": { "const": "fact" } }
+    },
+    {
+      "properties": {
+        "record_type": { "const": "state" },
+        "source_event_id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["source_event_id"]
+    },
+    {
+      "properties": {
+        "record_type": { "const": "identity" },
+        "valid_from": { "type": "string", "format": "date-time" },
+        "as_of": { "type": "string", "format": "date-time" }
+      },
+      "anyOf": [
+        { "required": ["valid_from"] },
+        { "required": ["as_of"] }
+      ]
+    },
+    {
+      "properties": {
+        "record_type": { "const": "competence" },
+        "domain": { "type": "string", "minLength": 1 },
+        "role": { "type": "string", "minLength": 1 },
+        "scope": { "type": "string", "minLength": 1 }
+      },
+      "required": ["domain", "role", "scope"]
+    }
+  ],
+  "unevaluatedProperties": false
+}
+```
 
 ### 10.5 `meta/`
 
@@ -500,7 +581,8 @@ meta/
 Проверки при старте/деплое:
 - commit parity,
 - schema compatibility,
-- checksum parity.
+- checksum parity,
+- `apply_batch_id` parity между `manifest` и runtime `applied ledger`.
 
 #### `meta/tombstones/`
 Назначение: не дать удаленным/отозванным записям “воскреснуть”.
@@ -541,10 +623,117 @@ meta/
 
 ## 12) Чеклист “работает как часы”
 
-- Любой Apply атомарен: либо все целевые файлы обновлены, либо ни один.
+- Любой Apply атомарен: staging + atomic rename/commit-switch, чтобы либо все целевые файлы обновились, либо ни один.
 - Manifest создается только после успешного полного Apply.
 - Нет записи в канон без валидного schema-check.
 - Нет факта/state без `evidence`.
 - Любая коррекция фиксируется новой записью (не silent overwrite).
 - Конфликт не проходит “молча”: либо resolution, либо reject/defer с причиной.
 - Для критичных retract/supersede создается tombstone.
+
+## 13) Дополнительный рабочий слой агентов (SQLite/FTS/vector/QMD/cache)
+
+Этот слой находится **вне `workspace/memory/*`** и нужен только для быстрого retrieval.
+Архитектура канона не меняется:
+- source of truth остается в `workspace/memory/core/*`;
+- индексный слой — производный runtime-механизм поиска.
+
+### 13.1 Границы слоя (обязательные)
+
+- Расположение: runtime state (`~/.openclaw/*`), не в memory-canon, не коммитится в git.
+- Назначение: ускоренный поиск и ранжирование, а не хранение истины.
+- Доступ: может читать каноничные markdown-источники и session-транскрипты (если включено), но не писать в канон.
+- Отказоустойчивость: при падении отдельного backend-а поиск деградирует (fallback), а не ломает весь pipeline консолидации.
+
+### 13.2 Что именно хранится вне memory
+
+- `~/.openclaw/memory/<agentId>.sqlite`:
+  per-agent индекс builtin memory backend (chunks, метаданные, embeddings/cache).
+- `~/.openclaw/memory/applied_ledger.sqlite` (или `~/.openclaw/memory/curator/applied_ledger.jsonl`):
+  runtime ledger примененных `apply_batch_id`; не часть канона, не коммитится в git.
+- `~/.openclaw/agents/<agentId>/qmd/`:
+  runtime-дом QMD backend (config/cache/sqlite sidecar).
+- `~/.openclaw/agents/<agentId>/qmd/sessions/`:
+  экспорт sanitized session transcripts для QMD (если включено).
+- `~/.openclaw/agents/<agentId>/sessions/*.jsonl`:
+  исходные session transcripts (используются как источник наблюдений/поиска по сессиям).
+
+### 13.3 Builtin SQLite + FTS5 + vector (рабочий профиль по умолчанию)
+
+- Дефолтный backend: SQLite index manager.
+- Тип данных для индекса: Markdown chunks.
+- Базовый гибридный поиск:
+  - vector similarity (семантика),
+  - BM25 через FTS5 (точные токены/идентификаторы).
+- Reranking: включен MMR для снижения near-duplicates в выдаче.
+- Recency: включен temporal decay / freshness boost для приоритета более актуальных chunk-ов.
+- При отсутствии FTS5 система продолжает работать в vector-only режиме.
+- При недоступных embeddings система может вернуть keyword/BM25 матчинг (если доступен).
+
+### 13.4 Vector-ускорение и fallback
+
+- При наличии `sqlite-vec` embeddings хранятся в SQLite vector table и ищутся в БД (быстрее, меньше нагрузки на JS-процесс).
+- Если `sqlite-vec` не загрузился, backend не падает: используется fallback на in-process cosine search.
+- Смена embedding provider/model/endpoint fingerprint/chunk params должна триггерить полный reindex.
+
+### 13.5 QMD backend (опциональный sidecar)
+
+- Включение: `memory.backend = "qmd"`.
+- QMD работает как локальный sidecar retrieval engine (BM25 + vectors + rerank).
+- Индекс обновляется через `qmd update` + `qmd embed` на boot и по интервалу (`memory.qmd.update.interval`, дефолт 5m).
+- Boot refresh по умолчанию неблокирующий; для строгой синхронизации можно включить `waitForBootSync`.
+- Если QMD недоступен/сломался, поиск автоматически откатывается на builtin SQLite backend.
+
+### 13.6 Кэширование и свежесть данных
+
+- Embedding cache в SQLite:
+  снижает стоимость/время переиндексации и повторных обновлений неизмененных chunk-ов.
+- Для cache обязателен лимит `maxEntries` (подбирается по объему воркспейса и контролируется по eviction-rate).
+- Файловый watcher помечает индекс dirty при изменениях memory-файлов (debounce).
+- Sync выполняется асинхронно (на старте, по поиску, по интервалу); `memory_search` не должен блокироваться на индексации.
+- Для session-поиска применяются delta-threshold trigger-ы; возможна короткая “eventual consistency” задержка.
+- `experimental.sessionMemory` (если включено) ограничивается curator/orchestrator профилями и источниками `["memory","sessions"]`.
+
+### 13.7 Интеграция с текущей канонической архитектурой
+
+Интеграция делается без новых слоев истины:
+1. Curator завершает `Apply` и пишет manifest (см. шаг 7 в разделе 8).
+2. После manifest index-layer получает сигнал `dirty` и запускает background sync/reindex.
+3. Агентский retrieval читает только индекс/кэш; изменения в канон вносит только Curator.
+4. Любой ответ, полученный через retrieval, при переносе в канон должен иметь `evidence` на исходные каноничные записи.
+
+Обязательный принцип:
+- индекс может ускорять recall, но не может “узаконить” факт без curator-валидации.
+
+### 13.8 Подключение каноничных путей в индекс
+
+По умолчанию OpenClaw индексирует свой стандартный memory-layout.
+Для нашей структуры (`workspace/memory/core/*`) обязательно явно подключать каноничные markdown-пути:
+- для builtin backend — через `agents.defaults.memorySearch.extraPaths`,
+- для QMD backend — через `memory.qmd.paths` (и/или `includeDefaultMemory` при необходимости).
+
+Требование:
+- в индекс включаются только первичные markdown-источники канона (`L2/L3/L4/L5` + role canon);
+- `workspace/memory/core/user/views/*` не индексируется;
+- индексирование не должно подмешивать неканоничные временные файлы в authoritative recall для curator.
+
+Минимальный набор `extraPaths` для всех рабочих агентов:
+- `workspace/memory/core/user/L2_episodic/**/*.md`
+- `workspace/memory/core/user/L3_semantic/*.md`
+- `workspace/memory/core/user/L4_identity/*.md`
+- `workspace/memory/core/user/L5_state/*.md`
+- `workspace/memory/core/agents/**/*.md`
+
+Ограниченный набор для curator/orchestrator:
+- опционально `workspace/memory/core/system/**/*.md` (рядовым агентам не подключать, чтобы не засорять recall).
+
+### 13.9 Минимальный операционный профиль “безотказно”
+
+- `cache.enabled = true` (embedding cache включен).
+- Hybrid retrieval включен (FTS + vector), но с допустимой деградацией до vector-only.
+- `agents.defaults.compaction.memoryFlush.enabled = true` (silent flush перед compaction).
+- QMD используется опционально; fallback на builtin backend обязателен.
+- После каждого успешного manifest проверяется `index freshness`.
+- При несоответствии fingerprint/provider/model/chunking выполняется full reindex.
+- Heartbeat-диагностика по расписанию: `openclaw memory status --deep --index` с алертом при dirty/error состоянии.
+- Все runtime индексы и кэши живут вне `workspace/memory/*` и не считаются частью канона.
