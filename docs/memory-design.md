@@ -332,3 +332,219 @@ Session transcripts являются **источником наблюдений
 - schema_version совместима.
 
 При включенных `tombstones` удаленные/замененные записи не “воскресают” в merge/replay сценариях.
+
+## 10) Документация по `system/*` и `meta/*` (хирургический контракт)
+
+Ниже фиксируется назначение **каждой папки и каждого файла** из целевого блока:
+
+```text
+system/
+  CANON.md
+  policies/
+    curator.md
+    access.md
+    retention.md
+    redaction.md
+    conflicts.md
+  schemas/
+    event.schema.json
+    fact.schema.json
+meta/
+  manifests/
+    index_manifest_20260305T101530Z.json
+  tombstones/
+    tombstone_pref_coffee_roast_20260305T081200Z.json
+```
+
+### 10.1 `system/`
+
+`system/` — нормативное ядро памяти. Здесь хранятся только:
+- правила (что разрешено/запрещено),
+- валидаторы структуры данных (JSON Schema).
+
+Требование надежности:
+- любое изменение в `system/*` должно применяться как версия контракта (`schema_version`),
+- при несовместимости — fail-closed (остановка Apply с явной ошибкой).
+
+### 10.2 `system/CANON.md`
+
+Назначение: единый source-of-truth по инвариантам памяти.
+
+Обязательные разделы:
+- `Scope`: какие пути считаются каноном (`workspace/memory/core/*`).
+- `Single Writer`: только Memory Curator пишет в канон.
+- `Layer Invariants`: append-only для L2, projection-only для L5, evidence-first для L3/L4.
+- `Record Contract`: обязательные поля (`record_id`, `updated_at`, `evidence`, `status`).
+- `Consolidation Contract`: последовательность `Collect -> Normalize -> Curate -> Apply -> Manifest`.
+- `Failure Contract`: что делать при ошибке (не писать частично, не обновлять manifest при неполном Apply).
+
+Правило наполнения:
+- минимум: только MUST-правила;
+- расширение: примеры валидных/невалидных записей и таблица кодов ошибок.
+
+### 10.3 `system/policies/`
+
+`policies/` — исполняемые организационные правила curator pipeline.
+
+#### `system/policies/curator.md`
+Отвечает за поведение куратора на каждом шаге пайплайна.
+
+Фиксировать:
+- вход/выход каждого этапа,
+- критерии `curated` vs `rejected`,
+- идемпотентность (`apply_id`, запрет повторного применения одного и того же claim batch),
+- порядок обработки (детерминированный, стабильная сортировка по времени + id).
+
+#### `system/policies/access.md`
+Отвечает за модель прав и запретов.
+
+Фиксировать:
+- матрицу `actor x path x action`,
+- явный deny на запись в `core/*` для всех кроме Memory Curator,
+- режим аудита (кто и когда читал/писал критичные файлы).
+
+#### `system/policies/retention.md`
+Отвечает за сроки хранения и архив.
+
+Фиксировать:
+- TTL для intake (`L1`, queue),
+- бессрочность или регламент для канона,
+- правила архивации и восстановления,
+- запрет физического удаления канона без tombstone/аудита (для критичных доменов).
+
+#### `system/policies/redaction.md`
+Отвечает за обработку чувствительных данных.
+
+Фиксировать:
+- классы данных (`public`, `internal`, `sensitive`, `restricted`),
+- правила редактирования (`mask/hash/remove/tokenize`),
+- момент применения редактирования (до попадания в L2/L3/L4/L5),
+- запрет публикации не-редактированных значений в `views/*`.
+
+#### `system/policies/conflicts.md`
+Отвечает за разрешение конфликтующих фактов/состояний.
+
+Фиксировать:
+- типы конфликтов (temporal, semantic, source-priority),
+- стратегию разрешения (supersede/retract/defer-to-review),
+- обязательную привязку решения к evidence,
+- обязательную генерацию tombstone для retract в критичных доменах.
+
+### 10.4 `system/schemas/`
+
+`schemas/` — формальная валидация структуры записей, чтобы pipeline не принимал “почти правильные” данные.
+
+#### `system/schemas/event.schema.json`
+Отвечает за валидацию событий (L2).
+
+Минимально обязательные поля:
+- `record_id` (уникальный id),
+- `record_type=event`,
+- `event_type`,
+- `timestamp` (UTC, RFC3339),
+- `payload` (object),
+- `evidence` (непустой массив ссылок),
+- `confidence` (`0..1`),
+- `status` (`active|corrected|retracted`),
+- `updated_at`.
+
+Рекомендации надежности:
+- `additionalProperties: false` для критичных объектов,
+- строгие `enum` и `format`,
+- явные правила для `correction_of`/`supersedes`.
+
+#### `system/schemas/fact.schema.json`
+Отвечает за валидацию фактов/состояний (L3/L5).
+
+Минимально обязательные поля:
+- `record_id`,
+- `record_type=fact|state|identity|competence` (по выбранной модели),
+- `subject`,
+- `predicate`,
+- `value`,
+- `evidence`,
+- `confidence`,
+- `updated_at`,
+- `status`.
+
+Рекомендации надежности:
+- поддержка `valid_from/valid_to` для временных фактов,
+- обязательный `source_event_id` для state-проекций,
+- запрет пустых `evidence`.
+
+### 10.5 `meta/`
+
+`meta/` — слой доказуемости и защиты от “тихого дрейфа” памяти.
+
+#### `meta/manifests/`
+Назначение: фиксация состояния канона после каждого успешного Apply.
+
+Требования:
+- обязательный файл на каждый цикл консолидации,
+- имя: `index_manifest_<UTC>.json`,
+- manifest пишется только после полного успешного Apply.
+
+#### `meta/manifests/index_manifest_20260305T101530Z.json`
+Это снимок конкретной сборки индекса.
+
+Обязательные поля:
+- `manifest_id`,
+- `build_time`,
+- `source_commit`,
+- `schema_version`,
+- `record_counts`,
+- `checksums`,
+- `apply_batch_id`,
+- `writer`.
+
+Проверки при старте/деплое:
+- commit parity,
+- schema compatibility,
+- checksum parity.
+
+#### `meta/tombstones/`
+Назначение: не дать удаленным/отозванным записям “воскреснуть”.
+
+Режим v1:
+- опционально для обычных доменов,
+- обязательно для критичных доменов и retract/supersede сценариев.
+
+#### `meta/tombstones/tombstone_pref_coffee_roast_20260305T081200Z.json`
+Это запись деактивации конкретного знания.
+
+Обязательные поля:
+- `tombstone_id`,
+- `target_record_id`,
+- `reason_code`,
+- `reason`,
+- `decided_at`,
+- `decided_by`,
+- `superseded_by` (nullable),
+- `evidence`.
+
+Операционное правило:
+- при наличии tombstone целевая запись не должна быть re-applied из старых snapshot/replay.
+
+## 11) Варианты наполнения (без изменения архитектуры)
+
+Для каждого файла применяются два режима:
+
+- `MVP (быстрый запуск)`: только обязательные поля, короткие правила, один happy-path.
+- `Production (безотказный)`: обязательные поля + коды ошибок + негативные сценарии + checklists валидации.
+
+Рекомендуемый порядок наполнения:
+1. `system/CANON.md` (инварианты и fail-closed поведение).
+2. `system/schemas/*.json` (машинная валидация данных).
+3. `system/policies/*.md` (процедуры curator, access, conflicts).
+4. `meta/manifests/*` (доказуемость состояния).
+5. `meta/tombstones/*` (защита от регрессий в критичных доменах).
+
+## 12) Чеклист “работает как часы”
+
+- Любой Apply атомарен: либо все целевые файлы обновлены, либо ни один.
+- Manifest создается только после успешного полного Apply.
+- Нет записи в канон без валидного schema-check.
+- Нет факта/state без `evidence`.
+- Любая коррекция фиксируется новой записью (не silent overwrite).
+- Конфликт не проходит “молча”: либо resolution, либо reject/defer с причиной.
+- Для критичных retract/supersede создается tombstone.
