@@ -1,4 +1,0 @@
-interface:
-  display_name: "Heartbeat Operator"
-  short_description: "Operate proactive heartbeat and task loops"
-  default_prompt: "Manage heartbeat cadences and stale-task recovery with safe ops steps."

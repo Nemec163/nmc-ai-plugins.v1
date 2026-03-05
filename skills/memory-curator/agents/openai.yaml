@@ -1,4 +1,0 @@
-interface:
-  display_name: "Memory Curator"
-  short_description: "Curate promotions and prune memory drift"
-  default_prompt: "Promote stable facts, reject noisy candidates, and keep memory clean."

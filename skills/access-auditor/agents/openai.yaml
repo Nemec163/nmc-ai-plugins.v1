@@ -1,4 +1,0 @@
-interface:
-  display_name: "Access Auditor"
-  short_description: "Audit ACL levels and memory access grants"
-  default_prompt: "Verify access-level assignments and detect permission drift across agents."

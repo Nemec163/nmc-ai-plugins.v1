@@ -1,4 +1,0 @@
-interface:
-  display_name: "Control Plane Admin"
-  short_description: "Monitor and patch plugin config via API"
-  default_prompt: "Inspect plugin state and apply minimal safe config patches."
