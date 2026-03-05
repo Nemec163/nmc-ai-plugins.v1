@@ -124,10 +124,13 @@ workspace/
         schemas/
           event.schema.json
           fact.schema.json
+          edge.schema.json
 
       meta/
         manifests/                     # обязательно
           index_manifest_20260305T101530Z.json
+        edges/                         # производный реестр ребер (graph-export ready)
+          edges_20260305T101530Z.jsonl
         tombstones/                    # опционально (рекомендуется для критичных доменов)
           tombstone_pref_coffee_roast_20260305T081200Z.json
 
@@ -208,7 +211,7 @@ Tombstone фиксирует:
 - `manifests` включены всегда;
 - `tombstones` включаются для global/критичных доменов, где ошибка дорогая.
 
-## 6) Контракт каноничной записи (обязательные поля)
+## 6) Контракт каноничной записи (обязательные поля + graph-ready расширения)
 Для любых каноничных записей в `workspace/memory/core/agents/*/{COURSE,PLAYBOOK,PITFALLS,DECISIONS}.md` и в `workspace/memory/core/user/L2_episodic/*`, `workspace/memory/core/user/L3_semantic/*`, `workspace/memory/core/user/L4_identity/*`, `workspace/memory/core/user/L5_state/*`:
 
 ```yaml
@@ -218,10 +221,17 @@ schema_version: "1.0"
 created_at: "2026-03-05T10:15:30Z"
 updated_at: "2026-03-05T10:15:30Z"
 created_by: "memory-curator@v1" # optional
+natural_key: "state:user.current_location" # MUST for state/identity in v1, stable semantic key
+valid_time:                                # MUST for state/identity in v1
+  as_of: "2026-03-05T10:15:30Z"
 source_ref:
   - "workspace/memory/intake/L1/2026-03-05/claim_000123.json"
 evidence:
-  - "workspace/memory/core/user/L2_episodic/2026/03/05.md#event_20260305T091500Z_meeting_preference"
+  - "rid:uuid-event-1"
+  - "path:workspace/memory/core/user/L2_episodic/2026/03/05.md#event_uuid-event-1"
+links:                                     # optional in v1, typed outgoing edges by record_id
+  - rel: "caused" # enum: caused|updated|produced|supersedes|evidence_of|derived_from|influenced_by|supports
+    target_record_id: "uuid-state-change-1"
 confidence: 0.6
 supersedes: null
 status: "event=active|corrected|retracted; fact|state|identity|competence=active|deprecated|retracted"
@@ -229,19 +239,29 @@ status: "event=active|corrected|retracted; fact|state|identity|competence=active
 
 Примечания:
 - `record_id`, `source_ref`, `evidence`, `updated_at`, `supersedes` — обязательный минимум.
+- `natural_key` MUST для `state|identity` уже в v1 (для `fact|competence` пока optional).
+- `natural_key` MUST быть нормализован: lowercase, разделители только `:` и `.`, без пробелов; минимум `record_type + domain + slot` (например `state:user.current_location`).
+- `valid_time.as_of` MUST для `state|identity` уже в v1.
+- `evidence[*]` поддерживает два формата: `rid:<record_id>` (канонический) и `path:<path>#<anchor>` (человеко-удобный).
 - `created_by` — опциональное (рекомендуемое) поле для фиксации curator pipeline, создавшего запись.
 - `created_by` упрощает аудит и воспроизводимость генерации памяти.
 - `confidence` обязателен и назначается только curator pipeline по дискретной шкале `0.3 | 0.6 | 0.9` (`low | medium | high`).
 - `status` нормируется по `record_type`: `event -> active|corrected|retracted`; `fact|state|identity|competence -> active|deprecated|retracted`.
+- `links[*].rel` в v1 фиксируется enum-ом: `caused | updated | produced | supersedes | evidence_of | derived_from | influenced_by | supports`.
+- `links[*].target_record_id` всегда указывает на `record_id` (path/anchor в ссылке опциональны и остаются человеко-читаемым удобством).
+- `supersedes` и `links rel=supersedes` синхронизируются двусторонне: если задано одно, MUST быть задано второе на тот же `record_id`.
+- future-proof: `target_record_id` может ссылаться как на "узел-запись", так и на отдельную relation-entity запись (`record_type=relation`, если будет введен позже).
 - `L2_episodic` остается append-only: исправления добавляются отдельной `correction_*` записью в дневном файле (или на следующий день).
 
 ## 7) Правила по слоям
 - `L0`: это `workspace/<agent>/` (runtime/bootstrap/локальные логи агента), не канон.
 - `L1`: `workspace/memory/intake/*` + очередь статусов `new -> normalized -> curated/rejected -> applied`.
-- `user/L2`: `workspace/memory/core/user/L2_episodic/YYYY/MM/DD.md` (append-only дневные файлы).
+- `user/L2`: `workspace/memory/core/user/L2_episodic/YYYY/MM/DD.md` (append-only дневные файлы); каждое событие MUST иметь явный `record_id` и детерминированный markdown anchor вида `#event_<record_id>`.
 - `user/L3`: `workspace/memory/core/user/L3_semantic/*.md` по доменам (`preferences.md`, `skills.md`, и т.д.) с типовыми блоками записей.
 - `user/L4`: `workspace/memory/core/user/L4_identity/{current.md,update_log.md}`.
-- `user/L5`: `workspace/memory/core/user/L5_state/current.md`; markdown-сводки генерируются как views.
+- `user/L5`: `workspace/memory/core/user/L5_state/current.md`; `record_type=state` MUST иметь `source_event_id` и быть только проекцией `L2`; markdown-сводки генерируются как views.
+- для `record_type=state` canonical links: `derived_from -> source_event_id`, а при версии-замене добавляется `supersedes -> previous_state_record_id`.
+- для записей версионирования `supersedes` и `links rel=supersedes` MUST оставаться консистентными (без расхождения).
 - `agents/*`: `workspace/memory/core/agents/*` хранит только роль-специфичную компетенцию и anti-mistakes в `COURSE.md`, `PLAYBOOK.md`, `PITFALLS.md`, `DECISIONS.md`.
 - `agents/*/history`: опционально, создается только при явной необходимости.
 
@@ -322,6 +342,7 @@ Session transcripts являются **источником наблюдений
 5. `Role course update`: обновление `workspace/memory/core/agents/*/{COURSE,PLAYBOOK,PITFALLS,DECISIONS}.md` по итогам курации.
 6. `Views build`: генерация `workspace/memory/core/user/views/*`.
 7. `Manifest write`: запись нового `workspace/memory/core/meta/manifests/*`.
+8. `Edges build`: генерация `workspace/memory/core/meta/edges/edges_<manifest_utc>.jsonl` строго из каноничных `record_id/links` текущего `apply_batch_id`; при dangling `src/dst` (`record_id` отсутствует в текущем снимке) этап MUST fail-closed.
 
 ## 9) Режим миграций (практичный)
 Базовый сценарий допускается:
@@ -351,9 +372,12 @@ system/
   schemas/
     event.schema.json
     fact.schema.json
+    edge.schema.json
 meta/
   manifests/
     index_manifest_20260305T101530Z.json
+  edges/
+    edges_20260305T101530Z.jsonl
   tombstones/
     tombstone_pref_coffee_roast_20260305T081200Z.json
 ```
@@ -376,8 +400,10 @@ meta/
 - `Scope`: какие пути считаются каноном (`workspace/memory/core/*`).
 - `Single Writer`: только Memory Curator пишет в канон.
 - `Layer Invariants`: append-only для L2, projection-only для L5, evidence-first для L3/L4.
-- `Record Contract`: обязательные поля (`record_id`, `updated_at`, `evidence`, `status`).
-- `Consolidation Contract`: последовательность `Collect -> Normalize -> Curate -> Apply -> Manifest`.
+- `Record Contract`: обязательные поля (`record_id`, `updated_at`, `evidence`, `status`) + graph-ready поля (`natural_key`, `valid_time`, `links`).
+- `Natural Key Contract`: `natural_key` нормализован (`<record_type>:<domain>.<slot>`, lowercase, без пробелов) и стабилен между apply-циклами.
+- `Relation Truth`: source of truth по связям — только `links[]` в записях; `meta/edges/*` — производный экспорт/кэш.
+- `Consolidation Contract`: последовательность `Collect -> Normalize -> Curate -> Apply -> Manifest -> Edges`.
 - `Failure Contract`: что делать при ошибке (не писать частично, не обновлять manifest при неполном Apply).
 
 Правило наполнения:
@@ -399,7 +425,13 @@ meta/
 - `apply_batch_id` фиксируется одновременно в `manifest` и runtime `applied ledger` (file/sqlite) в runtime-path (например `~/.openclaw/memory/applied_ledger.sqlite` или `~/.openclaw/memory/curator/applied_ledger.jsonl`), строго вне `workspace/memory/*` и вне git, для детерминированного recovery после crash (`replay-safe` или `already-applied skip`),
 - порядок обработки (детерминированный, стабильная сортировка по времени + id),
 - обязательный `full reindex` при смене fingerprint (`provider/model/endpoint/chunking`) без частичных “догрузок”,
-- `views/*` не используется как evidence для `L3/L4/L5` (только навигация/чтение).
+- `views/*` не используется как evidence для `L3/L4/L5` (только навигация/чтение),
+- после успешного `Manifest write` MUST выполняться `Edges build` (без пропусков),
+- `meta/edges/*` MUST быть синхронизирован с тем же `apply_batch_id`, что и соответствующий manifest,
+- `Edges build` MUST проваливаться (fail-closed), если любой `src/dst` не существует в каноничном snapshot текущего Apply,
+- для `record_type=state` ссылка `derived_from` MUST указывать на тот же `record_id`, что и `source_event_id` (проверка на шаге curator validation),
+- при наличии `supersedes` значение MUST совпадать с `links[].target_record_id` для `rel=supersedes` (проверка на шаге curator validation),
+- внешние graph backends (Neo4j/TerminusDB/TypeDB и т.д.) трактуются как runtime index; source of truth остается в markdown/json каноне.
 
 #### `system/policies/access.md`
 Отвечает за модель прав и запретов.
@@ -457,9 +489,13 @@ meta/
 - `updated_at`.
 
 Рекомендации надежности:
+- `natural_key` как стабильный semantic key (опционально в v1, MUST позже),
+- `links[]` с `target_record_id` для явной причинности/event-graph,
+- `evidence[*]` в формате `rid:<record_id>` (предпочтительно) или `path:<path>#<anchor>` для человеко-читаемой навигации,
 - `additionalProperties: false` для критичных объектов,
 - строгие `enum` и `format`,
-- явные правила для `correction_of`/`supersedes`.
+- явные правила для `correction_of`/`supersedes`,
+- в markdown-представлении L2 каждое событие MUST иметь anchor `#event_<record_id>` (детерминированный, не зависящий от форматирования файла).
 
 #### `system/schemas/fact.schema.json`
 Отвечает за валидацию фактов/состояний (L3/L5).
@@ -467,10 +503,12 @@ meta/
 Минимально обязательные поля:
 - `record_id`,
 - `record_type=fact|state|identity|competence` (по выбранной модели),
+- `natural_key` (MUST для `state|identity`, optional для `fact|competence` в v1),
 - `subject`,
 - `predicate`,
 - `value`,
 - `evidence`,
+- `links` (опционально в v1, но для `record_type=state` MUST содержать минимум `rel=derived_from`),
 - `confidence` (`MVP: 0..1; Production: enum 0.3|0.6|0.9`),
 - `updated_at`,
 - `status` (`active|deprecated|retracted`).
@@ -479,9 +517,15 @@ Production-контракт (strict, fail-closed):
 - `oneOf` MUST разделять ветки по `record_type`, чтобы схема отбрасывала кривые формы до Apply.
 - общие поля MUST быть объявлены в верхнеуровневом `properties`, чтобы при `unevaluatedProperties: false` валидатор не рубил корректные записи как “не evaluated”.
 - `record_type=state` MUST требовать `source_event_id` (L5 всегда проекция из L2).
-- `record_type=identity` MUST требовать минимум одно поле времени актуальности: `valid_from` или `as_of` в формате RFC3339 UTC.
+- `record_type=state` MUST иметь `natural_key`, `valid_time.as_of` и в schema требовать `links contains rel=derived_from`; равенство `links[].target_record_id == source_event_id` проверяется на этапе curator validation.
+- `record_type=identity` MUST требовать `natural_key` и `valid_time.as_of` в формате RFC3339 UTC.
 - `record_type=competence` MUST требовать `domain`, `role`, `scope`.
 - `evidence` MUST быть непустым массивом во всех ветках.
+- `evidence[*]` MUST соответствовать одному из форматов: `rid:<record_id>` или `path:<path>#<anchor>`.
+- `links[*].rel` MUST быть одним из: `caused | updated | produced | supersedes | evidence_of | derived_from | influenced_by | supports`.
+- `links[*].target_record_id` MUST ссылаться только на `record_id`.
+- при `links rel=derived_from` target MUST совпадать с `source_event_id` (curator validation).
+- `supersedes` и `links rel=supersedes` MUST быть взаимно-консистентны; schema проверяет наличие, а равенство target проверяется на этапе curator validation.
 - для critical-mode при `oneOf` MUST использоваться `unevaluatedProperties: false` (draft 2019-09/2020-12); `additionalProperties: false` считать fallback для legacy-валидаторов.
 - наличие `record_type` уже обеспечено глобальным `required`, поэтому дублировать `required: ["record_type"]` в каждой ветке не обязательно.
 
@@ -494,13 +538,56 @@ Production-контракт (strict, fail-closed):
   "properties": {
     "record_id": { "type": "string", "minLength": 1 },
     "record_type": { "enum": ["fact", "state", "identity", "competence"] },
+    "natural_key": { "type": "string", "minLength": 1 },
     "subject": { "type": "string", "minLength": 1 },
     "predicate": { "type": "string", "minLength": 1 },
     "value": {},
+    "supersedes": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "minLength": 1 }
+      ]
+    },
+    "valid_time": {
+      "type": "object",
+      "properties": {
+        "as_of": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
     "evidence": {
       "type": "array",
       "minItems": 1,
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "anyOf": [
+          { "type": "string", "pattern": "^rid:[A-Za-z0-9._:-]+$" },
+          { "type": "string", "pattern": "^path:.+#.+" }
+        ]
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rel": {
+            "enum": [
+              "caused",
+              "updated",
+              "produced",
+              "supersedes",
+              "evidence_of",
+              "derived_from",
+              "influenced_by",
+              "supports"
+            ]
+          },
+          "target_record_id": { "type": "string", "minLength": 1 }
+        },
+        "required": ["rel", "target_record_id"],
+        "additionalProperties": false
+      }
     },
     "confidence": { "enum": [0.3, 0.6, 0.9] },
     "updated_at": { "type": "string", "format": "date-time" },
@@ -524,20 +611,41 @@ Production-контракт (strict, fail-closed):
     {
       "properties": {
         "record_type": { "const": "state" },
-        "source_event_id": { "type": "string", "minLength": 1 }
+        "natural_key": { "type": "string", "minLength": 1 },
+        "source_event_id": { "type": "string", "minLength": 1 },
+        "valid_time": {
+          "type": "object",
+          "properties": {
+            "as_of": { "type": "string", "format": "date-time" }
+          },
+          "required": ["as_of"],
+          "additionalProperties": false
+        },
+        "links": {
+          "type": "array",
+          "contains": {
+            "type": "object",
+            "properties": { "rel": { "const": "derived_from" } },
+            "required": ["rel", "target_record_id"]
+          }
+        }
       },
-      "required": ["source_event_id"]
+      "required": ["natural_key", "source_event_id", "valid_time", "links"]
     },
     {
       "properties": {
         "record_type": { "const": "identity" },
-        "valid_from": { "type": "string", "format": "date-time" },
-        "as_of": { "type": "string", "format": "date-time" }
+        "natural_key": { "type": "string", "minLength": 1 },
+        "valid_time": {
+          "type": "object",
+          "properties": {
+            "as_of": { "type": "string", "format": "date-time" }
+          },
+          "required": ["as_of"],
+          "additionalProperties": false
+        }
       },
-      "anyOf": [
-        { "required": ["valid_from"] },
-        { "required": ["as_of"] }
-      ]
+      "required": ["natural_key", "valid_time"]
     },
     {
       "properties": {
@@ -549,9 +657,59 @@ Production-контракт (strict, fail-closed):
       "required": ["domain", "role", "scope"]
     }
   ],
+  "allOf": [
+    {
+      "if": {
+        "required": ["supersedes"],
+        "properties": {
+          "supersedes": { "type": "string", "minLength": 1 }
+        }
+      },
+      "then": {
+        "required": ["links"],
+        "properties": {
+          "links": {
+            "contains": {
+              "type": "object",
+              "properties": { "rel": { "const": "supersedes" } },
+              "required": ["rel", "target_record_id"]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["links"],
+        "properties": {
+          "links": {
+            "contains": {
+              "type": "object",
+              "properties": { "rel": { "const": "supersedes" } },
+              "required": ["rel", "target_record_id"]
+            }
+          }
+        }
+      },
+      "then": { "required": ["supersedes"] }
+    }
+  ],
   "unevaluatedProperties": false
 }
 ```
+
+#### `system/schemas/edge.schema.json`
+Отвечает за валидацию производного edge-register (`meta/edges/*.jsonl`).
+
+Минимально обязательные поля:
+- `schema_version`,
+- `apply_batch_id`,
+- `src` (`record_id` источника, без префикса `rid:`),
+- `rel` (`caused|updated|produced|supersedes|evidence_of|derived_from|influenced_by|supports`),
+- `dst` (`record_id` цели, без префикса `rid:`),
+- `as_of` (RFC3339 UTC),
+- `evidence` (массив `record_id` без префикса `rid:`),
+- `confidence`.
 
 ### 10.5 `meta/`
 
@@ -583,6 +741,24 @@ Production-контракт (strict, fail-closed):
 - schema compatibility,
 - checksum parity,
 - `apply_batch_id` parity между `manifest` и runtime `applied ledger`.
+
+#### `meta/edges/`
+Назначение: производный реестр ребер для graph-export без сканирования всего markdown.
+
+Требования:
+- имя: `edges_<manifest_utc>.jsonl`,
+- создается только после успешного `Manifest write`,
+- содержит только ребра текущего `apply_batch_id`,
+- каждая строка MUST содержать `schema_version` и `apply_batch_id`,
+- `src/dst/evidence[]` используют единый формат `record_id` (без префикса `rid:`),
+- `src` и `dst` MUST существовать в текущем каноничном snapshot (иначе fail-closed и edges не публикуется),
+- не является source of truth, канонически пересобирается Curator-ом из `links[]`.
+
+Формат строки JSONL (одно ребро):
+
+```json
+{"schema_version":"1.0","apply_batch_id":"20260305T101530Z","src":"uuid-event-1","rel":"caused","dst":"uuid-state-1","as_of":"2026-03-05T10:15:30Z","evidence":["uuid-event-1"],"confidence":0.9}
+```
 
 #### `meta/tombstones/`
 Назначение: не дать удаленным/отозванным записям “воскреснуть”.
@@ -619,7 +795,8 @@ Production-контракт (strict, fail-closed):
 2. `system/schemas/*.json` (машинная валидация данных).
 3. `system/policies/*.md` (процедуры curator, access, conflicts).
 4. `meta/manifests/*` (доказуемость состояния).
-5. `meta/tombstones/*` (защита от регрессий в критичных доменах).
+5. `meta/edges/*` (graph-export слой, производный от канона).
+6. `meta/tombstones/*` (защита от регрессий в критичных доменах).
 
 ## 12) Чеклист “работает как часы”
 
@@ -630,6 +807,7 @@ Production-контракт (strict, fail-closed):
 - Любая коррекция фиксируется новой записью (не silent overwrite).
 - Конфликт не проходит “молча”: либо resolution, либо reject/defer с причиной.
 - Для критичных retract/supersede создается tombstone.
+- После каждого manifest существует синхронный `edges_<manifest_utc>.jsonl` с тем же `apply_batch_id`.
 
 ## 13) Дополнительный рабочий слой агентов (SQLite/FTS/vector/QMD/cache)
 
@@ -637,6 +815,7 @@ Production-контракт (strict, fail-closed):
 Архитектура канона не меняется:
 - source of truth остается в `workspace/memory/core/*`;
 - индексный слой — производный runtime-механизм поиска.
+- graph backend (Neo4j/TerminusDB/TypeDB) — такой же runtime index, читающий `meta/edges/*`.
 
 ### 13.1 Границы слоя (обязательные)
 
@@ -697,8 +876,8 @@ Production-контракт (strict, fail-closed):
 ### 13.7 Интеграция с текущей канонической архитектурой
 
 Интеграция делается без новых слоев истины:
-1. Curator завершает `Apply` и пишет manifest (см. шаг 7 в разделе 8).
-2. После manifest index-layer получает сигнал `dirty` и запускает background sync/reindex.
+1. Curator завершает `Apply`, пишет manifest и затем edges-файл (см. шаги 7-8 в разделе 8).
+2. После `manifest + edges` index-layer получает сигнал `dirty` и запускает background sync/reindex.
 3. Агентский retrieval читает только индекс/кэш; изменения в канон вносит только Curator.
 4. Любой ответ, полученный через retrieval, при переносе в канон должен иметь `evidence` на исходные каноничные записи.
 
