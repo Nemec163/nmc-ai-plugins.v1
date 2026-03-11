@@ -1,0 +1,12 @@
+{
+  "id": "nmc-memory-plugin",
+  "name": "NMC Memory Plugin",
+  "version": "0.1.0",
+  "description": "Persistent human-like memory system for OpenClaw with a git-backed canon, consolidation pipeline, and query skills.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "skills": ["skills"]
+}

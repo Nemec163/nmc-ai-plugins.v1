@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "last_updated": null,
+  "record_counts": {
+    "events": 0,
+    "facts": 0,
+    "states": 0,
+    "identities": 0,
+    "competences": 0
+  },
+  "checksums": {},
+  "edges_count": 0
+}

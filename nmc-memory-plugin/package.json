@@ -1,0 +1,20 @@
+{
+  "name": "nmc-memory-plugin",
+  "version": "0.1.0",
+  "description": "Persistent OpenClaw memory plugin with bundled skills and workspace templates.",
+  "author": "NMC",
+  "type": "commonjs",
+  "main": "./index.js",
+  "files": [
+    "index.js",
+    "lib/",
+    "openclaw.plugin.json",
+    "scripts/",
+    "skills/",
+    "templates/",
+    "README.md"
+  ],
+  "openclaw": {
+    "extensions": ["./index.js"]
+  }
+}
