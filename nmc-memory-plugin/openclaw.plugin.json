@@ -6,7 +6,61 @@
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
-    "properties": {}
+    "properties": {
+      "autoSetup": {
+        "type": "boolean",
+        "default": true,
+        "description": "Automatically scaffold shared memory, shared skills, and predefined agent workspaces when the plugin first loads."
+      },
+      "stateDir": {
+        "type": "string",
+        "description": "Override the OpenClaw state directory used for bootstrap."
+      },
+      "workspaceRoot": {
+        "type": "string",
+        "description": "Override the workspace root that will contain per-agent workspaces and the shared system directory."
+      },
+      "systemRoot": {
+        "type": "string",
+        "description": "Override the shared system root that will contain memory, skills, tasks, policy, docs, and scripts."
+      },
+      "memoryRoot": {
+        "type": "string",
+        "description": "Override the shared canonical memory root. Defaults to <systemRoot>/memory."
+      },
+      "configPath": {
+        "type": "string",
+        "description": "Override the openclaw.json path used during bootstrap."
+      },
+      "overwrite": {
+        "type": "boolean",
+        "default": false,
+        "description": "Allow auto-setup to overwrite managed files and symlinks."
+      },
+      "writeConfig": {
+        "type": "boolean",
+        "default": true,
+        "description": "Allow auto-setup to write managed agent and skill configuration into openclaw.json."
+      },
+      "bindings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Optional setup bindings in agent=channel[:accountId[:peerId]] form."
+      },
+      "models": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "nyx": { "type": "string" },
+          "medea": { "type": "string" },
+          "arx": { "type": "string" },
+          "lev": { "type": "string" },
+          "mnemo": { "type": "string" }
+        }
+      }
+    }
   },
   "skills": ["skills"]
 }

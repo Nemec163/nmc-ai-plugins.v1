@@ -11,7 +11,7 @@ Normative precedence:
 1. `core/system/CANON.md` defines invariants, schema, and non-negotiable memory laws.
 2. This runbook defines operating procedure, sequencing, examples, and recovery rules.
 3. If this runbook and `CANON.md` ever conflict, `CANON.md` wins.
-Mnemo is the single writer to canonical memory under `workspace/memory/core/*`.
+Mnemo is the single writer to canonical memory under `workspace/system/memory/core/*`.
 All other agents are readers, consumers, or transcript sources.
 ---
 

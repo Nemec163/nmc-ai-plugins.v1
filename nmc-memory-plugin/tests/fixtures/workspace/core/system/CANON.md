@@ -1,13 +1,13 @@
 ---
 schema_version: "1.0"
 life_day_timezone: "Europe/Moscow"
-canon_scope: "workspace/memory/core/*"
+canon_scope: "workspace/system/memory/core/*"
 single_writer: "mnemo"
 created_at: "2026-03-01T00:00:00Z"
 ---
 # Workspace Memory Canon
 
-This file defines the normative rules for canonical memory under `workspace/memory/core/*`.
+This file defines the normative rules for canonical memory under `workspace/system/memory/core/*`.
 If prompts, scripts, indexes, or habits conflict with this file, this file wins.
 
 ## Core Principles

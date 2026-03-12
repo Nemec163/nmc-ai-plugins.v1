@@ -77,6 +77,18 @@ require_dir() {
   return 1
 }
 
+require_symlink() {
+  local path="$1"
+  local description="$2"
+
+  if [ -L "$path" ]; then
+    return 0
+  fi
+
+  fail "$description" "Missing symlink: $path"
+  return 1
+}
+
 json_query() {
   local file_path="$1"
   local expr="$2"
@@ -231,6 +243,7 @@ test_packaging_files() {
 
   if [ "$(json_query "$MANIFEST_FILE" 'id')" = "nmc-memory-plugin" ] && \
      [ "$(json_query "$MANIFEST_FILE" 'configSchema.type')" = "object" ] && \
+     [ "$(json_query "$MANIFEST_FILE" 'configSchema.properties.autoSetup.default')" = "true" ] && \
      [ "$(json_query "$MANIFEST_FILE" 'skills.0')" = "skills" ]; then
     pass "openclaw.plugin.json required fields"
   else
@@ -356,8 +369,30 @@ EOF
     return
   fi
 
-  if ! require_dir "$workspace_root/memory" "setup-openclaw created shared memory root"; then
+  if ! require_dir "$workspace_root/system/memory" "setup-openclaw created shared memory root"; then
     return
+  fi
+
+  if ! require_dir "$workspace_root/system" "setup-openclaw created shared system root"; then
+    return
+  fi
+
+  if ! require_file "$workspace_root/system/tasks/active/.kanban.json" "setup-openclaw created board settings"; then
+    return
+  fi
+
+  if ! require_dir "$workspace_root/system/skills" "setup-openclaw created shared skills root"; then
+    return
+  fi
+
+  if ! require_symlink "$workspace_root/system/skills/memory-query" "setup-openclaw linked plugin skills into workspace"; then
+    return
+  fi
+
+  if [ ! -e "$workspace_root/memory" ] && [ ! -e "$workspace_root/skills" ]; then
+    pass "setup-openclaw leaves no legacy root paths"
+  else
+    fail "setup-openclaw leaves no legacy root paths" "Did not expect workspace/memory or workspace/skills in fresh layout"
   fi
 
   for agent in nyx medea arx lev mnemo; do
@@ -371,13 +406,77 @@ EOF
       fi
     done
 
-    if grep -Fq '../memory' "$workspace_root/$agent/AGENTS.md" && \
-       grep -Fq "../memory/core/agents/$agent/" "$workspace_root/$agent/AGENTS.md"; then
+    if grep -Fq '../system/memory' "$workspace_root/$agent/AGENTS.md" && \
+       grep -Fq "../system/memory/core/agents/$agent/" "$workspace_root/$agent/AGENTS.md"; then
       pass "setup-openclaw canon wiring for $agent"
     else
       fail "setup-openclaw canon wiring for $agent" "Expected shared memory references in $workspace_root/$agent/AGENTS.md"
     fi
+
+    if ! require_symlink "$workspace_root/$agent/skills" "setup-openclaw shared skills link for $agent"; then
+      return
+    fi
+
+    if ! require_symlink "$workspace_root/$agent/system" "setup-openclaw shared system link for $agent"; then
+      return
+    fi
+
+    if ! require_dir "$state_dir/agents/$agent/agent" "setup-openclaw agent state dir for $agent"; then
+      return
+    fi
+
+    if ! require_dir "$state_dir/agents/$agent/sessions" "setup-openclaw sessions dir for $agent"; then
+      return
+    fi
   done
+
+  if grep -Fq '## Orchestration' "$workspace_root/nyx/AGENTS.md" && \
+     grep -Fq 'Medea and Arx are the default specialist pair.' "$workspace_root/nyx/AGENTS.md" && \
+     grep -Fq 'You are not a chatbot. You are becoming someone.' "$workspace_root/nyx/SOUL.md"; then
+    pass "setup-openclaw nyx human orchestrator content"
+  else
+    fail "setup-openclaw nyx human orchestrator content" "Nyx generated files are missing the expected human/orchestration guidance"
+  fi
+
+  if grep -Fq 'Produce evidence-backed research, source synthesis, and decision-grade documentation.' "$workspace_root/medea/AGENTS.md" && \
+     ! grep -Fq 'You are not a chatbot. You are becoming someone.' "$workspace_root/medea/SOUL.md" && \
+     ! grep -Fq 'Who am I? Who are you?' "$workspace_root/medea/BOOTSTRAP.md"; then
+    pass "setup-openclaw medea efficient content"
+  else
+    fail "setup-openclaw medea efficient content" "Medea should stay efficient and research-focused in generated files"
+  fi
+
+  if grep -Fq 'Deliver working code, bounded refactors, and defensible technical decisions.' "$workspace_root/arx/AGENTS.md" && \
+     grep -Fq 'Primary startup directive: Inspect current code and canon context first, then choose the smallest implementation path that satisfies the user goal.' "$workspace_root/arx/BOOT.md"; then
+    pass "setup-openclaw arx efficient content"
+  else
+    fail "setup-openclaw arx efficient content" "Arx generated files are missing the expected implementation-focused guidance"
+  fi
+
+  if grep -Fq 'This file exists because Lev is the heartbeat agent.' "$workspace_root/lev/HEARTBEAT.md" && \
+     grep -Fq 'Do not accept general-purpose work.' "$workspace_root/lev/AGENTS.md" && \
+     grep -Fq 'Primary startup directive: Load current priorities, inspect the shared board and policy defaults, then identify the next stalled item that needs a nudge.' "$workspace_root/lev/BOOT.md"; then
+    pass "setup-openclaw lev heartbeat-only content"
+  else
+    fail "setup-openclaw lev heartbeat-only content" "Lev generated files are missing the expected heartbeat-only constraints"
+  fi
+
+  if grep -Fq 'Do not act as a general assistant.' "$workspace_root/mnemo/AGENTS.md" && \
+     grep -Fq 'You are the single canonical writer.' "$workspace_root/mnemo/SOUL.md" && \
+     grep -Fq 'Primary startup directive: Open shared canon and intake, verify writer invariants, then decide whether the request needs query, curation, or maintenance.' "$workspace_root/mnemo/BOOT.md"; then
+    pass "setup-openclaw mnemo memory-only content"
+  else
+    fail "setup-openclaw mnemo memory-only content" "Mnemo generated files are missing the expected memory-governance constraints"
+  fi
+
+  if grep -Fq 'Keep this file empty (or with only comments) to skip heartbeat API calls.' "$workspace_root/nyx/HEARTBEAT.md" && \
+     grep -Fq 'Keep this file empty (or with only comments) to skip heartbeat API calls.' "$workspace_root/medea/HEARTBEAT.md" && \
+     grep -Fq 'Keep this file empty (or with only comments) to skip heartbeat API calls.' "$workspace_root/arx/HEARTBEAT.md" && \
+     grep -Fq 'Keep this file empty (or with only comments) to skip heartbeat API calls.' "$workspace_root/mnemo/HEARTBEAT.md"; then
+    pass "setup-openclaw non-lev heartbeat files stay inert"
+  else
+    fail "setup-openclaw non-lev heartbeat files stay inert" "Only Lev should get an active heartbeat instruction file"
+  fi
 
   if ! require_file "$config_path" "setup-openclaw config file"; then
     return
@@ -417,6 +516,56 @@ EOF
     pass "setup-openclaw bindings"
   else
     fail "setup-openclaw bindings" "Unexpected bindings in $config_path"
+  fi
+
+  if python3 - "$config_path" "$workspace_root" <<'PY'
+import json
+import os
+import sys
+
+config_path, workspace_root = sys.argv[1:3]
+with open(config_path, 'r', encoding='utf-8') as handle:
+    data = json.load(handle)
+
+extra_dirs = data.get('skills', {}).get('load', {}).get('extraDirs', [])
+expected_skills = os.path.realpath(f"{workspace_root}/skills")
+expected_system_skills = os.path.realpath(f"{workspace_root}/system/skills")
+
+normalized_extra_dirs = [
+    os.path.realpath(path) if isinstance(path, str) and path.startswith("/") else path
+    for path in extra_dirs
+]
+
+ok = expected_system_skills in normalized_extra_dirs and expected_skills not in normalized_extra_dirs
+sys.exit(0 if ok else 1)
+PY
+  then
+    pass "setup-openclaw shared skill path"
+  else
+    fail "setup-openclaw shared skill path" "Expected skills.load.extraDirs to point into the scaffold"
+  fi
+
+  if python3 - "$config_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as handle:
+    data = json.load(handle)
+
+paths = data.get('agents', {}).get('defaults', {}).get('memorySearch', {}).get('extraPaths', [])
+required = {
+    "../system/memory/core/user/timeline/**/*.md",
+    "../system/memory/core/user/knowledge/*.md",
+    "../system/memory/core/user/identity/*.md",
+    "../system/memory/core/user/state/*.md",
+    "../system/memory/core/agents/**/*.md",
+}
+sys.exit(0 if required.issubset(set(paths)) else 1)
+PY
+  then
+    pass "setup-openclaw memory search paths"
+  else
+    fail "setup-openclaw memory search paths" "Expected canonical memorySearch.extraPaths to be registered"
   fi
 
   printf 'LOCAL_NOTE\n' >> "$workspace_root/nyx/MEMORY.md"
@@ -489,6 +638,357 @@ PY
     pass "setup-openclaw updates generated config paths"
   else
     fail "setup-openclaw updates generated config paths" "Expected regenerated workspace/agentDir paths in config"
+  fi
+}
+
+test_runtime_auto_bootstrap() {
+  local runtime_state_dir runtime_workspace_root runtime_config_path
+
+  runtime_state_dir="$TEST_WORKDIR/runtime-state"
+  runtime_workspace_root="$runtime_state_dir/workspace"
+  runtime_config_path="$runtime_state_dir/openclaw.json"
+
+  print_case "TEST" "runtime entrypoint auto-bootstraps workspace on first plugin load"
+
+  run_and_capture env OPENCLAW_STATE_DIR="$runtime_state_dir" node - "$ENTRY_FILE" <<'EOF'
+const entryPath = process.argv[2];
+const plugin = require(entryPath);
+
+const services = [];
+plugin.register({
+  config: {
+    plugins: {
+      entries: {
+        "nmc-memory-plugin": {
+          config: {
+            autoSetup: true,
+          },
+        },
+      },
+    },
+  },
+  logger: {
+    info() {},
+    error(message) {
+      console.error(message);
+    },
+  },
+  registerCli() {},
+  registerService(service) {
+    services.push(service);
+  },
+});
+
+if (services.length !== 1) {
+  console.error(`expected one service, got ${services.length}`);
+  process.exit(1);
+}
+
+services[0].start();
+EOF
+
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "runtime auto-bootstrap exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if ! require_dir "$runtime_workspace_root/system/memory" "runtime auto-bootstrap created shared memory root"; then
+    return
+  fi
+
+  if ! require_dir "$runtime_workspace_root/system/skills" "runtime auto-bootstrap created shared skills root"; then
+    return
+  fi
+
+  if ! require_file "$runtime_config_path" "runtime auto-bootstrap wrote openclaw.json"; then
+    return
+  fi
+
+  if [ "$(json_length "$runtime_config_path" 'agents.list')" = "5" ]; then
+    pass "runtime auto-bootstrap agent registrations"
+  else
+    fail "runtime auto-bootstrap agent registrations" "Expected 5 agents, found $(json_length "$runtime_config_path" 'agents.list')"
+  fi
+}
+
+test_runtime_auto_bootstrap_disabled() {
+  local runtime_state_dir runtime_workspace_root runtime_config_path
+
+  runtime_state_dir="$TEST_WORKDIR/runtime-disabled-state"
+  runtime_workspace_root="$runtime_state_dir/workspace"
+  runtime_config_path="$runtime_state_dir/openclaw.json"
+
+  print_case "TEST" "runtime entrypoint skips bootstrap when autoSetup is disabled"
+
+  run_and_capture env OPENCLAW_STATE_DIR="$runtime_state_dir" node - "$ENTRY_FILE" <<'EOF'
+const entryPath = process.argv[2];
+const plugin = require(entryPath);
+
+const services = [];
+plugin.register({
+  config: {
+    plugins: {
+      entries: {
+        "nmc-memory-plugin": {
+          config: {
+            autoSetup: false,
+          },
+        },
+      },
+    },
+  },
+  logger: {
+    info() {},
+    error(message) {
+      console.error(message);
+    },
+  },
+  registerCli() {},
+  registerService(service) {
+    services.push(service);
+  },
+});
+
+if (services.length !== 1) {
+  console.error(`expected one service, got ${services.length}`);
+  process.exit(1);
+}
+
+services[0].start();
+EOF
+
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "runtime auto-bootstrap disabled exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if [ ! -d "$runtime_workspace_root" ] && [ ! -f "$runtime_config_path" ]; then
+    pass "runtime auto-bootstrap disabled leaves state untouched"
+  else
+    fail "runtime auto-bootstrap disabled leaves state untouched" "Expected no workspace or config to be created"
+  fi
+}
+
+test_runtime_auto_bootstrap_without_state_dir() {
+  local runtime_root
+  runtime_root="$TEST_WORKDIR/runtime-no-state-dir"
+  mkdir -p "$runtime_root"
+
+  print_case "TEST" "runtime entrypoint tolerates missing state-dir hints"
+
+  run_and_capture env -u OPENCLAW_STATE_DIR node - "$runtime_root/plugin" <<'EOF'
+const fs = require("fs");
+const path = require("path");
+
+const pluginRoot = process.argv[2];
+fs.mkdirSync(pluginRoot, { recursive: true });
+fs.copyFileSync("nmc-memory-plugin/index.js", path.join(pluginRoot, "index.js"));
+fs.mkdirSync(path.join(pluginRoot, "lib"), { recursive: true });
+fs.copyFileSync(
+  "nmc-memory-plugin/lib/openclaw-setup.js",
+  path.join(pluginRoot, "lib", "openclaw-setup.js"),
+);
+
+const plugin = require(path.join(pluginRoot, "index.js"));
+const services = [];
+plugin.register({
+  config: {
+    plugins: {
+      entries: {
+        "nmc-memory-plugin": {
+          config: {},
+        },
+      },
+    },
+  },
+  logger: {
+    info() {},
+    error(message) {
+      console.error(message);
+    },
+  },
+  registerCli() {},
+  registerService(service) {
+    services.push(service);
+  },
+});
+
+if (services.length !== 1) {
+  console.error(`expected one service, got ${services.length}`);
+  process.exit(1);
+}
+
+services[0].start();
+EOF
+
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "runtime missing state-dir exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if [ ! -s "$LAST_STDERR" ]; then
+    pass "runtime missing state-dir is a clean no-op"
+  else
+    fail "runtime missing state-dir is a clean no-op" "Expected no bootstrap error log, got: $(cat "$LAST_STDERR")"
+  fi
+}
+
+test_scaffolded_workspace_script_detection() {
+  local state_dir workspace_root config_path
+
+  state_dir="$TEST_WORKDIR/scaffolded-script-state"
+  workspace_root="$state_dir/workspace"
+  config_path="$state_dir/openclaw.json"
+
+  print_case "TEST" "workspace/system layout is detected by onboard and pipeline scripts from scaffolded root"
+
+  run_and_capture node "$SETUP_SCRIPT" \
+    --state-dir "$state_dir" \
+    --workspace-root "$workspace_root" \
+    --config-path "$config_path"
+
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "scaffolded script detection setup exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  run_and_capture_in_dir "$workspace_root" "$ONBOARD_SCRIPT" analyst
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "scaffolded onboard detection exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if [ -f "$workspace_root/system/memory/core/agents/analyst/COURSE.md" ]; then
+    pass "scaffolded onboard detection path"
+  else
+    fail "scaffolded onboard detection path" "Expected analyst role under workspace/system/memory"
+  fi
+
+  git -C "$workspace_root/system/memory" init >/dev/null 2>&1
+  git -C "$workspace_root/system/memory" config user.name "Integration Test"
+  git -C "$workspace_root/system/memory" config user.email "integration@example.com"
+  git -C "$workspace_root/system/memory" add .
+  git -C "$workspace_root/system/memory" commit -m "test: seed scaffolded memory" >/dev/null 2>&1
+
+  run_and_capture_in_dir "$workspace_root" "$PIPELINE_SCRIPT" 2026-03-05 --phase verify
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "scaffolded pipeline detection exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if grep -Fq 'Phase D — verify' "$LAST_STDOUT"; then
+    pass "scaffolded pipeline detection path"
+  else
+    fail "scaffolded pipeline detection path" "Expected verify phase output from scaffolded workspace root"
+  fi
+}
+
+test_kanban_policy_contract() {
+  local state_dir workspace_root config_path task_file kanban_script board_file
+
+  state_dir="$TEST_WORKDIR/kanban-state"
+  workspace_root="$state_dir/workspace"
+  config_path="$state_dir/openclaw.json"
+  kanban_script="$workspace_root/system/scripts/kanban.mjs"
+  board_file="$workspace_root/system/tasks/active/.kanban.json"
+  task_file="$workspace_root/system/tasks/active/T-0001-kanban-smoke.md"
+
+  print_case "TEST" "kanban.mjs resolves effective policy values without persisting computed fields"
+
+  run_and_capture node "$SETUP_SCRIPT" \
+    --state-dir "$state_dir" \
+    --workspace-root "$workspace_root" \
+    --config-path "$config_path"
+
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "kanban setup exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  cp "$workspace_root/system/tasks/templates/task.md" "$task_file"
+  python3 - "$task_file" <<'PY'
+import pathlib
+import sys
+
+task_path = pathlib.Path(sys.argv[1])
+text = task_path.read_text(encoding="utf-8")
+text = text.replace("id: T-0000", "id: T-0001")
+text = text.replace('title: ""', 'title: "Kanban smoke"')
+text = text.replace("status: backlog", "status: planned")
+text = text.replace("owner: null", "owner: lev")
+text = text.replace("next_action: null", 'next_action: "Run smoke"')
+task_path.write_text(text, encoding="utf-8")
+PY
+
+  run_and_capture node "$kanban_script" set-board-autonomy partial
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "kanban set-board-autonomy exit code" "Expected 0, got $LAST_EXIT_CODE"
+    return
+  fi
+
+  run_and_capture node "$kanban_script" set-board-git-flow pr
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "kanban set-board-git-flow exit code" "Expected 0, got $LAST_EXIT_CODE"
+    return
+  fi
+
+  run_and_capture node "$kanban_script" set-autonomy T-0001 ask
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "kanban set-autonomy exit code" "Expected 0, got $LAST_EXIT_CODE"
+    return
+  fi
+
+  run_and_capture node "$kanban_script" next --owner lev --json
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "kanban next exit code" "Expected 0, got $LAST_EXIT_CODE"
+    return
+  fi
+
+  if python3 - "$LAST_STDOUT" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+ok = (
+    data["id"] == "T-0001" and
+    data["autonomy"] == "ask" and
+    data["effective_autonomy"] == "ask" and
+    data["git_flow"] == "inherit" and
+    data["effective_git_flow"] == "pr"
+)
+sys.exit(0 if ok else 1)
+PY
+  then
+    pass "kanban effective autonomy and git flow"
+  else
+    fail "kanban effective autonomy and git flow" "Unexpected next payload: $(cat "$LAST_STDOUT")"
+  fi
+
+  run_and_capture node "$kanban_script" set-status T-0001 in_progress
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "kanban set-status exit code" "Expected 0, got $LAST_EXIT_CODE"
+    return
+  fi
+
+  if ! grep -Fq '"autonomy_default": "partial"' "$board_file"; then
+    fail "kanban board settings persisted" "Expected board autonomy default to be updated"
+  else
+    pass "kanban board settings persisted"
+  fi
+
+  if grep -Fq 'effective_autonomy:' "$task_file" || grep -Fq 'effective_git_flow:' "$task_file"; then
+    fail "kanban excludes computed fields from frontmatter" "Task file leaked effective_* fields"
+  else
+    pass "kanban excludes computed fields from frontmatter"
   fi
 }
 
@@ -747,6 +1247,11 @@ main() {
   test_template_default_agents
   setup_workspace
   test_openclaw_setup
+  test_kanban_policy_contract
+  test_runtime_auto_bootstrap
+  test_runtime_auto_bootstrap_disabled
+  test_runtime_auto_bootstrap_without_state_dir
+  test_scaffolded_workspace_script_detection
   test_verify_success
   test_status_output
   test_pipeline_dry_run

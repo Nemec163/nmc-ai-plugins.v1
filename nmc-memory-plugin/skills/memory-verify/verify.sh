@@ -4,7 +4,7 @@ set -euo pipefail
 EXIT_CODE=0
 
 usage() {
-  echo "Usage: $0 path/to/workspace/memory" >&2
+  echo "Usage: $0 path/to/workspace/system/memory" >&2
 }
 
 now_rfc3339() {

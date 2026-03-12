@@ -25,7 +25,7 @@ The script is a maintenance tool.
 It should apply retention-safe moves, print visible alerts, and create one retention commit when changes are staged.
 
 Expected behavior:
-1. Default the memory root to workspace/memory when no path argument is supplied.
+1. Default the memory root to workspace/system/memory when no path argument is supplied.
 2. Move processed intake markdown files older than 90 days into intake/processed/archive/YYYY/MM/ using git-preserving moves.
 3. Check intake/pending/ for markdown files older than 7 days and print ALERT lines when backlog exists.
 4. When --compact-edges is provided, rebuild core/meta/graph/edges.jsonl from canonical links[] and replace the old export.
@@ -38,7 +38,7 @@ The script must preserve canon history and avoid destructive rewrites of canonic
 
 ## Input Contract
 
-- Optional positional argument: memory workspace root path, default `workspace/memory`
+- Optional positional argument: memory workspace root path, default `workspace/system/memory`
 - Optional flag: `--compact-edges`
 - Optional flag: `--archive-timeline`
 - Read and write targets: `intake/pending/`, `intake/processed/`, `core/meta/graph/edges.jsonl`, and `core/user/timeline/`

@@ -43,7 +43,7 @@ Exit code 2 means verification error.
 
 ## Input Contract
 
-- Required argument: path to the memory workspace root
+- Required argument: path to the memory workspace root, typically `workspace/system/memory`
 - Canonical input set: `core/user/**/*.md` and `core/agents/**/*.md`
 - Prior derived state: existing `core/meta/manifest.json` and `core/meta/graph/edges.jsonl` when present
 - Precondition: Phase C apply commit already completed or canon changes are otherwise ready to verify

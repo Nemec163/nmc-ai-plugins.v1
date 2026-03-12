@@ -7,7 +7,7 @@ The package is shipped in the current OpenClaw plugin format:
 - `openclaw.plugin.json` declares the plugin manifest and bundled skill roots.
 - `package.json` exposes the runtime entrypoint through `openclaw.extensions`.
 - `skills/*/SKILL.md` files use AgentSkills-compatible YAML frontmatter.
-- `templates/workspace-memory/` stays bundled as package assets for manual scaffolding.
+- `templates/workspace-memory/` and `templates/workspace-system/` stay bundled as package assets for manual scaffolding.
 
 The default workspace template ships with predefined agent slices:
 - `nyx` - orchestrator and main user-facing agent, Chief Product Officer, `opus 4.6`
@@ -17,9 +17,12 @@ The default workspace template ships with predefined agent slices:
 - `mnemo` - canonical memory writer and maintainer, Chief Knowledge Officer, `codex 5.4`
 
 The plugin also exposes an OpenClaw multi-agent setup command that scaffolds:
-- `~/.openclaw/workspace/memory/` as the shared canon root
+- `~/.openclaw/workspace/system/` as the shared infra root
+- `~/.openclaw/workspace/system/memory/` as the shared canon root
+- `~/.openclaw/workspace/system/skills/` as the shared workspace skill mirror for bundled memory skills
+- `~/.openclaw/workspace/system/tasks/`, `policy/`, `scripts/`, and `docs/` as the shared kanban/policy layer
 - `~/.openclaw/workspace/{nyx,medea,arx,lev,mnemo}/` as full per-agent workspaces
-- `~/.openclaw/openclaw.json` entries under `agents.list` and optional `bindings`
+- `~/.openclaw/openclaw.json` entries under `agents.list`, `agents.defaults.memorySearch.extraPaths`, and optional `bindings`
 
 ## Skills
 
@@ -34,6 +37,7 @@ The plugin also exposes an OpenClaw multi-agent setup command that scaffolds:
 | `memory-onboard-agent` | Script | Scaffold a new agent memory slice under `core/agents/`. |
 | `memory-pipeline` | Script | Run extract → curate → apply → verify in order and stop on error. |
 | `memory-retention` | Script | Archive stale intake, alert on backlog, and perform optional maintenance tasks. |
+| `kanban-operator` | LLM | Operate the shared file-first board and resolve effective autonomy/git flow before action. |
 
 ## Quick Start
 
@@ -45,20 +49,32 @@ openclaw plugins install ./nmc-memory-plugin
 
 ### 2. Setup
 
-OpenClaw installs the plugin package under `~/.openclaw/extensions/nmc-memory-plugin/`. The plugin bundles the shared memory scaffold and can also create the full multi-agent workspace layout. The preferred setup path is:
+OpenClaw installs the plugin package under `~/.openclaw/extensions/nmc-memory-plugin/`.
+
+On the first runtime load after install or enable, the plugin now auto-bootstraps the managed scaffold by default. Because OpenClaw does not expose an install-time lifecycle hook, this happens when the extension is loaded by the gateway/runtime, not inside the `plugins install` copy step itself.
+
+If you want to trigger the same scaffold explicitly, or rerun it after changing plugin config, use:
 
 ```bash
 openclaw nmc-memory setup
 ```
 
 This creates:
-- `~/.openclaw/workspace/memory/`
+- `~/.openclaw/workspace/system/`
+- `~/.openclaw/workspace/system/memory/`
+- `~/.openclaw/workspace/system/skills/`
+- `~/.openclaw/workspace/system/tasks/`
+- `~/.openclaw/workspace/system/policy/`
+- `~/.openclaw/workspace/system/scripts/`
+- `~/.openclaw/workspace/system/docs/`
 - `~/.openclaw/workspace/nyx/`
 - `~/.openclaw/workspace/medea/`
 - `~/.openclaw/workspace/arx/`
 - `~/.openclaw/workspace/lev/`
 - `~/.openclaw/workspace/mnemo/`
-- agent registrations in `~/.openclaw/openclaw.json`
+- per-agent `skills -> ../system/skills` and `system -> ../system` links inside each workspace
+- `~/.openclaw/agents/{nyx,medea,arx,lev,mnemo}/{agent,sessions}/`
+- agent registrations plus shared `memorySearch.extraPaths` wiring in `~/.openclaw/openclaw.json`
 
 To add routing bindings while setting up, repeat `--bind`:
 
@@ -76,11 +92,31 @@ node ./nmc-memory-plugin/scripts/setup-openclaw.js \
   --bind "nyx=telegram:primary"
 ```
 
+To disable runtime auto-bootstrap or override managed paths, configure the plugin entry in `openclaw.json`:
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "nmc-memory-plugin": {
+        "enabled": true,
+        "config": {
+          "autoSetup": false,
+          "workspaceRoot": "~/custom-workspace",
+          "systemRoot": "~/custom-workspace/system"
+        }
+      }
+    }
+  }
+}
+```
+
 If you only need the shared memory canon without agent workspace scaffolding, you can still copy the raw template and onboard extra custom roles manually:
 
 ```bash
 mkdir -p ./workspace
-cp -R ~/.openclaw/extensions/nmc-memory-plugin/templates/workspace-memory ./workspace/memory
+cp -R ~/.openclaw/extensions/nmc-memory-plugin/templates/workspace-system ./workspace/system
+cp -R ~/.openclaw/extensions/nmc-memory-plugin/templates/workspace-memory ./workspace/system/memory
 ~/.openclaw/extensions/nmc-memory-plugin/skills/memory-onboard-agent/onboard.sh analyst
 ```
 
@@ -139,11 +175,11 @@ Example cron entry:
 
 ### Weekly Retention
 
-`skills/memory-retention/retention.sh` defaults to `workspace/memory` and supports optional maintenance flags:
+`skills/memory-retention/retention.sh` defaults to `workspace/system/memory` and supports optional maintenance flags:
 
 ```bash
 nmc-memory-plugin/skills/memory-retention/retention.sh
-nmc-memory-plugin/skills/memory-retention/retention.sh workspace/memory --compact-edges --archive-timeline
+nmc-memory-plugin/skills/memory-retention/retention.sh workspace/system/memory --compact-edges --archive-timeline
 ```
 
 Behavior:
@@ -175,17 +211,17 @@ nmc-memory-plugin/
 │   ├── memory-status/
 │   ├── memory-onboard-agent/
 │   ├── memory-pipeline/
-│   └── memory-retention/
+│   ├── memory-retention/
+│   └── kanban-operator/
 └── templates/
-    └── workspace-memory/
-        ├── core/
-        │   ├── system/
-        │   ├── user/
-        │   ├── agents/
-        │   └── meta/
-        └── intake/
-            ├── pending/
-            └── processed/
+    ├── workspace-memory/
+    │   ├── core/
+    │   └── intake/
+    └── workspace-system/
+        ├── docs/
+        ├── policy/
+        ├── scripts/
+        └── tasks/
 ```
 
 ## Principles

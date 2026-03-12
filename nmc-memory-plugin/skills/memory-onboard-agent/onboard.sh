@@ -35,8 +35,10 @@ schema_version() {
 detect_memory_root() {
   if [ -d "$PWD/core/agents" ]; then
     printf '%s\n' "$PWD"
-  elif [ -d "$PWD/workspace/memory/core/agents" ]; then
-    printf '%s\n' "$PWD/workspace/memory"
+  elif [ -d "$PWD/system/memory/core/agents" ]; then
+    printf '%s\n' "$PWD/system/memory"
+  elif [ -d "$PWD/workspace/system/memory/core/agents" ]; then
+    printf '%s\n' "$PWD/workspace/system/memory"
   else
     echo "error: could not locate workspace memory root from current directory" >&2
     return 1

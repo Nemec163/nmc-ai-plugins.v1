@@ -80,8 +80,12 @@ resolve_memory_root() {
     printf '%s\n' "${MEMORY_ROOT%/}"
   elif [ -d "$PWD/core/user" ] || [ -d "$PWD/core/meta" ]; then
     printf '%s\n' "$PWD"
+  elif [ -d "$PWD/system/memory/core/user" ] || [ -d "$PWD/system/memory/core/meta" ]; then
+    printf '%s\n' "$PWD/system/memory"
+  elif [ -d "$PWD/workspace/system/memory/core/user" ] || [ -d "$PWD/workspace/system/memory/core/meta" ]; then
+    printf '%s\n' "$PWD/workspace/system/memory"
   else
-    printf '%s\n' "$PWD/workspace/memory"
+    printf '%s\n' "$PWD/workspace/system/memory"
   fi
 }
 

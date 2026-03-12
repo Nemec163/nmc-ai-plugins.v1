@@ -99,7 +99,7 @@ main() {
   local events facts states identities competences
   local file file_epoch age_seconds
 
-  memory_root="${1:-workspace/memory}"
+  memory_root="${1:-workspace/system/memory}"
   memory_root="${memory_root%/}"
   meta_dir="$(resolve_meta_dir "$memory_root")"
   manifest_file="$meta_dir/manifest.json"

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 [workspace/memory] [--compact-edges] [--archive-timeline]" >&2
+  echo "Usage: $0 [workspace/system/memory] [--compact-edges] [--archive-timeline]" >&2
 }
 
 today_utc() {
@@ -240,7 +240,7 @@ rebuild_edges_file() {
   rm -f "$record_list" "$ids_raw" "$ids_unique" "$edges_raw" "$edges_sorted" "$edges_valid"
 }
 
-memory_root='workspace/memory'
+memory_root='workspace/system/memory'
 memory_root_set=0
 compact_edges=0
 archive_timeline=0
