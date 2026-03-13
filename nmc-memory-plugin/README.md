@@ -2,6 +2,8 @@
 
 Persistent OpenClaw memory plugin for maintaining a git-backed personal canon: intake, curation, canonical writes, verification, query, and operational automation.
 
+Repository-level docs live in [../README.md](../README.md). Current setup and day-2 operating guidance live in [../docs/implementation-guide.md](../docs/implementation-guide.md).
+
 The package is shipped in the current OpenClaw plugin format:
 
 - `openclaw.plugin.json` declares the plugin manifest and bundled skill roots.
@@ -29,7 +31,7 @@ The plugin also exposes an OpenClaw multi-agent setup command that scaffolds:
 | Skill | Type | Description |
 |---|---|---|
 | `memory-extract` | LLM | Extract atomic memory claims from transcripts into `intake/pending/`. |
-| `memory-curate` | LLM | Evaluate extracted claims against canon and annotate accept or reject decisions. |
+| `memory-curate` | LLM | Evaluate extracted claims against canon and annotate accept, reject, or defer decisions. |
 | `memory-apply` | LLM | Apply accepted claims into canonical files and create the consolidation commit. |
 | `memory-verify` | Script | Rebuild manifest metadata and append valid graph edges after apply. |
 | `memory-query` | LLM | Answer canon-grounded memory questions with explicit freshness boundaries. |
@@ -92,6 +94,22 @@ node ./nmc-memory-plugin/scripts/setup-openclaw.js \
   --bind "nyx=telegram:primary"
 ```
 
+Supported setup options:
+
+- `--state-dir <path>`
+- `--workspace-root <path>`
+- `--system-root <path>`
+- `--memory-root <path>`
+- `--config-path <path>`
+- `--overwrite`
+- `--no-config`
+- `--bind <agent=channel[:accountId[:peerId]]>` repeatable
+- `--model-nyx <model>`
+- `--model-medea <model>`
+- `--model-arx <model>`
+- `--model-lev <model>`
+- `--model-mnemo <model>`
+
 To disable runtime auto-bootstrap or override managed paths, configure the plugin entry in `openclaw.json`:
 
 ```json
@@ -103,7 +121,11 @@ To disable runtime auto-bootstrap or override managed paths, configure the plugi
         "config": {
           "autoSetup": false,
           "workspaceRoot": "~/custom-workspace",
-          "systemRoot": "~/custom-workspace/system"
+          "systemRoot": "~/custom-workspace/system",
+          "models": {
+            "nyx": "opus 4.6",
+            "lev": "codex 5.1 mini"
+          }
         }
       }
     }
@@ -125,13 +147,13 @@ cp -R ~/.openclaw/extensions/nmc-memory-plugin/templates/workspace-memory ./work
 Run the full pipeline for a day:
 
 ```bash
-nmc-memory-plugin/skills/memory-pipeline/pipeline.sh 2026-03-05
+./nmc-memory-plugin/skills/memory-pipeline/pipeline.sh 2026-03-05
 ```
 
 Run a single phase when needed:
 
 ```bash
-nmc-memory-plugin/skills/memory-pipeline/pipeline.sh 2026-03-05 --phase verify
+./nmc-memory-plugin/skills/memory-pipeline/pipeline.sh 2026-03-05 --phase verify
 ```
 
 ## Pipeline Overview
@@ -155,8 +177,8 @@ Operational automation adds two supporting scripts:
 `skills/memory-pipeline/pipeline.sh` accepts a required date and an optional phase selector:
 
 ```bash
-nmc-memory-plugin/skills/memory-pipeline/pipeline.sh 2026-03-05
-nmc-memory-plugin/skills/memory-pipeline/pipeline.sh 2026-03-05 --phase apply
+./nmc-memory-plugin/skills/memory-pipeline/pipeline.sh 2026-03-05
+./nmc-memory-plugin/skills/memory-pipeline/pipeline.sh 2026-03-05 --phase apply
 ```
 
 Behavior:
@@ -165,9 +187,9 @@ Behavior:
 - Logs each phase with timestamps.
 - Stops immediately if any phase fails.
 - Prints a run summary with duration and phase status.
-- If `openclaw` is unavailable for LLM phases, prints the commands it would run and exits with setup status.
+- If `openclaw` is unavailable for LLM phases, prints the commands it would run and exits with code `2`.
 
-Example cron entry:
+Example cron entry using the installed plugin path:
 
 ```cron
 0 0 * * * cd /path/to/project && ~/.openclaw/extensions/nmc-memory-plugin/skills/memory-pipeline/pipeline.sh $(date -u +\%F)
@@ -178,8 +200,8 @@ Example cron entry:
 `skills/memory-retention/retention.sh` defaults to `workspace/system/memory` and supports optional maintenance flags:
 
 ```bash
-nmc-memory-plugin/skills/memory-retention/retention.sh
-nmc-memory-plugin/skills/memory-retention/retention.sh workspace/system/memory --compact-edges --archive-timeline
+./nmc-memory-plugin/skills/memory-retention/retention.sh
+./nmc-memory-plugin/skills/memory-retention/retention.sh workspace/system/memory --compact-edges --archive-timeline
 ```
 
 Behavior:
@@ -231,3 +253,18 @@ nmc-memory-plugin/
 - Timeline is append-only; corrections happen through new records.
 - Runtime delta and canon must stay clearly separated.
 - Maintenance scripts preserve history rather than deleting evidence.
+
+## Verification
+
+Run the bundled integration checks from the repository root:
+
+```bash
+./nmc-memory-plugin/tests/run-integration.sh
+```
+
+For a live workspace, validate canon integrity and backlog state with:
+
+```bash
+./nmc-memory-plugin/skills/memory-verify/verify.sh ~/.openclaw/workspace/system/memory
+./nmc-memory-plugin/skills/memory-status/status.sh ~/.openclaw/workspace/system/memory
+```

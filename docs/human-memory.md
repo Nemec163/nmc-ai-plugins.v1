@@ -1,3 +1,7 @@
+> **Status: Concept Note**
+> This file describes the high-level memory model and layer semantics.
+> For the current plugin implementation and operating workflow, see [implementation-guide.md](./implementation-guide.md) and [../README.md](../README.md).
+
 ## КОНЦЕПТ ЧЕЛОВЕКО-ПОДОБНОЙ ПАМЯТИ ДЛЯ АИ
 
 ## L0 — Working Memory (Runtime Context)
