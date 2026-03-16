@@ -1,0 +1,6 @@
+{
+  "name": "memory-os-gateway",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Unified programmatic entrypoint placeholder over canon, scripts, and runtime."
+}

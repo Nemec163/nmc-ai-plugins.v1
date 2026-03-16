@@ -1,0 +1,6 @@
+{
+  "name": "control-plane",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Operator-facing surface package placeholder over gateway, runtime, and maintainer."
+}

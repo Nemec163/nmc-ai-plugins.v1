@@ -5,9 +5,9 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 0 / PR 0.1 — Golden Fixture Freeze`
-- next: `Phase 0 / PR 0.2 — Package Skeletons Only`
-- last verified on: `2026-03-16`
+- completed: `Phase 0 / PR 0.2 — Package Skeletons Only`
+- next: `Phase 1 / PR 1.1 — Extract @nmc/memory-contracts`
+- last verified on: `2026-03-17`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -480,6 +480,19 @@ Rollback:
 - revert PR; there is no user-facing behavior change
 
 #### PR 0.2: Package Skeletons Only
+
+Status: done on `2026-03-17`
+
+Implementation note:
+
+- added a root npm workspace manifest scoped to `packages/*` only
+- created placeholder package manifests and READMEs for all target Phase 0 package boundaries
+- left `nmc-memory-plugin` imports, packaging, runtime behavior, and workspace layout unchanged
+- verified with a Node structural check covering all 14 package skeletons
+- verified with `npm pkg get name --workspaces`
+- verified with `npm pack --dry-run` from `nmc-memory-plugin/`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
 
 Create placeholder packages:
 
@@ -1314,10 +1327,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 0, PR 0.2:
+The next implementation step should be Phase 1, PR 1.1:
 
-- create monorepo package skeletons only
-- establish the simplest package-loading/workspace setup with the existing Node toolchain
-- keep imports, packaging behavior, runtime behavior, and layout unchanged
+- extract `@nmc/memory-contracts` as the first real shared package
+- keep the boundary dependency-free and limited to schemas, interfaces, constants, and descriptors
+- do not pull canon storage or runtime behavior into the contracts package
 
-PR 0.1 is now complete, so the next risk is structural drift while introducing package boundaries. Keep PR 0.2 limited to skeletons and loading mechanics only.
+PR 0.2 is now complete, so the next risk is drawing the contracts boundary too broadly during the first real extraction. Keep PR 1.1 narrow and dependency-free.

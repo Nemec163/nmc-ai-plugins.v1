@@ -1,0 +1,6 @@
+{
+  "name": "memory-os-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Non-canonical runtime memory package placeholder for shadow-mode extraction."
+}

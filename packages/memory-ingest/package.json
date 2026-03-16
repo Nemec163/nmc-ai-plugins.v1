@@ -1,0 +1,6 @@
+{
+  "name": "@nmc/memory-ingest",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Engine-agnostic source normalization and provenance contracts at the system boundary."
+}

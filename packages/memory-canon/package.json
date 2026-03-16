@@ -1,0 +1,6 @@
+{
+  "name": "@nmc/memory-canon",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Canonical memory contract, storage-aware validation, and canon write-boundary placeholders."
+}

@@ -1,0 +1,6 @@
+{
+  "name": "adapter-openclaw",
+  "version": "0.0.0",
+  "private": true,
+  "description": "OpenClaw-specific adapter package placeholder over extracted core modules."
+}

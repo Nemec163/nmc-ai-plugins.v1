@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `Phase 0 / PR 0.1 — Golden Fixture Freeze`
-- next roadmap slice: `Phase 0 / PR 0.2 — Package Skeletons Only`
+- completed roadmap slice: `Phase 0 / PR 0.2 — Package Skeletons Only`
+- next roadmap slice: `Phase 1 / PR 1.1 — Extract @nmc/memory-contracts`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -54,13 +54,11 @@ These rules stay in force for every phase unless the roadmap explicitly changes 
 
 ## Phase 0 Guidance
 
-For the remaining `Phase 0` work:
+Phase 0 is complete:
 
-- `PR 0.1` is complete and should remain additive-only
-- `PR 0.2` must create package skeletons only
-- `PR 0.2` must not switch imports
-- `PR 0.2` must not change packaging behavior
-- `PR 0.2` must not change runtime behavior or workspace layout
+- `PR 0.1` remains the additive-only baseline freeze
+- `PR 0.2` established package skeletons only
+- Phase 1 should begin with `PR 1.1` and keep the contracts boundary dependency-free
 
 ## Commit Convention
 
@@ -68,5 +66,6 @@ Use the roadmap slice title as the default commit message, for example:
 
 - `Phase 0 / PR 0.1: Golden Fixture Freeze`
 - `Phase 0 / PR 0.2: Package Skeletons Only`
+- `Phase 1 / PR 1.1: Extract @nmc/memory-contracts`
 
 If a slice spans multiple commits, keep every commit explicitly tied to the same roadmap slice.
