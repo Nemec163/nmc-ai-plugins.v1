@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `Phase 0 / PR 0.2 — Package Skeletons Only`
-- next roadmap slice: `Phase 1 / PR 1.1 — Extract @nmc/memory-contracts`
+- completed roadmap slice: `Phase 1 / PR 1.1 — Extract @nmc/memory-contracts`
+- next roadmap slice: `Phase 1 / PR 1.1b — Extract @nmc/memory-ingest`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -58,7 +58,8 @@ Phase 0 is complete:
 
 - `PR 0.1` remains the additive-only baseline freeze
 - `PR 0.2` established package skeletons only
-- Phase 1 should begin with `PR 1.1` and keep the contracts boundary dependency-free
+- `PR 1.1` extracted `@nmc/memory-contracts` as a dependency-free boundary
+- Phase 1 should continue with `PR 1.1b` and keep ingest normalization dependent on `@nmc/memory-contracts` only
 
 ## Commit Convention
 

@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 0 / PR 0.2 — Package Skeletons Only`
-- next: `Phase 1 / PR 1.1 — Extract @nmc/memory-contracts`
+- completed: `Phase 1 / PR 1.1 — Extract @nmc/memory-contracts`
+- next: `Phase 1 / PR 1.1b — Extract @nmc/memory-ingest`
 - last verified on: `2026-03-17`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -525,6 +525,20 @@ Rollback:
 ### Phase 1: Extract Base System Core
 
 #### PR 1.1: Extract `@nmc/memory-contracts`
+
+Status: done on `2026-03-17`
+
+Implementation note:
+
+- replaced the placeholder `@nmc/memory-contracts` package with dependency-free CommonJS exports
+- centralized shared record-envelope constants, schema-version compatibility helpers, and exit-code semantics
+- added pure record-envelope validators without canon storage or runtime behavior
+- added a fixture-backed Node proof test and wired it into `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `node packages/memory-contracts/test/validate-fixtures.js`
+- verified with `node -e "const contracts = require('./packages/memory-contracts'); console.log(Object.keys(contracts).sort().join('\n'))"`
+- verified with `cd packages/memory-contracts && npm pack --dry-run`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
 
 Formalize and centralize the shared cross-module contracts:
 
@@ -1327,10 +1341,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 1, PR 1.1:
+The next implementation step should be Phase 1, PR 1.1b:
 
-- extract `@nmc/memory-contracts` as the first real shared package
-- keep the boundary dependency-free and limited to schemas, interfaces, constants, and descriptors
-- do not pull canon storage or runtime behavior into the contracts package
+- extract `@nmc/memory-ingest` as the source and provenance boundary after contracts
+- keep the ingest layer dependent on `@nmc/memory-contracts` only
+- formalize transcript, session, observation, content-ref, and span-ref shapes without changing extract behavior
 
-PR 0.2 is now complete, so the next risk is drawing the contracts boundary too broadly during the first real extraction. Keep PR 1.1 narrow and dependency-free.
+PR 1.1 is now complete, so the next risk is over-designing ingestion before multiple external sources exist. Keep PR 1.1b focused on normalized source envelopes and provenance contracts only.

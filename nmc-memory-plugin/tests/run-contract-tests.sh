@@ -11,6 +11,7 @@ STATUS_SCRIPT="$PLUGIN_ROOT/skills/memory-status/status.sh"
 ONBOARD_SCRIPT="$PLUGIN_ROOT/skills/memory-onboard-agent/onboard.sh"
 PIPELINE_SCRIPT="$PLUGIN_ROOT/skills/memory-pipeline/pipeline.sh"
 RETENTION_SCRIPT="$PLUGIN_ROOT/skills/memory-retention/retention.sh"
+CONTRACT_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-contracts/test/validate-fixtures.js"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -273,6 +274,29 @@ PY
     pass "canonical record envelope fields"
   else
     fail "canonical record envelope fields" "One or more canonical record blocks no longer satisfy the frozen envelope contract"
+  fi
+}
+
+test_shared_contracts_package_fixture_validation() {
+  print_case "TEST" "@nmc/memory-contracts validates fixture record envelopes"
+
+  if ! require_file "$CONTRACT_FIXTURE_TEST" "shared contracts package fixture test"; then
+    return
+  fi
+
+  cleanup
+  TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-contracts-test.XXXXXX")"
+  run_and_capture node "$CONTRACT_FIXTURE_TEST"
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "shared contracts fixture validation" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if grep -q "Validated 6 fixture record envelopes through @nmc/memory-contracts." "$LAST_STDOUT"; then
+    pass "shared contracts fixture validation"
+  else
+    fail "shared contracts fixture validation" "Fixture validation output did not confirm the expected record count"
   fi
 }
 
@@ -668,6 +692,7 @@ main() {
   test_canonical_fixture_checksums_frozen
   test_legacy_curate_batch_frozen
   test_record_envelope_contract
+  test_shared_contracts_package_fixture_validation
   test_verify_contracts
   test_status_output_contract
   test_pipeline_dry_run_contract
