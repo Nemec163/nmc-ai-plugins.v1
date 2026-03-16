@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 1 / PR 1.1 — Extract @nmc/memory-contracts`
-- next: `Phase 1 / PR 1.1b — Extract @nmc/memory-ingest`
+- completed: `Phase 1 / PR 1.1b — Extract @nmc/memory-ingest`
+- next: `Phase 1 / PR 1.2 — Extract @nmc/memory-canon`
 - last verified on: `2026-03-17`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -562,6 +562,21 @@ Rollback:
 - move shared schemas and protocol definitions back behind package-local code
 
 #### PR 1.1b: Extract `@nmc/memory-ingest`
+
+Status: done on `2026-03-17`
+
+Implementation note:
+
+- replaced the placeholder `@nmc/memory-ingest` package with pure CommonJS ingest and provenance exports
+- formalized transcript event, extracted claim, normalized source envelope, evidence ref, span ref, and manual note import validators
+- kept the ingest package scoped to `@nmc/memory-contracts` semantics without changing plugin runtime behavior or fixture formats
+- added a fixture-backed Node proof test covering transcript JSONL inputs, intake claim envelopes, and canonical evidence refs
+- wired the ingest fixture validation into `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `node packages/memory-ingest/test/validate-fixtures.js`
+- verified with `node -e "const ingest = require('./packages/memory-ingest'); console.log(Object.keys(ingest).sort().join('\n'))"`
+- verified with `cd packages/memory-ingest && npm pack --dry-run`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
 
 Formalize and centralize source and provenance normalization:
 
@@ -1341,10 +1356,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 1, PR 1.1b:
+The next implementation step should be Phase 1, PR 1.2:
 
-- extract `@nmc/memory-ingest` as the source and provenance boundary after contracts
-- keep the ingest layer dependent on `@nmc/memory-contracts` only
-- formalize transcript, session, observation, content-ref, and span-ref shapes without changing extract behavior
+- extract `@nmc/memory-canon` as the shared canonical memory boundary after contracts and ingest
+- formalize record schema rules, manifest and graph contracts, canon layout invariants, and projection rebuild rules without changing on-disk formats
+- define the canon write boundary, lock semantics, and promoter interface skeleton while leaving the legacy `apply` path as the active writer
 
-PR 1.1 is now complete, so the next risk is over-designing ingestion before multiple external sources exist. Keep PR 1.1b focused on normalized source envelopes and provenance contracts only.
+PR 1.1b is now complete, so the next risk is widening the canon boundary too quickly. Keep PR 1.2 focused on shared canonical validation and write-boundary contracts, not on replacing the existing writer yet.

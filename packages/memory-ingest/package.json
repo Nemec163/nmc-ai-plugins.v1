@@ -2,5 +2,24 @@
   "name": "@nmc/memory-ingest",
   "version": "0.0.0",
   "private": true,
-  "description": "Engine-agnostic source normalization and provenance contracts at the system boundary."
+  "description": "Engine-agnostic source normalization and provenance contracts at the system boundary.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./constants": "./lib/constants.js",
+    "./claims": "./lib/claims.js",
+    "./transcripts": "./lib/transcripts.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  },
+  "dependencies": {
+    "@nmc/memory-contracts": "0.0.0"
+  }
 }
