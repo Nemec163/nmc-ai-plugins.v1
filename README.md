@@ -182,6 +182,7 @@ For an already scaffolded workspace, the fastest operational verification is:
 |---|---|
 | [nmc-memory-plugin/README.md](./nmc-memory-plugin/README.md) | Package-level install, setup, structure, and skill reference. |
 | [docs/implementation-guide.md](./docs/implementation-guide.md) | Current implementation and day-2 operations guide. |
+| [docs/memory-os-roadmap.md](./docs/memory-os-roadmap.md) | Repo-specific migration roadmap from the current plugin to a modular Memory OS. |
 | [docs/memory-design-v2.md](./docs/memory-design-v2.md) | Conceptual v2 design reference. |
 | [docs/human-memory.md](./docs/human-memory.md) | High-level memory model note. |
 | [docs/legacy/README.md](./docs/legacy/README.md) | Historical v1 design archive. |
