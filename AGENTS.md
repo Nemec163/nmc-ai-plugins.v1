@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `Phase 1 / PR 1.1b — Extract @nmc/memory-ingest`
-- next roadmap slice: `Phase 1 / PR 1.2 — Extract @nmc/memory-canon`
+- completed roadmap slice: `Phase 1 / PR 1.2 — Extract @nmc/memory-canon`
+- next roadmap slice: `Phase 1 / PR 1.3 — Extract @nmc/memory-maintainer`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -60,7 +60,8 @@ Phase 0 is complete:
 - `PR 0.2` established package skeletons only
 - `PR 1.1` extracted `@nmc/memory-contracts` as a dependency-free boundary
 - `PR 1.1b` extracted `@nmc/memory-ingest` as the source and provenance boundary on top of `@nmc/memory-contracts`
-- Phase 1 should continue with `PR 1.2` and keep canon extraction focused on shared validation, lock semantics, and the write-boundary contract
+- `PR 1.2` extracted `@nmc/memory-canon` as the shared canon boundary for layout, manifest, graph, lock, promoter, and verify-time validation logic
+- Phase 1 should continue with `PR 1.3` and keep maintainer extraction focused on shared task, policy, script, and operational contracts
 
 ## Commit Convention
 

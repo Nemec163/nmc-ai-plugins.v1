@@ -2,5 +2,28 @@
   "name": "@nmc/memory-canon",
   "version": "0.0.0",
   "private": true,
-  "description": "Canonical memory contract, storage-aware validation, and canon write-boundary placeholders."
+  "description": "Canonical memory contract, storage-aware validation, and the canon write-boundary contract.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./constants": "./lib/constants.js",
+    "./graph": "./lib/graph.js",
+    "./layout": "./lib/layout.js",
+    "./lock": "./lib/lock.js",
+    "./manifest": "./lib/manifest.js",
+    "./promoter": "./lib/promoter.js",
+    "./verify": "./lib/verify.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  },
+  "dependencies": {
+    "@nmc/memory-contracts": "0.0.0"
+  }
 }

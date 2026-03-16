@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 1 / PR 1.1b — Extract @nmc/memory-ingest`
-- next: `Phase 1 / PR 1.2 — Extract @nmc/memory-canon`
+- completed: `Phase 1 / PR 1.2 — Extract @nmc/memory-canon`
+- next: `Phase 1 / PR 1.3 — Extract @nmc/memory-maintainer`
 - last verified on: `2026-03-17`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -600,6 +600,21 @@ Rollback:
 - move source and provenance normalization back behind extract-local code
 
 #### PR 1.2: Extract `@nmc/memory-canon`
+
+Status: done on `2026-03-17`
+
+Implementation note:
+
+- replaced the placeholder `@nmc/memory-canon` package with CommonJS canon exports for layout, manifest, graph, lock, promoter, and verify concerns
+- moved canon-aware manifest rebuilding, checksum derivation, and graph edge filtering/appending behind shared package logic
+- kept the existing `verify.sh` entrypoint and output contract while making it consume the shared canon verification implementation
+- formalized the canon write-boundary skeleton with explicit lock and promoter request contracts without replacing the legacy `apply` path
+- added a fixture-backed Node proof test for canon validation and derived metadata, and wired it into `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `node packages/memory-canon/test/validate-fixtures.js`
+- verified with `node packages/memory-contracts/test/validate-fixtures.js`
+- verified with `node packages/memory-ingest/test/validate-fixtures.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
 
 Formalize:
 
@@ -1356,10 +1371,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 1, PR 1.2:
+The next implementation step should be Phase 1, PR 1.3:
 
-- extract `@nmc/memory-canon` as the shared canonical memory boundary after contracts and ingest
-- formalize record schema rules, manifest and graph contracts, canon layout invariants, and projection rebuild rules without changing on-disk formats
-- define the canon write boundary, lock semantics, and promoter interface skeleton while leaving the legacy `apply` path as the active writer
+- extract `@nmc/memory-maintainer` as the shared execution and policy boundary around `system/`
+- move shared task, policy, script, and operational-document contracts without changing workspace layout or kanban behavior
+- keep canon mutation, promotion, and runtime concerns out of maintainer scope
 
-PR 1.1b is now complete, so the next risk is widening the canon boundary too quickly. Keep PR 1.2 focused on shared canonical validation and write-boundary contracts, not on replacing the existing writer yet.
+PR 1.2 is now complete, so the next risk is smuggling canon or workspace concerns into maintainer extraction. Keep PR 1.3 focused on shared operational behavior and contracts, not scaffolding or canon storage.
