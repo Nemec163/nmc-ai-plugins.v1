@@ -17,6 +17,7 @@ CANON_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-canon/test/validate-fixtures
 MAINTAINER_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-maintainer/test/validate-fixtures.js"
 SCRIPTS_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-scripts/test/validate-fixtures.js"
 WORKSPACE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-workspace/test/validate-fixtures.js"
+AGENTS_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-agents/test/validate-fixtures.js"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -420,6 +421,29 @@ test_shared_workspace_package_fixture_validation() {
   fi
 }
 
+test_shared_agents_package_fixture_validation() {
+  print_case "TEST" "@nmc/memory-agents validates predefined role bundles and render output"
+
+  if ! require_file "$AGENTS_FIXTURE_TEST" "shared agents package fixture test"; then
+    return
+  fi
+
+  cleanup
+  TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-agents-test.XXXXXX")"
+  run_and_capture node "$AGENTS_FIXTURE_TEST"
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "shared agents fixture validation" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if grep -q "@nmc/memory-agents" "$LAST_STDOUT"; then
+    pass "shared agents fixture validation"
+  else
+    fail "shared agents fixture validation" "Fixture validation output did not confirm agents package execution"
+  fi
+}
+
 test_verify_contracts() {
   local manifest_file edges_file actual_schema
 
@@ -818,6 +842,7 @@ main() {
   test_shared_maintainer_package_fixture_validation
   test_shared_scripts_package_fixture_validation
   test_shared_workspace_package_fixture_validation
+  test_shared_agents_package_fixture_validation
   test_verify_contracts
   test_status_output_contract
   test_pipeline_dry_run_contract

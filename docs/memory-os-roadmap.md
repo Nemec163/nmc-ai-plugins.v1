@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 1b / PR 1b.2 — Extract @nmc/memory-workspace Utilities`
-- next: `Phase 1b / PR 1b.3 — Extract @nmc/memory-agents`
+- completed: `Phase 1b / PR 1b.3 — Extract @nmc/memory-agents`
+- next: `Phase 1b / PR 1b.4 — Extract @nmc/memory-workspace Scaffolding`
 - last verified on: `2026-03-17`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -754,6 +754,26 @@ Rollback:
 
 #### PR 1b.3: Extract `@nmc/memory-agents`
 
+Status: done on `2026-03-17`
+
+Implementation note:
+
+- replaced the placeholder `@nmc/memory-agents` package with CommonJS exports for the predefined roster, machine-readable role manifests, role bundles, and workspace-file render helpers
+- moved predefined role definitions and agent workspace rendering out of `nmc-memory-plugin/lib/openclaw-setup.js` while keeping workspace placement, symlink creation, state scaffolding, and OpenClaw config mutation in plugin-local setup code
+- preserved existing generated role workspaces by freezing deterministic render output in a new package validation test that checks all 50 generated agent workspace files by SHA-256
+- kept `openclaw-setup.js` backward compatible by re-exporting `PREDEFINED_AGENTS` through a lazy package loader with the same source-tree fallback pattern used by earlier extracted packages
+- wired `@nmc/memory-agents` validation into `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `node --check packages/memory-agents/index.js`
+- verified with `node --check packages/memory-agents/lib/roster.js`
+- verified with `node --check packages/memory-agents/lib/manifest.js`
+- verified with `node --check packages/memory-agents/lib/render.js`
+- verified with `node --check nmc-memory-plugin/lib/openclaw-setup.js`
+- verified with `node packages/memory-agents/test/validate-fixtures.js`
+- verified with `node -e "const agents = require('./packages/memory-agents'); console.log(Object.keys(agents).sort().join('\n'))"`
+- verified with `cd packages/memory-agents && npm pack --dry-run`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
+
 Move:
 
 - predefined roster definitions
@@ -1410,10 +1430,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 1b, PR 1b.3:
+The next implementation step should be Phase 1b, PR 1b.4:
 
-- extract `@nmc/memory-agents` for predefined roster definitions, machine-readable role manifests, role text generation, and agent-file rendering helpers
-- keep generated agent slices byte-for-byte compatible with current fixtures and keep OpenClaw setup producing the same role workspaces
-- keep this slice focused on role definitions and rendering helpers, not workspace scaffolding ownership or adapter runtime changes
+- extract higher-level `@nmc/memory-workspace` scaffolding operations for memory template copy, system template copy, shared skill workspace wiring, and agent workspace scaffold
+- keep `openclaw nmc-memory setup` producing the same `system/` layout, symlinks, and agent workspace structure
+- keep OpenClaw config mutation behavior in plugin-local adapter code while untangling scaffold orchestration ownership from `openclaw-setup.js`
 
-PR 1b.2 is now complete, so the next risk is drifting generated agent content or baking engine-specific assumptions into the extracted role registry. Keep PR 1b.3 focused on agent definitions and rendering, not scaffold placement or setup/config mutation behavior.
+PR 1b.3 is now complete, so the next risk is hidden coupling between scaffold generation and adapter-specific config updates. Keep PR 1b.4 focused on scaffold orchestration ownership and preserve current layout and symlink behavior without changing `openclaw.json` semantics.

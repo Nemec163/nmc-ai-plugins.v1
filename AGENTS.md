@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `Phase 1b / PR 1b.2 — Extract @nmc/memory-workspace Utilities`
-- next roadmap slice: `Phase 1b / PR 1b.3 — Extract @nmc/memory-agents`
+- completed roadmap slice: `Phase 1b / PR 1b.3 — Extract @nmc/memory-agents`
+- next roadmap slice: `Phase 1b / PR 1b.4 — Extract @nmc/memory-workspace Scaffolding`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -64,7 +64,8 @@ Phase 0 is complete:
 - `PR 1.3` extracted `@nmc/memory-maintainer` as the shared task, policy, script-contract, and operational execution boundary around `system/`
 - `PR 1b.1` extracted `@nmc/memory-scripts` as the package boundary for deterministic helper scripts while preserving plugin-local entrypoints through compatibility wrappers
 - `PR 1b.2` extracted `@nmc/memory-workspace` for shared path, filesystem, and template-copy helpers while preserving setup output and runtime bootstrap behavior
-- Phase 1b should continue with `PR 1b.3` and keep agent extraction focused on role definitions, manifests, and rendering helpers without moving workspace scaffolding ownership yet
+- `PR 1b.3` extracted `@nmc/memory-agents` for predefined roster definitions, machine-readable role manifests, role bundles, and deterministic agent workspace rendering while preserving plugin-local scaffold placement and config mutation
+- Phase 1b should continue with `PR 1b.4` and move scaffold orchestration into `@nmc/memory-workspace` without changing current `system/` layout, symlink behavior, or `openclaw.json` semantics
 
 ## Commit Convention
 

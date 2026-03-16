@@ -1,5 +1,6 @@
 # @nmc/memory-agents
 
-Placeholder package for the Memory OS migration.
+Predefined role roster, machine-readable manifests, and render helpers for
+Memory OS agent workspaces.
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.
