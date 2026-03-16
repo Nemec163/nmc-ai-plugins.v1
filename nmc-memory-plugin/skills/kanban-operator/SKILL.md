@@ -53,3 +53,7 @@ Use this skill to run the shared board safely and consistently.
 - Never set `blocked` without `blocked_reason`.
 - Never keep `next_action` populated when setting status `done`.
 - Update Kanban metadata in the same session as the actual work.
+
+## Contract source
+
+This skill follows the shared kanban contract as implemented by the deployed reference CLI `system/scripts/kanban.mjs`, with contract rules currently maintained in `@nmc/memory-maintainer`.

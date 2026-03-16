@@ -14,6 +14,7 @@ RETENTION_SCRIPT="$PLUGIN_ROOT/skills/memory-retention/retention.sh"
 CONTRACT_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-contracts/test/validate-fixtures.js"
 INGEST_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-ingest/test/validate-fixtures.js"
 CANON_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-canon/test/validate-fixtures.js"
+MAINTAINER_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-maintainer/test/validate-fixtures.js"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -345,6 +346,29 @@ test_shared_canon_package_fixture_validation() {
     pass "shared canon fixture validation"
   else
     fail "shared canon fixture validation" "Fixture validation output did not confirm the expected canon counts"
+  fi
+}
+
+test_shared_maintainer_package_fixture_validation() {
+  print_case "TEST" "@nmc/memory-maintainer validates task and contract fixtures"
+
+  if ! require_file "$MAINTAINER_FIXTURE_TEST" "shared maintainer package fixture test"; then
+    return
+  fi
+
+  cleanup
+  TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-maintainer-test.XXXXXX")"
+  run_and_capture node "$MAINTAINER_FIXTURE_TEST"
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "shared maintainer fixture validation" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if grep -q "@nmc/memory-maintainer" "$LAST_STDOUT"; then
+    pass "shared maintainer fixture validation"
+  else
+    fail "shared maintainer fixture validation" "Fixture validation output did not confirm maintainer package execution"
   fi
 }
 
@@ -743,6 +767,7 @@ main() {
   test_shared_contracts_package_fixture_validation
   test_shared_ingest_package_fixture_validation
   test_shared_canon_package_fixture_validation
+  test_shared_maintainer_package_fixture_validation
   test_verify_contracts
   test_status_output_contract
   test_pipeline_dry_run_contract

@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 1 / PR 1.2 — Extract @nmc/memory-canon`
-- next: `Phase 1 / PR 1.3 — Extract @nmc/memory-maintainer`
+- completed: `Phase 1 / PR 1.3 — Extract @nmc/memory-maintainer`
+- next: `Phase 1b / PR 1b.1 — Extract @nmc/memory-scripts`
 - last verified on: `2026-03-17`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -645,6 +645,20 @@ Rollback:
 - move validation logic back behind `verify.sh`
 
 #### PR 1.3: Extract `@nmc/memory-maintainer`
+
+Status: done on `2026-03-17`
+
+Implementation note:
+
+- replaced the placeholder `@nmc/memory-maintainer` package with CommonJS exports for kanban constants, frontmatter parsing, task validation, settings validation, and task-policy derivation
+- kept `system/scripts/kanban.mjs` as the reference CLI while allowing it to consume extracted maintainer contract constants when the package is locally available
+- preserved the existing `system/` scaffold and current `.kanban.json` semantics without changing workspace layout or user-facing paths
+- kept `kanban-operator` behavior and command surface stable while recording `@nmc/memory-maintainer` as the contract source
+- added a fixture-backed maintainer package proof test and wired it into `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `node packages/memory-maintainer/test/validate-fixtures.js`
+- verified with `npm test --workspace packages/memory-maintainer`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
 
 Move shared non-canon execution contracts:
 
@@ -1371,10 +1385,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 1, PR 1.3:
+The next implementation step should be Phase 1b, PR 1b.1:
 
-- extract `@nmc/memory-maintainer` as the shared execution and policy boundary around `system/`
-- move shared task, policy, script, and operational-document contracts without changing workspace layout or kanban behavior
-- keep canon mutation, promotion, and runtime concerns out of maintainer scope
+- extract `@nmc/memory-scripts` as the package boundary for deterministic helper scripts
+- preserve existing script entrypoints through wrappers or symlinks so current paths and exit semantics stay stable
+- keep maintainer contracts, workspace scaffolding, and adapter-specific runtime behavior out of the scripts package
 
-PR 1.2 is now complete, so the next risk is smuggling canon or workspace concerns into maintainer extraction. Keep PR 1.3 focused on shared operational behavior and contracts, not scaffolding or canon storage.
+PR 1.3 is now complete, so the next risk is breaking path contracts or executable behavior while separating deterministic helpers from plugin-local ownership. Keep PR 1b.1 focused on script packaging and compatibility shims, not workspace layout or maintainer semantics.

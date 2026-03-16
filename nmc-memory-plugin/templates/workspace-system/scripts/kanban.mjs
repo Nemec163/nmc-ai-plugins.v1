@@ -18,13 +18,11 @@ const TASKS_DIR = path.resolve(
 );
 const SETTINGS_PATH = path.join(TASKS_DIR, ".kanban.json");
 
-const STATUS_ORDER = ["backlog", "planned", "in_progress", "blocked", "review", "done"];
-const PRIORITY_ORDER = { P0: 0, P1: 1, P2: 2, P3: 3 };
-const BOARD_AUTONOMY = new Set(["full", "partial", "ask", "none"]);
-const TASK_AUTONOMY = new Set(["inherit", ...BOARD_AUTONOMY]);
-const BOARD_GIT_FLOW = new Set(["main", "pr"]);
-const TASK_GIT_FLOW = new Set(["inherit", ...BOARD_GIT_FLOW]);
-const CANON_KEYS = [
+const DEFAULT_STATUS_ORDER = ["backlog", "planned", "in_progress", "blocked", "review", "done"];
+const DEFAULT_PRIORITY_ORDER = { P0: 0, P1: 1, P2: 2, P3: 3 };
+const DEFAULT_BOARD_AUTONOMY = ["full", "partial", "ask", "none"];
+const DEFAULT_BOARD_GIT_FLOW = ["main", "pr"];
+const DEFAULT_CANON_KEYS = [
   "id",
   "title",
   "status",
@@ -38,6 +36,81 @@ const CANON_KEYS = [
   "created_at",
   "updated_at",
 ];
+let STATUS_ORDER = [...DEFAULT_STATUS_ORDER];
+let PRIORITY_ORDER = { ...DEFAULT_PRIORITY_ORDER };
+let BOARD_AUTONOMY = new Set(DEFAULT_BOARD_AUTONOMY);
+let TASK_AUTONOMY = new Set(["inherit", ...BOARD_AUTONOMY]);
+let BOARD_GIT_FLOW = new Set(DEFAULT_BOARD_GIT_FLOW);
+let TASK_GIT_FLOW = new Set(["inherit", ...BOARD_GIT_FLOW]);
+let CANON_KEYS = [...DEFAULT_CANON_KEYS];
+
+function isStringArray(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === "string" || item instanceof String);
+}
+
+function coerceStringArray(value, fallback) {
+  if (isStringArray(value) && value.length) {
+    return value;
+  }
+
+  return fallback;
+}
+
+function coercePriorityOrder(value) {
+  if (isStringArray(value) && value.length) {
+    return value.reduce((acc, item, index) => {
+      acc[item] = index;
+      return acc;
+    }, {});
+  }
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+
+  return null;
+}
+
+function toSet(items, fallback) {
+  const normalized = coerceStringArray(items, null);
+  return normalized ? new Set(normalized) : new Set(fallback);
+}
+
+async function loadMaintainerContract() {
+  try {
+    const loaded = await import("@nmc/memory-maintainer");
+    const contract = loaded.default ?? loaded;
+    if (!contract || typeof contract !== "object") {
+      return;
+    }
+
+    const priorityOrder = coercePriorityOrder(contract.KANBAN_PRIORITY);
+
+    STATUS_ORDER = coerceStringArray(contract.KANBAN_STATUS, DEFAULT_STATUS_ORDER);
+    PRIORITY_ORDER = {
+      ...DEFAULT_PRIORITY_ORDER,
+      ...(typeof priorityOrder === "object" && priorityOrder && !Array.isArray(priorityOrder)
+        ? priorityOrder
+        : {}),
+    };
+    BOARD_AUTONOMY = toSet(contract.BOARD_AUTONOMY, DEFAULT_BOARD_AUTONOMY);
+    TASK_AUTONOMY = toSet(
+      contract.TASK_AUTONOMY,
+      ["inherit", ...Array.from(BOARD_AUTONOMY)],
+    );
+    BOARD_GIT_FLOW = toSet(contract.BOARD_GIT_FLOW, DEFAULT_BOARD_GIT_FLOW);
+    TASK_GIT_FLOW = toSet(
+      contract.TASK_GIT_FLOW,
+      ["inherit", ...Array.from(BOARD_GIT_FLOW)],
+    );
+    CANON_KEYS = coerceStringArray(
+      contract.TASK_CANON_FRONTMATTER_KEYS,
+      DEFAULT_CANON_KEYS,
+    );
+  } catch {
+    return;
+  }
+}
 
 function nowIsoDate() {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -514,6 +587,8 @@ async function cmdSetBoardGitFlow() {
 }
 
 async function main() {
+  await loadMaintainerContract();
+
   const cmd = process.argv[2];
   switch (cmd) {
     case "summary":
