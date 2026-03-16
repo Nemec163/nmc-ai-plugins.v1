@@ -1,0 +1,10 @@
+schema_version	string
+last_updated	string
+record_counts	object
+record_counts.events	number
+record_counts.facts	number
+record_counts.states	number
+record_counts.identities	number
+record_counts.competences	number
+checksums	object
+edges_count	number
