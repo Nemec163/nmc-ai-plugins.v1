@@ -98,7 +98,9 @@ function parseFrontmatter(markdown) {
 }
 
 function parseClaims(markdown) {
-  const matches = markdown.matchAll(/^## (claim-[0-9-]+)\n(.*?)(?=^## |\Z)/gms);
+  const matches = markdown.matchAll(
+    /^## (claim-[0-9-]+)\n([\s\S]*?)(?=^## claim-[0-9-]+\n|(?![\s\S]))/gm
+  );
   const claims = [];
 
   for (const match of matches) {
