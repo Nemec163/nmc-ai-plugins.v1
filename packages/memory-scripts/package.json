@@ -2,5 +2,24 @@
   "name": "@nmc/memory-scripts",
   "version": "0.0.0",
   "private": true,
-  "description": "Deterministic helper-script package placeholder for shared Memory OS scripts."
+  "description": "Deterministic helper scripts for verify, status, onboarding, and retention operations.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "bin/",
+    "README.md"
+  ],
+  "bin": {
+    "memory-verify": "./bin/verify.sh",
+    "memory-status": "./bin/status.sh",
+    "memory-onboard-agent": "./bin/onboard.sh",
+    "memory-retention": "./bin/retention.sh"
+  },
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  }
 }

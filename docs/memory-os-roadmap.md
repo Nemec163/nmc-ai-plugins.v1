@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 1 / PR 1.3 — Extract @nmc/memory-maintainer`
-- next: `Phase 1b / PR 1b.1 — Extract @nmc/memory-scripts`
+- completed: `Phase 1b / PR 1b.1 — Extract @nmc/memory-scripts`
+- next: `Phase 1b / PR 1b.2 — Extract @nmc/memory-workspace Utilities`
 - last verified on: `2026-03-17`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -687,6 +687,18 @@ Rollback:
 These packages reflect separable concerns in the current repository, but they extend the base Memory OS rather than redefining it.
 
 #### PR 1b.1: Extract `@nmc/memory-scripts`
+
+Status: done on `2026-03-17`
+
+Implementation note:
+
+- replaced the placeholder `@nmc/memory-scripts` package with extracted deterministic helper scripts under `bin/`
+- preserved legacy plugin entrypoints under `nmc-memory-plugin/skills/*/*.sh` through thin `exec` wrappers so existing paths remain valid
+- kept `verify.sh` behavior stable while moving its `memory-canon` CLI lookup to a sibling package-relative path
+- added a fixture-backed package proof test for script presence, executability, exported paths, and `bash -n` validation
+- verified with `node packages/memory-scripts/test/validate-fixtures.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
 
 Move deterministic scripts into a package while preserving current entrypoints through wrappers or symlinks.
 
@@ -1385,10 +1397,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 1b, PR 1b.1:
+The next implementation step should be Phase 1b, PR 1b.2:
 
-- extract `@nmc/memory-scripts` as the package boundary for deterministic helper scripts
-- preserve existing script entrypoints through wrappers or symlinks so current paths and exit semantics stay stable
-- keep maintainer contracts, workspace scaffolding, and adapter-specific runtime behavior out of the scripts package
+- extract `@nmc/memory-workspace` utilities from `nmc-memory-plugin/lib/openclaw-setup.js`
+- keep setup output byte-for-byte compatible where expected while moving generic file-system helpers behind the package boundary
+- keep this slice focused on reusable setup utilities, not higher-level scaffolding moves or adapter behavior changes
 
-PR 1.3 is now complete, so the next risk is breaking path contracts or executable behavior while separating deterministic helpers from plugin-local ownership. Keep PR 1b.1 focused on script packaging and compatibility shims, not workspace layout or maintainer semantics.
+PR 1b.1 is now complete, so the next risk is subtle path normalization or copy/render drift while extracting generic setup helpers. Keep PR 1b.2 focused on reusable utility functions, not scaffolding ownership or OpenClaw config behavior changes.

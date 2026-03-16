@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `Phase 1 / PR 1.3 — Extract @nmc/memory-maintainer`
-- next roadmap slice: `Phase 1b / PR 1b.1 — Extract @nmc/memory-scripts`
+- completed roadmap slice: `Phase 1b / PR 1b.1 — Extract @nmc/memory-scripts`
+- next roadmap slice: `Phase 1b / PR 1b.2 — Extract @nmc/memory-workspace Utilities`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -62,7 +62,8 @@ Phase 0 is complete:
 - `PR 1.1b` extracted `@nmc/memory-ingest` as the source and provenance boundary on top of `@nmc/memory-contracts`
 - `PR 1.2` extracted `@nmc/memory-canon` as the shared canon boundary for layout, manifest, graph, lock, promoter, and verify-time validation logic
 - `PR 1.3` extracted `@nmc/memory-maintainer` as the shared task, policy, script-contract, and operational execution boundary around `system/`
-- Phase 1b should continue with `PR 1b.1` and keep scripts extraction focused on deterministic helper entrypoints and compatibility shims
+- `PR 1b.1` extracted `@nmc/memory-scripts` as the package boundary for deterministic helper scripts while preserving plugin-local entrypoints through compatibility wrappers
+- Phase 1b should continue with `PR 1b.2` and keep workspace utility extraction focused on generic setup helpers and byte-for-byte compatible setup output
 
 ## Commit Convention
 
