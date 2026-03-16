@@ -16,6 +16,7 @@ INGEST_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-ingest/test/validate-fixtur
 CANON_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-canon/test/validate-fixtures.js"
 MAINTAINER_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-maintainer/test/validate-fixtures.js"
 SCRIPTS_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-scripts/test/validate-fixtures.js"
+WORKSPACE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-workspace/test/validate-fixtures.js"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -393,6 +394,29 @@ test_shared_scripts_package_fixture_validation() {
     pass "shared scripts fixture validation"
   else
     fail "shared scripts fixture validation" "Fixture validation output did not confirm scripts package execution"
+  fi
+}
+
+test_shared_workspace_package_fixture_validation() {
+  print_case "TEST" "@nmc/memory-workspace validates setup utility fixtures"
+
+  if ! require_file "$WORKSPACE_FIXTURE_TEST" "shared workspace package fixture test"; then
+    return
+  fi
+
+  cleanup
+  TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-workspace-test.XXXXXX")"
+  run_and_capture node "$WORKSPACE_FIXTURE_TEST"
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "shared workspace fixture validation" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if grep -q "@nmc/memory-workspace" "$LAST_STDOUT"; then
+    pass "shared workspace fixture validation"
+  else
+    fail "shared workspace fixture validation" "Fixture validation output did not confirm workspace package execution"
   fi
 }
 
@@ -793,6 +817,7 @@ main() {
   test_shared_canon_package_fixture_validation
   test_shared_maintainer_package_fixture_validation
   test_shared_scripts_package_fixture_validation
+  test_shared_workspace_package_fixture_validation
   test_verify_contracts
   test_status_output_contract
   test_pipeline_dry_run_contract

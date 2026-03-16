@@ -2,5 +2,21 @@
   "name": "@nmc/memory-workspace",
   "version": "0.0.0",
   "private": true,
-  "description": "Workspace scaffolding, placement, and file-orchestration package placeholder."
+  "description": "Shared path, filesystem, and template-copy utilities for memory workspace setup.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./paths": "./lib/paths.js",
+    "./fs-helpers": "./lib/fs-helpers.js",
+    "./templates": "./lib/templates.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  }
 }

@@ -174,8 +174,49 @@ const CANON_EXTRA_PATHS = [
   "core/agents/**/*.md",
 ];
 
-function utcDate() {
-  return new Date().toISOString().slice(0, 10);
+let cachedMemoryWorkspace = null;
+
+function loadMemoryWorkspace() {
+  if (cachedMemoryWorkspace) {
+    return cachedMemoryWorkspace;
+  }
+
+  try {
+    cachedMemoryWorkspace = require("@nmc/memory-workspace");
+    return cachedMemoryWorkspace;
+  } catch (error) {
+    if (
+      error.code !== "MODULE_NOT_FOUND" ||
+      !String(error.message || "").includes("@nmc/memory-workspace")
+    ) {
+      throw error;
+    }
+
+    // Workspace tests run directly from source without a workspace install step.
+    cachedMemoryWorkspace = require("../../packages/memory-workspace");
+    return cachedMemoryWorkspace;
+  }
+}
+
+function ensureDir(dirPath) {
+  return loadMemoryWorkspace().ensureDir(dirPath);
+}
+
+function writeFileIfNeeded(filePath, content, overwrite) {
+  return loadMemoryWorkspace().writeFileIfNeeded(filePath, content, overwrite);
+}
+
+function ensureSymlink(linkPath, targetPath, overwrite) {
+  return loadMemoryWorkspace().ensureSymlink(linkPath, targetPath, overwrite);
+}
+
+function copyTemplateTree(templateRoot, targetRoot, overwrite, installDate) {
+  return loadMemoryWorkspace().copyTemplateTree(
+    templateRoot,
+    targetRoot,
+    overwrite,
+    installDate,
+  );
 }
 
 function expandHome(inputPath) {
@@ -183,128 +224,23 @@ function expandHome(inputPath) {
     return inputPath;
   }
 
-  if (inputPath === "~") {
-    return os.homedir();
-  }
-
-  if (inputPath.startsWith("~/")) {
-    return path.join(os.homedir(), inputPath.slice(2));
-  }
-
-  return inputPath;
+  return loadMemoryWorkspace().expandHome(inputPath);
 }
 
 function toConfigPath(inputPath) {
-  const home = os.homedir();
-  const absolutePath = path.resolve(inputPath);
-
-  if (absolutePath === home) {
-    return "~";
-  }
-
-  if (absolutePath.startsWith(home + path.sep)) {
-    return "~/" + path.relative(home, absolutePath);
-  }
-
-  return absolutePath;
-}
-
-function ensureDir(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true });
+  return loadMemoryWorkspace().toConfigPath(inputPath);
 }
 
 function toPosixPath(inputPath) {
-  return inputPath.split(path.sep).join("/");
+  return loadMemoryWorkspace().toPosixPath(inputPath);
 }
 
-function writeFileIfNeeded(filePath, content, overwrite) {
-  if (!overwrite && fs.existsSync(filePath)) {
-    return false;
-  }
-
-  ensureDir(path.dirname(filePath));
-  fs.writeFileSync(filePath, content, "utf8");
-  return true;
+function relativeWorkspacePath(baseDir, targetPath) {
+  return loadMemoryWorkspace().relativeWorkspacePath(baseDir, targetPath);
 }
 
-function ensureSymlink(linkPath, targetPath, overwrite) {
-  const relativeTarget = path.relative(path.dirname(linkPath), targetPath) || ".";
-
-  try {
-    const stats = fs.lstatSync(linkPath);
-    if (stats.isSymbolicLink() && fs.readlinkSync(linkPath) === relativeTarget) {
-      return false;
-    }
-
-    if (!overwrite) {
-      return false;
-    }
-
-    fs.rmSync(linkPath, { recursive: true, force: true });
-  } catch (_error) {
-    // Path does not exist yet; continue.
-  }
-
-  ensureDir(path.dirname(linkPath));
-  fs.symlinkSync(relativeTarget, linkPath, "dir");
-  return true;
-}
-
-function listFilesRecursive(rootDir) {
-  const entries = fs.readdirSync(rootDir, { withFileTypes: true });
-  const results = [];
-
-  for (const entry of entries) {
-    const entryPath = path.join(rootDir, entry.name);
-
-    if (entry.isDirectory()) {
-      results.push(...listFilesRecursive(entryPath));
-      continue;
-    }
-
-    results.push(entryPath);
-  }
-
-  return results;
-}
-
-function replaceTemplatePlaceholders(content, installDate) {
-  return content
-    .replaceAll("{{INSTALL_DATE}}", installDate)
-    .replaceAll('"INSTALL_DATE"', `"${installDate}"`);
-}
-
-function copyTemplateTree(templateRoot, targetRoot, overwrite, installDate) {
-  const files = listFilesRecursive(templateRoot);
-  const created = [];
-
-  for (const sourcePath of files) {
-    const relativePath = path.relative(templateRoot, sourcePath);
-    const targetPath = path.join(targetRoot, relativePath);
-    const sourceBuffer = fs.readFileSync(sourcePath);
-    const isText =
-      relativePath.endsWith(".md") ||
-      relativePath.endsWith(".json") ||
-      relativePath.endsWith(".jsonl") ||
-      relativePath.endsWith(".js") ||
-      relativePath.endsWith(".mjs") ||
-      relativePath.endsWith(".sh") ||
-      path.basename(relativePath).startsWith(".");
-    const content = isText
-      ? replaceTemplatePlaceholders(sourceBuffer.toString("utf8"), installDate)
-      : sourceBuffer;
-
-    if (!overwrite && fs.existsSync(targetPath)) {
-      continue;
-    }
-
-    ensureDir(path.dirname(targetPath));
-    fs.writeFileSync(targetPath, content);
-    fs.chmodSync(targetPath, fs.statSync(sourcePath).mode);
-    created.push(targetPath);
-  }
-
-  return created;
+function utcDate() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function copyMemoryTemplate(pluginRoot, memoryRoot, overwrite, installDate) {
@@ -323,11 +259,6 @@ function copySystemTemplate(pluginRoot, systemRoot, overwrite, installDate) {
     overwrite,
     installDate,
   );
-}
-
-function relativeWorkspacePath(baseDir, targetPath) {
-  const relativePath = path.relative(baseDir, targetPath) || ".";
-  return toPosixPath(relativePath);
 }
 
 function renderBulletList(items) {

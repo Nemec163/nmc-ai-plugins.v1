@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 1b / PR 1b.1 — Extract @nmc/memory-scripts`
-- next: `Phase 1b / PR 1b.2 — Extract @nmc/memory-workspace Utilities`
+- completed: `Phase 1b / PR 1b.2 — Extract @nmc/memory-workspace Utilities`
+- next: `Phase 1b / PR 1b.3 — Extract @nmc/memory-agents`
 - last verified on: `2026-03-17`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -718,6 +718,19 @@ Rollback:
 
 #### PR 1b.2: Extract `@nmc/memory-workspace` Utilities
 
+Status: done on `2026-03-17`
+
+Implementation note:
+
+- replaced the placeholder `@nmc/memory-workspace` package with shared path, filesystem, and template-copy helpers extracted from `openclaw-setup.js`
+- kept agent rendering, workspace scaffolding ownership, and OpenClaw config orchestration in `nmc-memory-plugin/lib/openclaw-setup.js`
+- updated `openclaw-setup.js` to consume extracted helpers from `@nmc/memory-workspace` while keeping a source-tree fallback for direct repo execution and lazy loading for no-op runtime bootstrap paths
+- added a fixture-backed workspace utility proof test and wired it into `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `node packages/memory-workspace/test/validate-fixtures.js`
+- verified with `node --check nmc-memory-plugin/lib/openclaw-setup.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
+
 Pull out generic functions from `nmc-memory-plugin/lib/openclaw-setup.js`, including:
 
 - directory creation
@@ -1397,10 +1410,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 1b, PR 1b.2:
+The next implementation step should be Phase 1b, PR 1b.3:
 
-- extract `@nmc/memory-workspace` utilities from `nmc-memory-plugin/lib/openclaw-setup.js`
-- keep setup output byte-for-byte compatible where expected while moving generic file-system helpers behind the package boundary
-- keep this slice focused on reusable setup utilities, not higher-level scaffolding moves or adapter behavior changes
+- extract `@nmc/memory-agents` for predefined roster definitions, machine-readable role manifests, role text generation, and agent-file rendering helpers
+- keep generated agent slices byte-for-byte compatible with current fixtures and keep OpenClaw setup producing the same role workspaces
+- keep this slice focused on role definitions and rendering helpers, not workspace scaffolding ownership or adapter runtime changes
 
-PR 1b.1 is now complete, so the next risk is subtle path normalization or copy/render drift while extracting generic setup helpers. Keep PR 1b.2 focused on reusable utility functions, not scaffolding ownership or OpenClaw config behavior changes.
+PR 1b.2 is now complete, so the next risk is drifting generated agent content or baking engine-specific assumptions into the extracted role registry. Keep PR 1b.3 focused on agent definitions and rendering, not scaffold placement or setup/config mutation behavior.
