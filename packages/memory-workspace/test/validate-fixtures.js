@@ -6,13 +6,18 @@ const os = require('node:os');
 const path = require('node:path');
 
 const {
+  copyMemoryTemplate,
+  copySystemTemplate,
   copyTemplateTree,
+  createSharedSkillsWorkspace,
   ensureDir,
+  ensureAgentState,
   ensureSymlink,
   expandHome,
   listFilesRecursive,
   relativeWorkspacePath,
   replaceTemplatePlaceholders,
+  scaffoldAgentWorkspace,
   toConfigPath,
   toPosixPath,
   writeFileIfNeeded,
@@ -83,6 +88,111 @@ function main() {
     );
     assert.equal(fs.statSync(path.join(outputRoot, 'scripts', 'run.sh')).mode & 0o777, 0o755);
     assert.equal(copyTemplateTree(templateRoot, outputRoot, false, '2026-03-18').length, 0);
+
+    const memoryTemplateRoot = path.join(tempRoot, 'memory-template');
+    const memoryTargetRoot = path.join(tempRoot, 'memory-output');
+    const memoryReadme = path.join(memoryTemplateRoot, 'core', 'README.md');
+    ensureDir(path.dirname(memoryReadme));
+    fs.writeFileSync(memoryReadme, 'Installed {{INSTALL_DATE}}\n');
+
+    const memoryCreated = copyMemoryTemplate(
+      memoryTemplateRoot,
+      memoryTargetRoot,
+      false,
+      '2026-03-17'
+    ).map((entry) => path.relative(memoryTargetRoot, entry));
+    assert.deepEqual(memoryCreated, ['core/README.md']);
+    assert.equal(
+      fs.readFileSync(path.join(memoryTargetRoot, 'core', 'README.md'), 'utf8'),
+      'Installed 2026-03-17\n'
+    );
+    assert.equal(copyMemoryTemplate(memoryTemplateRoot, memoryTargetRoot, false, '2026-03-18').length, 0);
+
+    const systemTemplateRoot = path.join(tempRoot, 'system-template');
+    const systemTargetRoot = path.join(tempRoot, 'system-output');
+    const systemConfig = path.join(systemTemplateRoot, 'tasks', 'active', '.kanban.json');
+    ensureDir(path.dirname(systemConfig));
+    fs.writeFileSync(systemConfig, '{\"installed\":\"INSTALL_DATE\"}\n');
+
+    const systemCreated = copySystemTemplate(
+      systemTemplateRoot,
+      systemTargetRoot,
+      false,
+      '2026-03-17'
+    ).map((entry) => path.relative(systemTargetRoot, entry));
+    assert.deepEqual(systemCreated, ['tasks/active/.kanban.json']);
+    assert.equal(
+      fs.readFileSync(path.join(systemTargetRoot, 'tasks', 'active', '.kanban.json'), 'utf8'),
+      '{"installed":"2026-03-17"}\n'
+    );
+    assert.equal(copySystemTemplate(systemTemplateRoot, systemTargetRoot, false, '2026-03-18').length, 0);
+
+    const skillsSourceRoot = path.join(tempRoot, 'plugin-skills');
+    const sharedSkillsRoot = path.join(tempRoot, 'workspace', 'system', 'skills');
+    ensureDir(path.join(skillsSourceRoot, 'memory-query'));
+    ensureDir(path.join(skillsSourceRoot, 'memory-status'));
+    fs.writeFileSync(path.join(skillsSourceRoot, 'README.txt'), 'skip me\n');
+
+    const sharedSkills = createSharedSkillsWorkspace(skillsSourceRoot, sharedSkillsRoot, false);
+    assert.equal(sharedSkills.root, sharedSkillsRoot);
+    assert.deepEqual(
+      sharedSkills.created.map((entry) => path.relative(sharedSkillsRoot, entry)).sort(),
+      ['memory-query', 'memory-status']
+    );
+    assert.equal(fs.lstatSync(path.join(sharedSkillsRoot, 'memory-query')).isSymbolicLink(), true);
+    assert.equal(
+      fs.readlinkSync(path.join(sharedSkillsRoot, 'memory-query')),
+      path.relative(path.join(sharedSkillsRoot), path.join(skillsSourceRoot, 'memory-query'))
+    );
+    assert.equal(createSharedSkillsWorkspace(skillsSourceRoot, sharedSkillsRoot, false).created.length, 0);
+
+    const workspaceDir = path.join(tempRoot, 'workspace', 'nyx');
+    const systemRoot = path.join(tempRoot, 'workspace', 'system');
+    ensureDir(systemRoot);
+    const scaffoldedAgent = scaffoldAgentWorkspace({
+      agentId: 'nyx',
+      workspaceDir,
+      files: {
+        'AGENTS.md': '# Nyx\n',
+        'memory/2026-03-17.md': 'log\n',
+      },
+      sharedSkillsRoot,
+      systemRoot,
+      overwrite: false,
+    });
+    assert.equal(scaffoldedAgent.id, 'nyx');
+    assert.equal(scaffoldedAgent.workspaceDir, workspaceDir);
+    assert.deepEqual(
+      scaffoldedAgent.created.map((entry) => path.relative(workspaceDir, entry)).sort(),
+      ['AGENTS.md', 'memory/2026-03-17.md', 'skills', 'system']
+    );
+    assert.equal(fs.readFileSync(path.join(workspaceDir, 'AGENTS.md'), 'utf8'), '# Nyx\n');
+    assert.equal(fs.lstatSync(path.join(workspaceDir, 'skills')).isSymbolicLink(), true);
+    assert.equal(fs.lstatSync(path.join(workspaceDir, 'system')).isSymbolicLink(), true);
+    assert.equal(scaffoldAgentWorkspace({
+      agentId: 'nyx',
+      workspaceDir,
+      files: {
+        'AGENTS.md': 'changed\n',
+        'memory/2026-03-17.md': 'changed\n',
+      },
+      sharedSkillsRoot,
+      systemRoot,
+      overwrite: false,
+    }).created.length, 0);
+    assert.equal(fs.readFileSync(path.join(workspaceDir, 'AGENTS.md'), 'utf8'), '# Nyx\n');
+
+    const stateDir = path.join(tempRoot, 'state');
+    const agentState = ensureAgentState('nyx', stateDir);
+    assert.equal(agentState.id, 'nyx');
+    assert.equal(agentState.root, path.join(stateDir, 'agents', 'nyx'));
+    assert.deepEqual(
+      agentState.created.map((entry) => path.relative(stateDir, entry)).sort(),
+      ['agents/nyx/agent', 'agents/nyx/sessions']
+    );
+    assert.equal(fs.existsSync(path.join(stateDir, 'agents', 'nyx', 'agent')), true);
+    assert.equal(fs.existsSync(path.join(stateDir, 'agents', 'nyx', 'sessions')), true);
+    assert.equal(ensureAgentState('nyx', stateDir).created.length, 0);
 
     assert.equal(
       replaceTemplatePlaceholders('A {{INSTALL_DATE}} B "INSTALL_DATE"', '2026-03-17'),

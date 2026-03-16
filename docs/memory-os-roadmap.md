@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 1b / PR 1b.3 — Extract @nmc/memory-agents`
-- next: `Phase 1b / PR 1b.4 — Extract @nmc/memory-workspace Scaffolding`
+- completed: `Phase 1b / PR 1b.4 — Extract @nmc/memory-workspace Scaffolding`
+- next: `Phase 1b / PR 1b.5 — Extract @nmc/memory-pipeline`
 - last verified on: `2026-03-17`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -797,6 +797,24 @@ Rollback:
 
 #### PR 1b.4: Extract `@nmc/memory-workspace` Scaffolding
 
+Status: done on `2026-03-17`
+
+Implementation note:
+
+- extended `@nmc/memory-workspace` with package-owned scaffold orchestration for memory template copy, system template copy, shared skill workspace wiring, agent workspace materialization, and agent state directory setup
+- kept `@nmc/memory-workspace` independent from `@nmc/memory-agents` by moving only placement into the workspace package while leaving role rendering in `@nmc/memory-agents`
+- updated `nmc-memory-plugin/lib/openclaw-setup.js` to orchestrate rendered agent files through the extracted workspace scaffold API while keeping OpenClaw config mutation and adapter-specific setup semantics plugin-local
+- expanded the workspace package proof test to cover scaffold helpers, symlink creation, placeholder replacement, and idempotence
+- verified with `node --check packages/memory-workspace/lib/scaffold.js`
+- verified with `node --check packages/memory-workspace/index.js`
+- verified with `node --check packages/memory-workspace/test/validate-fixtures.js`
+- verified with `node --check nmc-memory-plugin/lib/openclaw-setup.js`
+- verified with `node packages/memory-workspace/test/validate-fixtures.js`
+- verified with `node packages/memory-agents/test/validate-fixtures.js`
+- verified with `node nmc-memory-plugin/scripts/setup-openclaw.js --state-dir <tmp> smoke`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
+
 Move higher-level scaffold operations:
 
 - memory template copy
@@ -1430,10 +1448,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 1b, PR 1b.4:
+The next implementation step should be Phase 1b, PR 1b.5:
 
-- extract higher-level `@nmc/memory-workspace` scaffolding operations for memory template copy, system template copy, shared skill workspace wiring, and agent workspace scaffold
-- keep `openclaw nmc-memory setup` producing the same `system/` layout, symlinks, and agent workspace structure
-- keep OpenClaw config mutation behavior in plugin-local adapter code while untangling scaffold orchestration ownership from `openclaw-setup.js`
+- extract `@nmc/memory-pipeline` for engine-agnostic sequencing of `extract`, `curate`, `apply`, and `verify`
+- keep `pipeline.sh` behavior, dry-run semantics, and failure handling unchanged while moving sequencing ownership out of adapter-local shell logic
+- preserve the existing integration script as the primary regression gate while untangling phase orchestration from plugin-local entrypoints
 
-PR 1b.3 is now complete, so the next risk is hidden coupling between scaffold generation and adapter-specific config updates. Keep PR 1b.4 focused on scaffold orchestration ownership and preserve current layout and symlink behavior without changing `openclaw.json` semantics.
+PR 1b.4 is now complete, so the next risk is over-abstracting pipeline sequencing before a second adapter exists. Keep PR 1b.5 focused on engine-agnostic sequencing contracts while preserving current shell behavior and regression coverage.

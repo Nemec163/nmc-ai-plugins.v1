@@ -66,23 +66,6 @@ function ensureDir(dirPath) {
   return loadMemoryWorkspace().ensureDir(dirPath);
 }
 
-function writeFileIfNeeded(filePath, content, overwrite) {
-  return loadMemoryWorkspace().writeFileIfNeeded(filePath, content, overwrite);
-}
-
-function ensureSymlink(linkPath, targetPath, overwrite) {
-  return loadMemoryWorkspace().ensureSymlink(linkPath, targetPath, overwrite);
-}
-
-function copyTemplateTree(templateRoot, targetRoot, overwrite, installDate) {
-  return loadMemoryWorkspace().copyTemplateTree(
-    templateRoot,
-    targetRoot,
-    overwrite,
-    installDate,
-  );
-}
-
 function expandHome(inputPath) {
   if (!inputPath) {
     return inputPath;
@@ -105,70 +88,6 @@ function relativeWorkspacePath(baseDir, targetPath) {
 
 function utcDate() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function copyMemoryTemplate(pluginRoot, memoryRoot, overwrite, installDate) {
-  return copyTemplateTree(
-    path.join(pluginRoot, "templates", "workspace-memory"),
-    memoryRoot,
-    overwrite,
-    installDate,
-  );
-}
-
-function copySystemTemplate(pluginRoot, systemRoot, overwrite, installDate) {
-  return copyTemplateTree(
-    path.join(pluginRoot, "templates", "workspace-system"),
-    systemRoot,
-    overwrite,
-    installDate,
-  );
-}
-
-function createSharedSkillsWorkspace(pluginRoot, workspaceRoot, overwrite) {
-  const pluginSkillsRoot = path.join(pluginRoot, "skills");
-  const workspaceSkillsRoot = workspaceRoot;
-  const created = [];
-
-  ensureDir(workspaceSkillsRoot);
-
-  for (const skillName of fs.readdirSync(pluginSkillsRoot)) {
-    const sourcePath = path.join(pluginSkillsRoot, skillName);
-    const targetPath = path.join(workspaceSkillsRoot, skillName);
-
-    if (!fs.statSync(sourcePath).isDirectory()) {
-      continue;
-    }
-
-    if (ensureSymlink(targetPath, sourcePath, overwrite)) {
-      created.push(targetPath);
-    }
-  }
-
-  return {
-    root: workspaceSkillsRoot,
-    created,
-  };
-}
-
-function ensureAgentState(agent, stateDir) {
-  const agentRoot = path.join(stateDir, "agents", agent.id);
-  const created = [];
-
-  for (const relativeDir of ["agent", "sessions"]) {
-    const dirPath = path.join(agentRoot, relativeDir);
-    if (fs.existsSync(dirPath)) {
-      continue;
-    }
-    ensureDir(dirPath);
-    created.push(dirPath);
-  }
-
-  return {
-    id: agent.id,
-    root: agentRoot,
-    created,
-  };
 }
 
 function stripJsonComments(input) {
@@ -531,52 +450,6 @@ function updateConfig(options) {
   };
 }
 
-function scaffoldAgentWorkspace(
-  agent,
-  workspaceRoot,
-  memoryRoot,
-  systemRoot,
-  sharedSkillsRoot,
-  overwrite,
-  installDate,
-) {
-  const workspaceDir = path.join(workspaceRoot, agent.id);
-  const memoryPath = relativeWorkspacePath(workspaceDir, memoryRoot);
-  const systemPath = relativeWorkspacePath(workspaceDir, systemRoot);
-  const files = loadMemoryAgents().agentWorkspaceFiles(
-    agent,
-    installDate,
-    memoryPath,
-    systemPath,
-  );
-  const created = [];
-
-  ensureDir(workspaceDir);
-
-  for (const [relativePath, content] of Object.entries(files)) {
-    const targetPath = path.join(workspaceDir, relativePath);
-    if (writeFileIfNeeded(targetPath, content, overwrite)) {
-      created.push(targetPath);
-    }
-  }
-
-  const skillsPath = path.join(workspaceDir, "skills");
-  if (ensureSymlink(skillsPath, sharedSkillsRoot, overwrite)) {
-    created.push(skillsPath);
-  }
-
-  const systemLinkPath = path.join(workspaceDir, "system");
-  if (ensureSymlink(systemLinkPath, systemRoot, overwrite)) {
-    created.push(systemLinkPath);
-  }
-
-  return {
-    id: agent.id,
-    workspaceDir,
-    created,
-  };
-}
-
 function normalizeOptions(rawOptions = {}) {
   const stateDir = path.resolve(
     expandHome(rawOptions.stateDir || path.join(os.homedir(), ".openclaw")),
@@ -616,41 +489,52 @@ function setupOpenClaw(rawOptions = {}) {
     throw new Error("pluginRoot is required");
   }
 
+  const memoryAgents = loadMemoryAgents();
+  const memoryWorkspace = loadMemoryWorkspace();
   const options = normalizeOptions(rawOptions);
   ensureDir(options.stateDir);
   ensureDir(options.workspaceRoot);
   ensureDir(options.systemRoot);
 
-  const systemCreated = copySystemTemplate(
-    options.pluginRoot,
+  const systemCreated = memoryWorkspace.copySystemTemplate(
+    path.join(options.pluginRoot, "templates", "workspace-system"),
     options.systemRoot,
     options.overwrite,
     options.installDate,
   );
-  const memoryCreated = copyMemoryTemplate(
-    options.pluginRoot,
+  const memoryCreated = memoryWorkspace.copyMemoryTemplate(
+    path.join(options.pluginRoot, "templates", "workspace-memory"),
     options.memoryRoot,
     options.overwrite,
     options.installDate,
   );
-  const sharedSkills = createSharedSkillsWorkspace(
-    options.pluginRoot,
+  const sharedSkills = memoryWorkspace.createSharedSkillsWorkspace(
+    path.join(options.pluginRoot, "skills"),
     options.sharedSkillsRoot,
     options.overwrite,
   );
-  const agents = loadMemoryAgents().PREDEFINED_AGENTS.map((agent) =>
-    scaffoldAgentWorkspace(
+  const agents = memoryAgents.PREDEFINED_AGENTS.map((agent) => {
+    const workspaceDir = path.join(options.workspaceRoot, agent.id);
+    const memoryPath = relativeWorkspacePath(workspaceDir, options.memoryRoot);
+    const systemPath = relativeWorkspacePath(workspaceDir, options.systemRoot);
+    const files = memoryAgents.agentWorkspaceFiles(
       agent,
-      options.workspaceRoot,
-      options.memoryRoot,
-      options.systemRoot,
-      sharedSkills.root,
-      options.overwrite,
       options.installDate,
-    ),
-  );
-  const agentState = loadMemoryAgents().PREDEFINED_AGENTS.map((agent) =>
-    ensureAgentState(agent, options.stateDir),
+      memoryPath,
+      systemPath,
+    );
+
+    return memoryWorkspace.scaffoldAgentWorkspace({
+      agentId: agent.id,
+      workspaceDir,
+      files,
+      sharedSkillsRoot: sharedSkills.root,
+      systemRoot: options.systemRoot,
+      overwrite: options.overwrite,
+    });
+  });
+  const agentState = memoryAgents.PREDEFINED_AGENTS.map((agent) =>
+    memoryWorkspace.ensureAgentState(agent.id, options.stateDir),
   );
   const config = options.writeConfig ? updateConfig(options) : null;
 

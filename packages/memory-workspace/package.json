@@ -9,6 +9,7 @@
     ".": "./index.js",
     "./paths": "./lib/paths.js",
     "./fs-helpers": "./lib/fs-helpers.js",
+    "./scaffold": "./lib/scaffold.js",
     "./templates": "./lib/templates.js"
   },
   "files": [

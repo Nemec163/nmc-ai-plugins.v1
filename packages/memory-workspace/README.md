@@ -1,19 +1,20 @@
 # @nmc/memory-workspace
 
-Shared low-level workspace utilities extracted from OpenClaw setup code.
+Shared workspace utilities and scaffold orchestration extracted from OpenClaw setup code.
 
-This package intentionally contains only generic helpers:
+This package owns generic filesystem placement concerns:
 
 - path normalization (`expandHome`, `toConfigPath`, `toPosixPath`, `relativeWorkspacePath`)
 - filesystem helpers (`ensureDir`, `writeFileIfNeeded`, `ensureSymlink`, `listFilesRecursive`)
 - template helpers (`replaceTemplatePlaceholders`, `copyTemplateTree`)
+- scaffold helpers (`copyMemoryTemplate`, `copySystemTemplate`, `createSharedSkillsWorkspace`, `scaffoldAgentWorkspace`, `ensureAgentState`)
 
-No agent rendering, setup orchestration, or adapter-specific logic is included.
+Agent rendering stays in `@nmc/memory-agents`, and adapter-specific config mutation stays in plugin-local setup code.
 
 Example:
 
 ```js
-const { copyTemplateTree } = require("@nmc/memory-workspace");
+const { copyMemoryTemplate } = require("@nmc/memory-workspace");
 ```
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for migration sequencing.
