@@ -25,10 +25,14 @@ function loadAdapterConformance() {
 const { runAdapterConformanceSuite } = loadAdapterConformance();
 
 const {
+  INSTALL_SURFACES,
   PLUGIN_ID,
+  PLUGIN_NAME,
   completeOpenClawHandoff,
   createOpenClawPipelineAdapter,
+  createOpenClawPackageMetadata,
   createOpenClawPlugin,
+  createOpenClawPluginManifest,
   createOpenClawConformanceAdapter,
   createOpenClawOrchestrationAdapter,
   getBundledSkillsRoot,
@@ -41,8 +45,14 @@ const {
   setupOpenClaw,
 } = require("..");
 
+const ADAPTER_ROOT = path.resolve(__dirname, "..");
 const PLUGIN_ROOT = path.resolve(__dirname, "../../../nmc-memory-plugin");
 const ADAPTER_SKILLS_ROOT = getBundledSkillsRoot();
+const ADAPTER_MANIFEST_PATH = path.join(ADAPTER_ROOT, "openclaw.plugin.json");
+const ADAPTER_PACKAGE_FILE = path.join(ADAPTER_ROOT, "package.json");
+const ADAPTER_PLUGIN_ENTRY_PATH = path.join(ADAPTER_ROOT, "plugin.js");
+const PLUGIN_MANIFEST_PATH = path.join(PLUGIN_ROOT, "openclaw.plugin.json");
+const PLUGIN_PACKAGE_FILE = path.join(PLUGIN_ROOT, "package.json");
 const PLUGIN_SETUP_MODULE_PATH = path.join(PLUGIN_ROOT, "lib", "openclaw-setup.js");
 const PLUGIN_SETUP_SCRIPT_PATH = path.join(PLUGIN_ROOT, "scripts", "setup-openclaw.js");
 const SHIPPED_ADAPTER_SETUP_MODULE_PATH = path.join(
@@ -82,6 +92,10 @@ function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "adapter-openclaw-validate-"));
 }
 
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
 function main() {
   assert.deepEqual(
     listSkillNames(ADAPTER_SKILLS_ROOT),
@@ -113,16 +127,55 @@ function main() {
     }
   }
 
+  for (const templateRoot of ["workspace-memory", "workspace-system"]) {
+    const adapterTemplateRoot = path.join(ADAPTER_ROOT, "templates", templateRoot);
+    const pluginTemplateRoot = path.join(PLUGIN_ROOT, "templates", templateRoot);
+
+    assert.deepEqual(
+      listRelativeFiles(adapterTemplateRoot),
+      listRelativeFiles(pluginTemplateRoot),
+      `Expected ${templateRoot} file tree to match compatibility mirror`,
+    );
+
+    for (const relativeFile of listRelativeFiles(adapterTemplateRoot)) {
+      assert.equal(
+        fs.readFileSync(path.join(adapterTemplateRoot, relativeFile), "utf8"),
+        fs.readFileSync(path.join(pluginTemplateRoot, relativeFile), "utf8"),
+        `Expected ${templateRoot}/${relativeFile} to match compatibility mirror`,
+      );
+    }
+  }
+
+  assert.deepEqual(
+    readJson(ADAPTER_MANIFEST_PATH),
+    createOpenClawPluginManifest(INSTALL_SURFACES.ADAPTER),
+  );
+  assert.deepEqual(
+    readJson(PLUGIN_MANIFEST_PATH),
+    createOpenClawPluginManifest(INSTALL_SURFACES.COMPATIBILITY_SHELL),
+  );
+  assert.deepEqual(
+    readJson(ADAPTER_PACKAGE_FILE).openclaw,
+    createOpenClawPackageMetadata(INSTALL_SURFACES.ADAPTER),
+  );
+  assert.deepEqual(
+    readJson(PLUGIN_PACKAGE_FILE).openclaw,
+    createOpenClawPackageMetadata(INSTALL_SURFACES.COMPATIBILITY_SHELL),
+  );
+
   const plugin = createOpenClawPlugin({
     pluginId: PLUGIN_ID,
-    pluginName: "NMC Memory Plugin",
+    pluginName: PLUGIN_NAME,
     pluginRoot: PLUGIN_ROOT,
   });
+  const directPlugin = require(ADAPTER_PLUGIN_ENTRY_PATH);
   const pluginShell = require(PLUGIN_ROOT);
   const pluginSetupModule = require(PLUGIN_SETUP_MODULE_PATH);
   const shippedAdapterSetupModule = require(SHIPPED_ADAPTER_SETUP_MODULE_PATH);
   assert.equal(plugin.id, PLUGIN_ID);
-  assert.equal(plugin.name, "NMC Memory Plugin");
+  assert.equal(plugin.name, PLUGIN_NAME);
+  assert.equal(directPlugin.id, PLUGIN_ID);
+  assert.equal(directPlugin.name, PLUGIN_NAME);
   assert.equal(pluginShell.id, plugin.id);
   assert.equal(pluginShell.name, plugin.name);
   assert.deepEqual(
@@ -137,7 +190,7 @@ function main() {
   try {
     const stateDir = path.join(setupRoot, "state");
     const result = setupOpenClaw({
-      pluginRoot: PLUGIN_ROOT,
+      pluginRoot: ADAPTER_ROOT,
       stateDir,
     });
     const sharedPipelinePath = path.join(
@@ -164,7 +217,7 @@ function main() {
     );
 
     const rerun = setupOpenClaw({
-      pluginRoot: PLUGIN_ROOT,
+      pluginRoot: ADAPTER_ROOT,
       stateDir,
     });
     assert.equal(rerun.config.changed, false);

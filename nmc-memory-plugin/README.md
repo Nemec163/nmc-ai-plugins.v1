@@ -6,8 +6,8 @@ Repository-level docs live in [../README.md](../README.md). Current setup and da
 
 The package is shipped in the current OpenClaw plugin format:
 
-- `openclaw.plugin.json` declares the plugin manifest and points live skill discovery at `packages/adapter-openclaw/skills`.
-- `package.json` exposes the runtime entrypoint through `openclaw.extensions`.
+- `openclaw.plugin.json` is the compatibility-shell mirror of the adapter-owned install manifest and points live skill discovery at `packages/adapter-openclaw/skills`.
+- `package.json` keeps the shell runtime entrypoint through a compatibility-shell `openclaw.extensions` mirror over the adapter-owned install surface.
 - `skills/*/SKILL.md` files remain packaged as compatibility wrappers for stable direct script paths.
 - `templates/workspace-memory/` and `templates/workspace-system/` stay bundled as package assets for manual scaffolding.
 
@@ -15,8 +15,9 @@ Release-boundary note:
 
 - `nmc-memory-plugin` is the compatibility shell for setup, auto-bootstrap, bundled skills, and the stable OpenClaw packaging surface.
 - `nmc-memory-plugin` remains the current production install/setup shell for the migration release; `packages/adapter-openclaw` is not a supported direct install target yet.
+- `packages/adapter-openclaw` now owns the OpenClaw install manifest surface and bundled scaffold templates; the shell keeps compatibility mirrors for the current production install path.
 - live skill discovery now resolves through `packages/adapter-openclaw/skills`, while `nmc-memory-plugin/skills` remains the compatibility wrapper surface for direct script paths.
-- the plugin shell entrypoints now delegate through thin wrappers over `packages/adapter-openclaw`; remaining direct-install blockers are tracked separately in release-qualification metadata and the migration plan.
+- the plugin shell entrypoints now delegate through thin wrappers over `packages/adapter-openclaw`; release qualification now tracks that the direct-install prerequisites are cleared even though the shell remains the current production default.
 - the supported Memory OS operator surface is bundled inside the shipped plugin at `packages/control-plane`; the deprecated `memory-os-gateway ops-snapshot` bridge is retired.
 - the shipped plugin mirror does not export the deprecated gateway ops SDK from `packages/memory-os-gateway` at the package level; installed-artifact automation should bind through the shell-owned `bin/`, `control-plane/`, and `memory-os-gateway/` wrappers.
 - the post-freeze cutover and repo-local bridge retirement sequence are tracked in [../docs/deliberate-migration-release-plan.md](../docs/deliberate-migration-release-plan.md).

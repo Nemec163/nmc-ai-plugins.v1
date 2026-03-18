@@ -10,14 +10,14 @@ The current post-freeze cutover and repo-local bridge retirement sequence live i
 
 The current repository ships one production plugin, `nmc-memory-plugin`, in the OpenClaw plugin format:
 
-- `openclaw.plugin.json` declares the manifest and config schema.
-- `package.json` exposes `./index.js` through `openclaw.extensions`.
+- `openclaw.plugin.json` is the compatibility-shell mirror of the adapter-owned install manifest and config schema.
+- `package.json` exposes `./index.js` through a compatibility-shell `openclaw.extensions` mirror over the adapter-owned install surface.
 - `index.js` registers the `nmc-memory setup` CLI and the runtime bootstrap service.
 - `packages/control-plane/` is bundled inside the shipped plugin as the supported read-only operator surface.
 - `templates/workspace-memory/` and `templates/workspace-system/` provide the managed scaffold.
 - `skills/` bundles the memory pipeline, maintenance scripts, and kanban operator.
 
-For the current migration release, `nmc-memory-plugin` remains the only supported production install/setup shell. `packages/adapter-openclaw` is an extracted internal adapter package, not a direct installation target.
+For the current migration release, `nmc-memory-plugin` remains the only supported production install/setup shell. `packages/adapter-openclaw` now owns the install manifest surface and bundled scaffold templates, but it remains an extracted internal adapter package rather than a supported direct installation target.
 
 The deprecated `memory-os-gateway ops-snapshot` bridge is retired and is not part of the supported operator contract.
 

@@ -5,10 +5,15 @@
   "description": "OpenClaw-specific adapter package over extracted Memory OS core modules.",
   "type": "commonjs",
   "main": "./index.js",
+  "openclaw": {
+    "extensions": ["./plugin.js"]
+  },
   "exports": {
     ".": "./index.js",
     "./conformance-adapter": "./lib/conformance-adapter.js",
+    "./install-surface": "./lib/install-surface.js",
     "./pipeline-adapter": "./lib/pipeline-adapter.js",
+    "./plugin": "./plugin.js",
     "./register": "./lib/register.js",
     "./runtime-orchestration": "./lib/runtime-orchestration.js",
     "./setup": "./lib/openclaw-setup.js",
@@ -17,7 +22,10 @@
   "files": [
     "index.js",
     "lib/",
+    "openclaw.plugin.json",
+    "plugin.js",
     "skills/",
+    "templates/",
     "README.md"
   ],
   "scripts": {

@@ -297,11 +297,11 @@ function main() {
     );
     assert.equal(
       snapshot.releaseQualification.retirementPrerequisites.cutoverReady,
-      false
+      true
     );
     assert.equal(
       snapshot.releaseQualification.retirementPrerequisites.pendingGateCount,
-      1
+      0
     );
     assert.deepEqual(
       snapshot.releaseQualification.retirementPrerequisites.gates.map((gate) => gate.id),
@@ -312,6 +312,10 @@ function main() {
         'shipped-artifact-layout',
         'regression-cutover-coverage',
       ]
+    );
+    assert.equal(
+      snapshot.releaseQualification.retirementPrerequisites.gates[0].status,
+      'cleared'
     );
     assert.equal(
       snapshot.releaseQualification.retirementPrerequisites.gates[1].status,

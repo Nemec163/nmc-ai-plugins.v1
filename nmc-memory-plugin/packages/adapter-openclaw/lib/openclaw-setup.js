@@ -4,8 +4,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const PLUGIN_ID = "nmc-memory-plugin";
-const PLUGIN_NAME = "NMC Memory Plugin";
+const { PLUGIN_ID, PLUGIN_NAME } = require("./install-surface");
 
 const DEFAULT_BINDINGS = [];
 const CANON_EXTRA_PATHS = [

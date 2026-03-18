@@ -1,0 +1,5 @@
+{
+  "gitFlow": "main",
+  "autonomy_default": "full",
+  "updated_at": "{{INSTALL_DATE}}T00:00:00Z"
+}

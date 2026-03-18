@@ -29,11 +29,17 @@ The orchestration context stays explicitly non-authoritative:
 The compatibility shell remains in `nmc-memory-plugin/`, which also stays the
 current production install/setup surface for OpenClaw during the migration
 release. This package stays internal/private for now: OpenClaw-specific logic
-and bundled skill assets should live here, while `nmc-memory-plugin/skills/`
-remains the compatibility discovery surface for live installs.
+and bundled install assets should live here. It now owns the OpenClaw install
+manifest surface under `openclaw.plugin.json`, `package.json#openclaw`,
+`plugin.js`, `skills/`, and `templates/`, while the compatibility shell keeps
+mirror copies for the current production install path. Live installs in the
+compatibility shell still discover bundled skills through
+`packages/adapter-openclaw/skills`, and `nmc-memory-plugin/skills/` remains the
+compatibility discovery surface for stable direct script paths.
 
 The shell entrypoints in `nmc-memory-plugin/` now collapse to thin wrappers over
-this package; remaining cutover work is about install ownership, skill
-discovery, and shipped path contracts rather than duplicated bootstrap logic.
+this package. The remaining work is a later deliberate policy cutover about
+when to retire `nmc-memory-plugin` as the production install shell, not a
+missing adapter-owned packaging surface.
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.

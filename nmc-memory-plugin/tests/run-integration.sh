@@ -8,6 +8,10 @@ WORKSPACE_FIXTURE="$FIXTURES_ROOT/workspace"
 MANIFEST_FILE="$PLUGIN_ROOT/openclaw.plugin.json"
 PACKAGE_FILE="$PLUGIN_ROOT/package.json"
 ENTRY_FILE="$PLUGIN_ROOT/index.js"
+ADAPTER_ROOT="$PLUGIN_ROOT/../packages/adapter-openclaw"
+ADAPTER_MANIFEST_FILE="$ADAPTER_ROOT/openclaw.plugin.json"
+ADAPTER_PACKAGE_FILE="$ADAPTER_ROOT/package.json"
+ADAPTER_PLUGIN_FILE="$ADAPTER_ROOT/plugin.js"
 VERIFY_SCRIPT="$PLUGIN_ROOT/skills/memory-verify/verify.sh"
 STATUS_SCRIPT="$PLUGIN_ROOT/skills/memory-status/status.sh"
 ONBOARD_SCRIPT="$PLUGIN_ROOT/skills/memory-onboard-agent/onboard.sh"
@@ -219,6 +223,9 @@ frontmatter_value() {
 
 run_and_capture() {
   local stdout_file stderr_file
+  if [ -z "$TEST_WORKDIR" ] || [ ! -d "$TEST_WORKDIR" ]; then
+    TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-integration.XXXXXX")"
+  fi
 
   stdout_file="$TEST_WORKDIR/stdout.txt"
   stderr_file="$TEST_WORKDIR/stderr.txt"
@@ -237,6 +244,9 @@ run_and_capture_in_dir() {
   shift
 
   local stdout_file stderr_file
+  if [ -z "$TEST_WORKDIR" ] || [ ! -d "$TEST_WORKDIR" ]; then
+    TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-integration.XXXXXX")"
+  fi
   stdout_file="$TEST_WORKDIR/stdout.txt"
   stderr_file="$TEST_WORKDIR/stderr.txt"
 
@@ -281,6 +291,26 @@ test_packaging_files() {
     return
   fi
 
+  if ! require_file "$ADAPTER_MANIFEST_FILE" "adapter install manifest file"; then
+    return
+  fi
+
+  if ! require_file "$ADAPTER_PACKAGE_FILE" "adapter package.json file"; then
+    return
+  fi
+
+  if ! require_file "$ADAPTER_PLUGIN_FILE" "adapter plugin entry file"; then
+    return
+  fi
+
+  if ! require_dir "$ADAPTER_ROOT/templates/workspace-memory" "adapter memory template root"; then
+    return
+  fi
+
+  if ! require_dir "$ADAPTER_ROOT/templates/workspace-system" "adapter system template root"; then
+    return
+  fi
+
   if [ "$(json_query "$MANIFEST_FILE" 'id')" = "nmc-memory-plugin" ] && \
      [ "$(json_query "$MANIFEST_FILE" 'configSchema.type')" = "object" ] && \
      [ "$(json_query "$MANIFEST_FILE" 'configSchema.properties.autoSetup.default')" = "true" ] && \
@@ -296,6 +326,56 @@ test_packaging_files() {
     pass "package.json OpenClaw entrypoints"
   else
     fail "package.json OpenClaw entrypoints" "Unexpected package.json contents: $(cat "$PACKAGE_FILE")"
+  fi
+
+  if [ "$(json_query "$ADAPTER_MANIFEST_FILE" 'skills.0')" = "./skills" ] && \
+     [ "$(json_query "$ADAPTER_PACKAGE_FILE" 'openclaw.extensions.0')" = "./plugin.js" ]; then
+    pass "adapter-owned install manifest surface is self-contained"
+  else
+    fail "adapter-owned install manifest surface is self-contained" "Unexpected adapter install metadata"
+    return
+  fi
+
+  run_and_capture "$NODE_BIN" - "$PLUGIN_ROOT" "$ADAPTER_ROOT" <<'EOF'
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const pluginRoot = process.argv[2];
+const adapterRoot = process.argv[3];
+const {
+  INSTALL_SURFACES,
+  createOpenClawPackageMetadata,
+  createOpenClawPluginManifest,
+} = require(path.join(adapterRoot));
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+assert.deepEqual(
+  readJson(path.join(adapterRoot, "openclaw.plugin.json")),
+  createOpenClawPluginManifest(INSTALL_SURFACES.ADAPTER),
+);
+assert.deepEqual(
+  readJson(path.join(pluginRoot, "openclaw.plugin.json")),
+  createOpenClawPluginManifest(INSTALL_SURFACES.COMPATIBILITY_SHELL),
+);
+assert.deepEqual(
+  readJson(path.join(adapterRoot, "package.json")).openclaw,
+  createOpenClawPackageMetadata(INSTALL_SURFACES.ADAPTER),
+);
+assert.deepEqual(
+  readJson(path.join(pluginRoot, "package.json")).openclaw,
+  createOpenClawPackageMetadata(INSTALL_SURFACES.COMPATIBILITY_SHELL),
+);
+EOF
+
+  if [ "$LAST_EXIT_CODE" -eq 0 ]; then
+    pass "shell and adapter install metadata stay aligned with adapter-owned source of truth"
+  else
+    fail "shell and adapter install metadata stay aligned with adapter-owned source of truth" "Expected install metadata to match packages/adapter-openclaw/lib/install-surface.js"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
   fi
 }
 
@@ -379,7 +459,9 @@ test_packaged_artifact_install_smoke() {
   local config_path package_name packaged_root packaged_setup packaged_onboard
   local packaged_pipeline packaged_memory_root packaged_control_plane_cli
   local packaged_gateway_cli packaged_gateway_root packaged_probe_root
-  local packaged_manifest packaged_discovery_root
+  local packaged_manifest packaged_discovery_root packaged_adapter_manifest
+  local packaged_adapter_package packaged_adapter_plugin
+  local packaged_adapter_memory_template packaged_adapter_system_template
   local packaged_programmatic_control_plane packaged_programmatic_gateway
 
   print_case "TEST" "packed nmc-memory-plugin artifact stays self-contained after extract"
@@ -422,6 +504,11 @@ test_packaged_artifact_install_smoke() {
   packaged_onboard="$packaged_root/skills/memory-onboard-agent/onboard.sh"
   packaged_pipeline="$packaged_root/skills/memory-pipeline/pipeline.sh"
   packaged_adapter_root="$packaged_root/packages/adapter-openclaw"
+  packaged_adapter_manifest="$packaged_adapter_root/openclaw.plugin.json"
+  packaged_adapter_package="$packaged_adapter_root/package.json"
+  packaged_adapter_plugin="$packaged_adapter_root/plugin.js"
+  packaged_adapter_memory_template="$packaged_adapter_root/templates/workspace-memory"
+  packaged_adapter_system_template="$packaged_adapter_root/templates/workspace-system"
   packaged_discovery_root="$packaged_adapter_root/skills"
   packaged_gateway_root="$packaged_root/packages/memory-os-gateway"
   packaged_programmatic_control_plane="$packaged_root/control-plane"
@@ -430,6 +517,10 @@ test_packaged_artifact_install_smoke() {
 
   if [ -d "$packaged_root/packages/adapter-openclaw" ] && \
      [ -d "$packaged_discovery_root" ] && \
+     [ -f "$packaged_adapter_manifest" ] && \
+     [ -f "$packaged_adapter_plugin" ] && \
+     [ -d "$packaged_adapter_memory_template" ] && \
+     [ -d "$packaged_adapter_system_template" ] && \
      [ -d "$packaged_root/packages/memory-os-gateway" ] && \
      [ -d "$packaged_root/packages/control-plane" ] && \
      [ -d "$packaged_root/packages/memory-maintainer" ] && \
@@ -442,6 +533,14 @@ test_packaged_artifact_install_smoke() {
     pass "packed artifact bundles shell-owned operator and gateway wrappers"
   else
     fail "packed artifact bundles shell-owned operator and gateway wrappers" "Expected bundled wrapper surface under $packaged_root"
+    return
+  fi
+
+  if [ "$(json_query "$packaged_adapter_manifest" 'skills.0')" = "./skills" ] && \
+     [ "$(json_query "$packaged_adapter_package" 'openclaw.extensions.0')" = "./plugin.js" ]; then
+    pass "packed artifact bundles adapter-owned install manifest surface"
+  else
+    fail "packed artifact bundles adapter-owned install manifest surface" "Expected packaged adapter install metadata under $packaged_adapter_root"
     return
   fi
 
@@ -505,8 +604,10 @@ test_packaged_artifact_install_smoke() {
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.qualified")" = "true" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.productionStatus")" = "current-production-install-shell" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.directAdapterInstall")" = "not-supported" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.cutoverReady")" = "false" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.pendingGateCount")" = "1" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.cutoverReady")" = "true" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.pendingGateCount")" = "0" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.0.id")" = "install-manifest-surface" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.0.status")" = "cleared" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.id")" = "wrapper-convergence" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.status")" = "cleared" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.2.id")" = "skill-discovery-surface" ] && \
@@ -1092,24 +1193,26 @@ test_adapter_direct_surface_smoke() {
 
   print_case "TEST" "adapter-openclaw synthetic direct surface bootstraps without compatibility-shell wrappers"
 
-  mkdir -p "$direct_root/templates"
-  cp -R "$PLUGIN_ROOT/templates/workspace-system" "$direct_root/templates/workspace-system"
-  cp -R "$PLUGIN_ROOT/templates/workspace-memory" "$direct_root/templates/workspace-memory"
-
   run_and_capture "$NODE_BIN" - "$direct_root" "$state_dir" "$workspace_root" "$config_path" <<'EOF'
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const path = require("path");
-const { createOpenClawPlugin } = require(path.resolve("packages/adapter-openclaw"));
 
-const pluginRoot = process.argv[2];
+const pluginRoot = path.resolve("packages/adapter-openclaw");
 const stateDir = process.argv[3];
 const workspaceRoot = process.argv[4];
 const configPath = process.argv[5];
+const plugin = require(path.join(pluginRoot, "plugin.js"));
+const packageManifest = JSON.parse(
+  fs.readFileSync(path.join(pluginRoot, "package.json"), "utf8"),
+);
+const pluginManifest = JSON.parse(
+  fs.readFileSync(path.join(pluginRoot, "openclaw.plugin.json"), "utf8"),
+);
 
-const plugin = createOpenClawPlugin({
-  pluginId: "nmc-memory-plugin",
-  pluginName: "NMC Memory Plugin",
-  pluginRoot,
-});
+assert.deepEqual(packageManifest.openclaw.extensions, ["./plugin.js"]);
+assert.deepEqual(pluginManifest.skills, ["./skills"]);
+
 const services = [];
 
 plugin.register({

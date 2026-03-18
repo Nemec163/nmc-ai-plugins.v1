@@ -5,10 +5,12 @@
 
 ## Progress Snapshot
 
-- completed: `compatibility-shell regression cutover coverage — move regression coverage off plugin-shell packaging assumptions`
-- next: `compatibility-shell install manifest surface convergence — move OpenClaw install manifest ownership off nmc-memory-plugin`
+- completed: `compatibility-shell install manifest surface convergence — move OpenClaw install manifest ownership off nmc-memory-plugin`
+- next: `deliberate direct-install cutover decision — decide when to retire nmc-memory-plugin as the production install/setup shell now that the retirement prerequisites are cleared`
 - last verified on: `2026-03-19`
 - verified in this slice:
+  - `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node nmc-memory-plugin/packages/adapter-openclaw/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node nmc-memory-plugin/packages/control-plane/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -1769,6 +1771,32 @@ Rollback:
 
 - drop the synthetic direct-surface smoke temporarily if it proves too brittle, while keeping the compatibility-shell baseline intact and leaving `regression-cutover-coverage` pending until a narrower replacement lands
 
+### compatibility-shell install manifest surface convergence: move OpenClaw install manifest ownership off nmc-memory-plugin
+
+Do this only after `compatibility-shell regression cutover coverage` has proven a synthetic direct adapter surface and the last remaining blocker is the install manifest itself.
+
+Implemented in this slice:
+
+- added adapter-owned install manifest assets under [packages/adapter-openclaw/openclaw.plugin.json](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/openclaw.plugin.json), [packages/adapter-openclaw/plugin.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/plugin.js), [packages/adapter-openclaw/lib/install-surface.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/lib/install-surface.js), and adapter `package.json#openclaw`, and mirrored that owned surface into the shipped copy under [nmc-memory-plugin/packages/adapter-openclaw/](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/adapter-openclaw)
+- bundled adapter-owned scaffold templates under [packages/adapter-openclaw/templates/](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/templates) and [nmc-memory-plugin/packages/adapter-openclaw/templates/](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/adapter-openclaw/templates) so `pluginRoot` can resolve a self-contained direct adapter install surface without borrowing `nmc-memory-plugin/templates`
+- extended [packages/adapter-openclaw/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/test/validate-fixtures.js), [nmc-memory-plugin/packages/adapter-openclaw/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/adapter-openclaw/test/validate-fixtures.js), and [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) so root and shipped mirrors freeze manifest/package metadata alignment, template mirroring, packed-artifact adapter install assets, and a direct bootstrap path that does not copy shell templates into a synthetic root
+- updated release qualification in [packages/control-plane/lib/release-qualification.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/control-plane/lib/release-qualification.js) and [nmc-memory-plugin/packages/control-plane/lib/release-qualification.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/control-plane/lib/release-qualification.js) so `install-manifest-surface` is now cleared and the direct-install retirement prerequisites report `cutoverReady: true` while `nmc-memory-plugin` remains the current production install/setup shell
+
+Acceptance criteria:
+
+- `packages/adapter-openclaw` owns the OpenClaw install manifest surface and bundled scaffold templates needed for a direct install shape
+- `nmc-memory-plugin` keeps compatibility-shell mirrors for current production install behavior without remaining the source of truth for manifest ownership
+- machine-readable release qualification reports `install-manifest-surface` as cleared and shows that all direct-install retirement prerequisites are now satisfied
+- the required regression baseline remains green
+
+Main risk:
+
+- clearing the manifest gate with mirrored files that drift from the adapter-owned source of truth, which would make cutover readiness appear green while the compatibility shell and adapter install surfaces silently diverge
+
+Rollback:
+
+- fall back to the previous shell-owned manifest metadata temporarily if a real OpenClaw install cannot resolve the adapter-owned manifest/template closure, while keeping the new adapter-owned source-of-truth helpers and test coverage so the issue can be narrowed without reopening unrelated retirement gates
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -2030,10 +2058,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should clear the next remaining retirement gate:
+The compatibility-shell retirement prerequisites are now cleared. The next implementation step should be a deliberate cutover-policy slice rather than another extraction blocker:
 
-- move OpenClaw install manifest ownership off `nmc-memory-plugin` so the last remaining direct-install blocker no longer lives in the compatibility shell
-- preserve `openclaw nmc-memory setup`, auto-bootstrap behavior, workspace layout, and the now-cleared regression/install wrapper coverage while deciding the final manifest and extension ownership surface
-- keep scope pinned to `install-manifest-surface` rather than widening into new runtime, operator, or adapter capabilities
+- decide whether and when to retire `nmc-memory-plugin` as the production install/setup shell now that `packages/adapter-openclaw` owns the install manifest surface and bundled templates
+- preserve `openclaw nmc-memory setup`, auto-bootstrap behavior, workspace layout, and the current migration-release support policy until that cutover is explicitly approved
+- keep scope pinned to supported install-surface policy, documentation, and release qualification rather than widening into new runtime, operator, or adapter capabilities
 
-The regression coverage gate is now cleared. The last remaining direct-install blocker is the install manifest surface that still lives under `nmc-memory-plugin`.
+No direct-install retirement gates remain pending. Any later move off `nmc-memory-plugin` is now a deliberate release-policy decision instead of a missing packaging prerequisite.

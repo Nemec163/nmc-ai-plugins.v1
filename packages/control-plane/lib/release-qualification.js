@@ -77,8 +77,8 @@ function getControlPlaneReleaseQualification(snapshot) {
   const retirementGates = [
     buildRetirementGate(
       'install-manifest-surface',
-      'pending',
-      'openclaw.plugin.json and openclaw.extensions still live under nmc-memory-plugin'
+      'cleared',
+      'adapter-openclaw now owns the OpenClaw manifest, extension metadata, and bundled templates while nmc-memory-plugin keeps compatibility mirrors'
     ),
     buildRetirementGate(
       'wrapper-convergence',
@@ -121,7 +121,7 @@ function getControlPlaneReleaseQualification(snapshot) {
     },
     retirementPrerequisites: {
       target: 'adapter-openclaw-direct-install',
-      cutoverReady: false,
+      cutoverReady: retirementGates.every((gate) => gate.status === 'cleared'),
       pendingGateCount: retirementGates.filter((gate) => gate.status !== 'cleared').length,
       gates: retirementGates,
     },

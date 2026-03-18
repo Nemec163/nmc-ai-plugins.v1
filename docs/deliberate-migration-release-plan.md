@@ -174,6 +174,19 @@ Exit gate:
 Status:
 - complete on `2026-03-19` by adding a synthetic direct-surface bootstrap smoke to `nmc-memory-plugin/tests/run-integration.sh`, updating release qualification and control-plane fixture expectations, and leaving `install-manifest-surface` as the only remaining retirement gate
 
+### 10. Compatibility-Shell Install Manifest Surface Convergence
+
+Goal:
+- move OpenClaw install manifest ownership off `nmc-memory-plugin` while preserving the current production shell and setup/bootstrap behavior
+
+Exit gate:
+- `packages/adapter-openclaw` owns the OpenClaw install manifest surface under `openclaw.plugin.json`, `package.json#openclaw`, `plugin.js`, and bundled `templates/`
+- `nmc-memory-plugin` keeps compatibility-shell mirrors for `openclaw.plugin.json` and `openclaw.extensions` without becoming the source of truth
+- release qualification no longer treats `install-manifest-surface` as pending and reports that the direct-install retirement prerequisites are fully cleared
+
+Status:
+- complete on `2026-03-19` by adding adapter-owned install manifest metadata and bundled templates under `packages/adapter-openclaw`, keeping compatibility-shell mirrors in `nmc-memory-plugin`, updating adapter/control-plane fixture coverage plus packed-artifact smoke tests, and marking `install-manifest-surface` as cleared while keeping `nmc-memory-plugin` as the production install/setup shell for the current migration release
+
 ## Non-Goals For This Slice
 
 The deliberate migration release planning slice should not:
