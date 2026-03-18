@@ -94,7 +94,23 @@ function getOpsSnapshot(options) {
   return {
     kind: 'ops-snapshot',
     temporary: true,
+    deprecated: true,
     migrationScope: 'phase-2.5',
+    releaseBoundary: {
+      supported: false,
+      status: 'compatibility-only-bridge',
+      replacementPackage: 'control-plane',
+      replacementCli: 'memory-control-plane',
+      replacementCommands: [
+        'snapshot',
+        'queues',
+        'health',
+        'analytics',
+        'audits',
+        'runtime-inspector',
+      ],
+      compatibilityShell: 'nmc-memory-plugin',
+    },
     generatedAt: new Date().toISOString(),
     memoryRoot,
     proposals: handoff.proposals,

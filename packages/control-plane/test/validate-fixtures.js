@@ -273,6 +273,16 @@ function main() {
     assert.equal(snapshot.audits.kind, 'control-plane-audits');
     assert.equal(snapshot.runtime.inspector.kind, 'control-plane-runtime-inspector');
     assert.equal(snapshot.runtime.inspector.authoritative, false);
+    assert.equal(snapshot.releaseQualification.kind, 'control-plane-release-qualification');
+    assert.equal(snapshot.releaseQualification.qualified, true);
+    assert.equal(
+      snapshot.releaseQualification.supportedSurface.package,
+      'control-plane'
+    );
+    assert.equal(
+      snapshot.releaseQualification.compatibilityShell.package,
+      'nmc-memory-plugin'
+    );
     assert.equal(
       snapshot.queues.conflicts.items.some((conflict) => conflict.code === 'orphan-job'),
       true
@@ -358,6 +368,8 @@ function main() {
       ),
       true
     );
+    assert.equal(degradedHealth.releaseQualification.qualified, true);
+    assert.equal(degradedHealth.summary.releaseQualified, true);
     assert.equal(degradedHealth.warnings.includes('orphan-job'), true);
     assert.equal(degradedHealth.summary.openInterventionCount, 1);
     assert.equal(degradedHealth.summary.auditEntryCount >= 1, true);
@@ -426,6 +438,7 @@ This fixture forces the health monitor into degraded mode.`
     assert.equal(cliSnapshotJson.interventions.summary.openCount, 1);
     assert.equal(cliSnapshotJson.analytics.summary.runtimeRunCount, 1);
     assert.equal(cliSnapshotJson.runtime.inspector.summary.runCount, 1);
+    assert.equal(cliSnapshotJson.releaseQualification.qualified, true);
 
     const cliHealth = spawnSync(
       process.execPath,
@@ -446,7 +459,9 @@ This fixture forces the health monitor into degraded mode.`
       }
     );
     assert.equal(cliHealth.status, 0, cliHealth.stderr);
-    assert.equal(JSON.parse(cliHealth.stdout).status, 'degraded');
+    const cliHealthJson = JSON.parse(cliHealth.stdout);
+    assert.equal(cliHealthJson.status, 'degraded');
+    assert.equal(cliHealthJson.releaseQualification.qualified, true);
 
     const cliAnalytics = spawnSync(
       process.execPath,

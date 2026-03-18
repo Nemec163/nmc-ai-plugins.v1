@@ -441,6 +441,10 @@ function main() {
     assert.equal(opsSnapshot.jobs.count, 2);
     assert.equal(opsSnapshot.lock.exists, true);
     assert.equal(opsSnapshot.degradedMode.active, true);
+    assert.equal(opsSnapshot.deprecated, true);
+    assert.equal(opsSnapshot.releaseBoundary.supported, false);
+    assert.equal(opsSnapshot.releaseBoundary.replacementPackage, 'control-plane');
+    assert.equal(opsSnapshot.releaseBoundary.replacementCli, 'memory-control-plane');
     assert.equal(
       opsSnapshot.conflicts.some((conflict) => conflict.code === 'orphan-job'),
       true
@@ -488,6 +492,10 @@ function main() {
   );
   assert.equal(cliOpsResult.status, 0, cliOpsResult.stderr);
   assert.equal(JSON.parse(cliOpsResult.stdout).temporary, true);
+  assert.equal(
+    JSON.parse(cliOpsResult.stdout).releaseBoundary.status,
+    'compatibility-only-bridge'
+  );
 
   const cliWriteRoot = makeTempRoot();
   try {

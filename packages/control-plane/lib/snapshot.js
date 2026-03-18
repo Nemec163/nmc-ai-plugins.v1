@@ -7,6 +7,7 @@ const { getControlPlaneInterventions } = require('./interventions');
 const { getMaintainerSnapshot } = require('./maintainer');
 const { resolveMemoryRoot, resolveSystemRoot } = require('./paths');
 const { getControlPlaneQueues } = require('./queues');
+const { getControlPlaneReleaseQualification } = require('./release-qualification');
 const { getControlPlaneRuntimeInspector } = require('./runtime-inspector');
 
 function readSection(readFn) {
@@ -70,7 +71,7 @@ function getControlPlaneSnapshot(options = {}) {
     memoryRoot,
   });
 
-  return {
+  const snapshot = {
     kind: 'control-plane-snapshot',
     schemaVersion: '1.0',
     generatedAt: new Date().toISOString(),
@@ -127,6 +128,9 @@ function getControlPlaneSnapshot(options = {}) {
     },
     maintainer,
   };
+
+  snapshot.releaseQualification = getControlPlaneReleaseQualification(snapshot);
+  return snapshot;
 }
 
 module.exports = {

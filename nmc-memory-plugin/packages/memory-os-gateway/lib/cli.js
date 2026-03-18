@@ -85,7 +85,7 @@ function printUsage() {
   console.error('  status --memory-root <path>');
   console.error('  verify --memory-root <path> [--updated-at <ts>] [--today <date>]');
   console.error('  health --memory-root <path>');
-  console.error('  ops-snapshot --memory-root <path> [--skip-verify] [--updated-at <ts>] [--today <date>]');
+  console.error('  ops-snapshot --memory-root <path> [--skip-verify] [--updated-at <ts>] [--today <date>]  # compatibility-only bridge; use memory-control-plane');
   console.error('  propose --memory-root <path> --batch-date <date> --claims-file <path> [--proposal-id <id>] [--source <label>]');
   console.error('  feedback --memory-root <path> --proposal-id <id> --feedback-file <path>');
   console.error('  complete-job --memory-root <path> --proposal-id <id> [--job-id <id>] [--holder <id>] [--operation <name>]');

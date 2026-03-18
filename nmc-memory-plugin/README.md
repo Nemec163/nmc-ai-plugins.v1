@@ -11,6 +11,11 @@ The package is shipped in the current OpenClaw plugin format:
 - `skills/*/SKILL.md` files use AgentSkills-compatible YAML frontmatter.
 - `templates/workspace-memory/` and `templates/workspace-system/` stay bundled as package assets for manual scaffolding.
 
+Release-boundary note:
+
+- `nmc-memory-plugin` is the compatibility shell for setup, auto-bootstrap, bundled skills, and the stable OpenClaw packaging surface.
+- the supported Memory OS operator surface now lives in repository packages such as `packages/control-plane`; the temporary `memory-os-gateway ops-snapshot` bridge is deprecated compatibility-only output.
+
 The default workspace template ships with predefined agent slices:
 - `nyx` - orchestrator and main user-facing agent, Chief Product Officer, `opus 4.6`
 - `medea` - research and documentation, Chief Research Officer, `codex 5.4`

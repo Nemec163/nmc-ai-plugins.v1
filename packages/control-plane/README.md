@@ -57,10 +57,11 @@ Control-plane v3 stays intentionally careful:
 - manual interventions never mutate canon, proposal receipts, or job receipts directly
 - analytics and audit surfaces summarize queue, intervention, lock, and runtime history without becoming source-of-truth
 - runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
+- `snapshot` and `health` now emit release-qualification metadata that marks `control-plane` as the supported migration-release operator surface and `nmc-memory-plugin` as the compatibility shell
 
 Compatibility note:
 
-- `memory-os-gateway ops-snapshot` remains as a migration bridge
+- `memory-os-gateway ops-snapshot` remains available only as a deprecated compatibility bridge
 - the supported operator queue, audit, analytics, and runtime inspection contract now lives in `control-plane`
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.

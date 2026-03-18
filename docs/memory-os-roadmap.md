@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `control-plane v3 — analytics, audits, runtime inspector, and operator dashboards`
-- next: `release hardening — retire the temporary ops bridge and prepare deliberate migration release criteria`
+- completed: `release hardening — compatibility-only ops bridge and migration-release qualification`
+- next: `deliberate migration release prep — package the supported operator surface and remove remaining ambiguity from the compatibility shell`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
@@ -1400,6 +1400,31 @@ Rollback:
 
 - keep snapshot/health/queues/interventions as the supported control-plane contract and disable the additive analytics, audit, and runtime inspection surfaces while retaining the temporary gateway bridge
 
+### release hardening: compatibility-only ops bridge and migration-release qualification
+
+Do this only after `control-plane` v3 has frozen the supported read-only operator contract.
+
+Implemented in this slice:
+
+- narrowed `memory-os-gateway ops-snapshot` into an explicitly deprecated compatibility bridge by adding machine-readable release-boundary metadata that points operators to `packages/control-plane`
+- added release-qualification metadata to `packages/control-plane` snapshot and health outputs so the supported migration-release operator surface, authority boundaries, and compatibility-shell scope are explicit in-code
+- updated package and plugin docs to distinguish the supported `control-plane` operator contract from the compatibility-only `nmc-memory-plugin` shell
+- ran the required baseline commands with the updated gateway and control-plane release-boundary fixtures green
+
+Acceptance criteria:
+
+- the temporary gateway ops bridge remains available only as compatibility output and no longer reads as the supported operator contract
+- the supported operator surface has machine-readable release qualification for read-only scope, ownership boundaries, and runtime non-authoritativeness
+- repository and plugin docs clearly separate the supported Memory OS operator surface from the compatibility-only OpenClaw shell
+
+Main risk:
+
+- leaving the migration-release boundary ambiguous enough that downstream automation keeps binding to the deprecated bridge instead of the supported control-plane surface
+
+Rollback:
+
+- keep the new release-boundary docs and qualification metadata, but relax the gateway bridge deprecation wording while the remaining migration packaging decisions are resolved
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -1661,10 +1686,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be release hardening around the now-complete control-plane surface:
+The next implementation step should be deliberate migration release prep around the now-qualified operator surface:
 
-- continue reducing the temporary `memory-os-gateway ops-snapshot` bridge now that supported queue, audit, analytics, and runtime inspection contracts exist in `packages/control-plane`
-- formalize the deliberate migration-release criteria for the supported Memory OS surface versus the compatibility-only `nmc-memory-plugin` shell
-- add release qualification around the supported operator contract without handing scheduler, queue-policy, or promotion authority to the control-plane
+- package and document the supported operator surface so `control-plane` is deliverable wherever the compatibility shell is shipped
+- remove or further narrow any remaining compatibility-only bridge output that could be mistaken for a supported operator contract
+- keep migration-release scope pinned to packaging, documentation, and boundary cleanup rather than expanding control-plane authority
 
-control-plane v3 is now complete, so the next risk is leaving the temporary bridge and product-surface boundaries ambiguous even though the read-only operator contract has stabilized. Keep the next slice focused on release hardening and migration-release criteria rather than expanding control-plane authority.
+release hardening is now complete, so the next risk is shipping a compatibility shell whose bundled artifacts still underspecify the supported operator surface. The next slice should focus on deliberate migration-release prep and bridge retirement, not new operator capabilities.

@@ -1,11 +1,14 @@
 'use strict';
 
 const { getControlPlaneAnalytics } = require('./analytics');
+const { getControlPlaneReleaseQualification } = require('./release-qualification');
 const { getControlPlaneSnapshot } = require('./snapshot');
 
 function getControlPlaneHealth(options = {}) {
   const snapshot = getControlPlaneSnapshot(options);
   const analytics = snapshot.analytics || getControlPlaneAnalytics(options);
+  const releaseQualification =
+    snapshot.releaseQualification || getControlPlaneReleaseQualification(snapshot);
   const checks = [
     {
       name: 'gateway-health',
@@ -116,7 +119,9 @@ function getControlPlaneHealth(options = {}) {
       auditEntryCount: snapshot.audits.summary.totalEntries,
       taskCount: snapshot.maintainer.board.tasks.total,
       invalidTaskCount: snapshot.maintainer.board.invalidTasks.count,
+      releaseQualified: releaseQualification.qualified,
     },
+    releaseQualification,
   };
 }
 
