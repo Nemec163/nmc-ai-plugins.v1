@@ -9,8 +9,6 @@
 - next: `Phase 3 / PR 3.2 — Introduce a Narrow Pipeline Adapter Interface`
 - last verified on: `2026-03-18`
 - verified in this slice:
-  - `node -e "const plugin=require('./nmc-memory-plugin'); console.log(plugin.id + ':' + plugin.name)"`
-  - `node ./nmc-memory-plugin/scripts/setup-openclaw.js --help`
   - `node packages/adapter-openclaw/test/validate-fixtures.js`
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -1008,8 +1006,6 @@ Implementation note:
 - moved OpenClaw-specific setup orchestration, `openclaw.json` mutation, managed bindings, and `memorySearch.extraPaths` registration into `packages/adapter-openclaw/lib/openclaw-setup.js`
 - moved standalone setup CLI parsing into `packages/adapter-openclaw/lib/setup-cli.js` and runtime registration into `packages/adapter-openclaw/lib/register.js`
 - reduced `nmc-memory-plugin/index.js`, `nmc-memory-plugin/lib/openclaw-setup.js`, and `nmc-memory-plugin/scripts/setup-openclaw.js` to thin compatibility shells over the adapter package while preserving the existing plugin entrypoint and setup command surface
-- verified with `node -e "const plugin=require('./nmc-memory-plugin'); console.log(plugin.id + ':' + plugin.name)"`
-- verified with `node ./nmc-memory-plugin/scripts/setup-openclaw.js --help`
 - verified with `node packages/adapter-openclaw/test/validate-fixtures.js`
 - verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
 - verified with `./nmc-memory-plugin/tests/run-integration.sh`

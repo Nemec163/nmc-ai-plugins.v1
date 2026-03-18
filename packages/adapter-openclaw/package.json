@@ -16,9 +16,6 @@
     "lib/",
     "README.md"
   ],
-  "bin": {
-    "adapter-openclaw-setup": "./lib/setup-cli.js"
-  },
   "scripts": {
     "test": "node ./test/validate-fixtures.js"
   },
