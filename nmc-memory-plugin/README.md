@@ -15,6 +15,7 @@ Release-boundary note:
 
 - `nmc-memory-plugin` is the compatibility shell for setup, auto-bootstrap, bundled skills, and the stable OpenClaw packaging surface.
 - the supported Memory OS operator surface is bundled inside the shipped plugin at `packages/control-plane`; the temporary `memory-os-gateway ops-snapshot` bridge is deprecated compatibility-only output.
+- the shipped plugin mirror does not export the deprecated gateway ops SDK from `packages/memory-os-gateway` at the package level; installed-artifact automation should bind only to `packages/control-plane`.
 
 Supported operator commands from an installed plugin artifact:
 

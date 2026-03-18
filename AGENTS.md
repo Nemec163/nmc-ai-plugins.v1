@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `bridge retirement — remove the temporary ops harness from shipped compatibility surfaces`
-- next roadmap slice: `release-surface freeze — decide whether the deprecated gateway ops SDK remains exported in shipped mirrors`
+- completed roadmap slice: `release-surface freeze — stop exporting the deprecated gateway ops SDK from shipped mirrors`
+- next roadmap slice: `deliberate migration release planning — define the post-freeze cutover beyond the compatibility shell`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -85,7 +85,8 @@ Phase 0 is complete:
 - `release hardening` narrowed `memory-os-gateway ops-snapshot` into a deprecated compatibility bridge, added machine-readable release qualification to the supported `packages/control-plane` operator surface, and clarified `nmc-memory-plugin` as the compatibility shell without expanding control-plane authority
 - `deliberate migration release prep` bundled the supported `packages/control-plane` operator surface and its shipped dependency closure into `nmc-memory-plugin`, extended extracted-artifact smoke coverage, and clarified installed-artifact operator docs without expanding control-plane authority
 - `bridge retirement` removed `ops-snapshot` from the gateway CLI surface in both root and shipped mirrors, left the old ops read model only as deprecated compatibility SDK output, and kept the bundled `control-plane` CLI as the sole documented operator command surface
-- the next slice is `release-surface freeze`, which should decide whether deprecated gateway ops SDK exports remain in shipped mirrors without expanding control-plane authority
+- `release-surface freeze` removed package-level deprecated gateway ops exports from the shipped `nmc-memory-plugin` mirror, kept the read model only for repo-local/internal compatibility tooling, and extended shipped-artifact smoke coverage so installed plugin artifacts no longer present that bridge as a supported SDK surface
+- the next slice is `deliberate migration release planning`, which should define the post-freeze cutover beyond the compatibility shell without expanding control-plane authority
 
 ## Commit Convention
 

@@ -6,6 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
+const gateway = require('..');
 const {
   bootstrap,
   captureRuntime,
@@ -13,7 +14,6 @@ const {
   feedback,
   getCanonicalCurrent,
   getHealth,
-  getOpsSnapshot,
   getProjection,
   getRecallBundle,
   getRuntimeDelta,
@@ -23,15 +23,16 @@ const {
   query,
   readRecord,
   verify,
-} = require('..');
+} = gateway;
+const { getOpsSnapshot } = require('../lib/ops');
 const { acquireCanonWriteLock } = require('../../memory-canon');
 
 const WORKSPACE_FIXTURE = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/tests/fixtures/workspace'
+  '../../../tests/fixtures/workspace'
 );
 const FIXTURE_MEMORY_ROOT = WORKSPACE_FIXTURE;
-const PLUGIN_ROOT = path.resolve(__dirname, '../../../nmc-memory-plugin');
+const PLUGIN_ROOT = path.resolve(__dirname, '../../..');
 const CLI_PATH = path.resolve(__dirname, '../bin/memory-os-gateway.js');
 
 function makeTempRoot() {
@@ -65,6 +66,10 @@ function hashCanonTree(memoryRoot) {
 }
 
 function main() {
+  assert.equal(typeof gateway.getOpsSnapshot, 'undefined');
+  assert.equal(typeof gateway.inspectOps, 'undefined');
+  assert.equal(typeof gateway.inspect_ops, 'undefined');
+
   const record = readRecord({
     memoryRoot: FIXTURE_MEMORY_ROOT,
     recordId: 'fct-2026-03-05-001',

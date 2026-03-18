@@ -5,11 +5,12 @@
 
 ## Progress Snapshot
 
-- completed: `bridge retirement — remove the temporary ops harness from shipped compatibility surfaces`
-- next: `release-surface freeze — decide whether the deprecated gateway ops SDK remains exported in shipped mirrors`
+- completed: `release-surface freeze — stop exporting the deprecated gateway ops SDK from shipped mirrors`
+- next: `deliberate migration release planning — define the post-freeze cutover beyond the compatibility shell`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
@@ -1477,6 +1478,33 @@ Rollback:
 
 - restore the deprecated gateway CLI command while retaining the control-plane packaging/docs improvements if downstream automation still depends on the bridge at the command layer
 
+### release-surface freeze: stop exporting the deprecated gateway ops SDK from shipped mirrors
+
+Do this only after `bridge retirement` has removed the deprecated gateway CLI command and left the remaining ambiguity at the SDK/package boundary.
+
+Implemented in this slice:
+
+- kept the deprecated gateway ops read model available only in the repository-local `packages/memory-os-gateway` package for internal compatibility tooling and fixture coverage
+- removed the deprecated ops bridge from the shipped `nmc-memory-plugin/packages/memory-os-gateway` package surface by dropping the `./ops` export and omitting `getOpsSnapshot` / `inspectOps` from the mirror main export
+- extended shipped-mirror fixture coverage and packed-artifact integration smoke so the installed plugin artifact now proves `require('memory-os-gateway')` does not expose the deprecated ops bridge and `require('memory-os-gateway/ops')` fails as an unexported path
+- updated gateway and plugin docs to freeze the migration-release boundary: `packages/control-plane` is the supported shipped operator surface, while the deprecated gateway ops read model is repo-local/internal compatibility tooling only
+- re-ran the required regression baseline with the shipped operator surface still green from the extracted plugin artifact
+
+Acceptance criteria:
+
+- the shipped `nmc-memory-plugin` mirror no longer exports the deprecated gateway ops bridge from its main package entrypoint
+- the shipped plugin artifact does not export `memory-os-gateway/ops`
+- repository-local gateway tooling may still use the deprecated ops read model without implying that it remains part of the supported shipped surface
+- plugin-facing docs freeze `packages/control-plane` as the only supported shipped operator/package surface
+
+Main risk:
+
+- either breaking repo-local compatibility tooling by removing the bridge too broadly or leaving the installed artifact ambiguous enough that downstream automation still binds to deprecated gateway SDK exports
+
+Rollback:
+
+- restore the shipped mirror package-level ops exports while keeping the control-plane release-boundary docs/tests if installed-artifact automation still depends on the deprecated bridge
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -1738,10 +1766,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be release-surface freeze around the now-retired CLI bridge:
+The next implementation step should plan the deliberate migration release now that the shipped surface is frozen:
 
-- decide whether shipped mirrors should keep exporting the deprecated gateway ops read model at the SDK/package level now that the CLI bridge has been removed
-- freeze and document the final migration-release surface for the compatibility shell versus repo-local internal tooling
-- keep scope pinned to release-surface cleanup rather than adding new operator capabilities
+- define the post-freeze cutover from the compatibility shell to fully supported Memory OS surfaces
+- decide when the remaining repo-local deprecated gateway ops read model can be retired without breaking internal tooling
+- keep scope pinned to release planning and deprecation sequencing rather than adding new operator capabilities
 
-bridge retirement is now complete, so the next risk is keeping deprecated gateway ops SDK exports available widely enough that downstream automation still binds to them as if they were part of the supported shipped surface. The next slice should focus on release-surface freeze and export cleanup, not new operator capabilities.
+release-surface freeze is now complete, so the next risk is drifting back into ambiguous migration boundaries while the repository still carries repo-local deprecated compatibility reads. The next slice should focus on deliberate migration-release planning and eventual bridge retirement sequencing, not new operator capabilities.
