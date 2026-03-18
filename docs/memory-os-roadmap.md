@@ -5,15 +5,16 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 3 / PR 3.4 — Add Shared Adapter Conformance Suite`
-- next: `Phase 4 / PR 4.1 — Introduce adapter-codex`
+- completed: `Phase 4 / PR 4.1 — Introduce adapter-codex`
+- next: `Phase 4 / PR 4.2 — Expand Codex to Full Single-Run Contract`
 - last verified on: `2026-03-18`
 - verified in this slice:
-  - `node packages/adapter-conformance/test/validate-fixtures.js`
-  - `node packages/adapter-openclaw/test/validate-fixtures.js`
-  - `node packages/memory-os-gateway/test/validate-fixtures.js`
-  - `./nmc-memory-plugin/tests/run-contract-tests.sh`
-  - `./nmc-memory-plugin/tests/run-integration.sh`
+  - `/usr/local/bin/node packages/adapter-codex/test/validate-fixtures.js`
+  - `/usr/local/bin/node packages/memory-agents/test/validate-fixtures.js`
+  - `/usr/local/bin/node packages/memory-pipeline/test/validate-fixtures.js`
+  - `/usr/local/bin/node packages/adapter-openclaw/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
+  - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -1179,6 +1180,22 @@ Rollback:
 
 #### PR 4.1: Introduce `adapter-codex`
 
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- replaced the `packages/adapter-codex` placeholder with a real CommonJS package that exports a gateway-backed Codex adapter facade plus a package-local single-thread read-only runner
+- kept the initial Codex capability claims narrow to `roleBundle`, `bootstrapRole`, canonical/projection reads, `status`, `verify`, and CLI-backed status so PR 4.1 stays canon-safe and avoids premature write/job semantics
+- proved `adapter-codex` against the shared conformance suite with a Codex-specific fixture validation, and added that package test to `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- removed OpenClaw wording from shared role rendering where it leaked into engine-agnostic bootstrap content, while preserving the existing workspace layout and role bundle structure
+- restored the missing `packages/adapter-openclaw/lib/register.js` shim so shared pipeline and OpenClaw fixture validation stay green on the regression baseline
+- verified with `/usr/local/bin/node packages/adapter-codex/test/validate-fixtures.js`
+- verified with `/usr/local/bin/node packages/memory-agents/test/validate-fixtures.js`
+- verified with `/usr/local/bin/node packages/memory-pipeline/test/validate-fixtures.js`
+- verified with `/usr/local/bin/node packages/adapter-openclaw/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
+
 Start with:
 
 - role-aware bootstrap
@@ -1560,10 +1577,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 4, PR 4.1:
+The next implementation step should be Phase 4, PR 4.2:
 
-- introduce `packages/adapter-codex` as the first non-OpenClaw adapter with role-aware bootstrap, read-only operations, and a single-thread execution path
-- prove Codex can attach to the same Memory OS core without OpenClaw-specific config mutation or skill packaging assumptions
-- keep the initial Codex slice canon-safe by limiting it to read-only and bootstrap behavior
+- expand `adapter-codex` from read-only bootstrap into the full single-run contract with task or role-bundle intake, proposal or result upload, and an explicit completion path
+- prove a stateless Codex runner can complete one bounded end-to-end run through gateway write orchestration and the core promoter without direct canon writes
+- keep adapter scope narrow by reusing existing gateway and promoter surfaces rather than letting Codex own maintainer or scheduler semantics
 
-PR 3.4 is now complete, so the next risk is hidden OpenClaw coupling in core bootstrap and read flows. Keep PR 4.1 focused on adapter decoupling and canon-safe Codex execution rather than expanding write authority.
+PR 4.1 is now complete, so the next risk is widening Codex execution into write and completion flows before the task-intake and job-handoff contract is explicit enough. Keep PR 4.2 focused on one bounded single-run path rather than general orchestration.

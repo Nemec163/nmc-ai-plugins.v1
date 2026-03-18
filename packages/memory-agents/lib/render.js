@@ -137,7 +137,7 @@ Avatar:
 This is not just metadata. It is the start of figuring out who you are.
 
 Notes:
-- Save avatars as a workspace-relative path like \`avatars/openclaw.png\`, or use an \`http(s)\` URL or data URI.
+- Save avatars as a workspace-relative path like \`avatars/assistant.png\`, or use an \`http(s)\` URL or data URI.
 - Shared canon path: ${memoryPath}
 - Shared system path: ${systemPath}
 `;
@@ -439,7 +439,7 @@ Primary startup directive: ${agent.boot}
 
   return `# Boot
 
-Add short, explicit instructions for what OpenClaw should do on startup.
+Add short, explicit instructions for what this workspace should do on startup.
 
 1. If BOOTSTRAP.md exists, follow it first.
 2. Read AGENTS.md, SOUL.md, USER.md, IDENTITY.md, TOOLS.md, and today's plus yesterday's \`memory/YYYY-MM-DD.md\` files if they exist.
