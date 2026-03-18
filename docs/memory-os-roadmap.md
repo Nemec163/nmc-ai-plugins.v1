@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `compatibility-shell cutover decision — retain nmc-memory-plugin as the production install shell`
-- next: `compatibility-shell retirement prerequisites — define the direct-install cutover gates`
+- completed: `compatibility-shell retirement prerequisites — define the direct-install cutover gates`
+- next: `compatibility-shell wrapper convergence — collapse duplicated OpenClaw shell entrypoints`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
@@ -1638,6 +1638,32 @@ Rollback:
 
 - relax the new release-qualification metadata and docs language if a direct-install cutover must start sooner than expected, while keeping the current packaging behavior unchanged until a dedicated breaking slice is designed and verified
 
+### compatibility-shell retirement prerequisites: define the direct-install cutover gates
+
+Do this only after `compatibility-shell cutover decision` has made the current production install surface explicit.
+
+Implemented in this slice:
+
+- updated [docs/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/deliberate-migration-release-plan.md) to enumerate the explicit direct-install cutover gates instead of leaving them implicit in scattered docs and duplicated shell code
+- extended `packages/control-plane/lib/release-qualification.js` and `nmc-memory-plugin/packages/control-plane/lib/release-qualification.js` with machine-readable `retirementPrerequisites` metadata that marks the direct-install cutover as not ready and records the pending gates for `install-manifest-surface`, `wrapper-convergence`, `skill-discovery-surface`, `shipped-artifact-layout`, and `regression-cutover-coverage`
+- extended both control-plane fixture suites plus the packaged-artifact integration check so root and shipped control-plane snapshots now assert the explicit retirement prerequisites alongside the already-retained production-shell decision
+- updated control-plane package docs to point operators at the new machine-readable retirement prerequisites rather than forcing them to infer cutover readiness from repository structure alone
+
+Acceptance criteria:
+
+- the repository records the direct-install cutover gates for retiring `nmc-memory-plugin` as the production shell
+- machine-readable control-plane release qualification exposes those gates from both root and shipped mirrors and reports that the cutover is not yet ready
+- the slice does not change setup/bootstrap behavior, workspace layout, shipped operator paths, or the supported programmatic surfaces
+- the required regression baseline remains green
+
+Main risk:
+
+- defining the gates too vaguely, which would leave the next slice ambiguous again and stall the actual removal of the compatibility shell
+
+Rollback:
+
+- simplify or rename the retirement-gate metadata if a clearer cutover decomposition is required, while keeping the current production-shell decision and existing shipped behavior unchanged
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -1899,10 +1925,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should turn the retained-shell decision into explicit future-cutover gates:
+The next implementation step should clear the most concrete retirement gate first:
 
-- identify what must change before `nmc-memory-plugin` can stop being the production install/setup shell
-- define the direct-install prerequisites for `adapter-openclaw` or any thinner packaging surface without breaking current setup/bootstrap behavior, workspace layout, or shipped operator contracts
-- keep scope on packaging retirement gates and release-surface ownership rather than adding new runtime or operator capabilities
+- collapse the duplicated OpenClaw shell entrypoints so `nmc-memory-plugin/index.js`, `nmc-memory-plugin/lib/openclaw-setup.js`, and `nmc-memory-plugin/scripts/setup-openclaw.js` become thin wrappers over `packages/adapter-openclaw`
+- preserve `openclaw nmc-memory setup`, auto-bootstrap behavior, `openclaw.plugin.json`, bundled skill discovery, workspace layout, and shipped operator paths while converging the duplicated implementations
+- keep scope pinned to wrapper convergence rather than changing install ownership, plugin ids, or operator/runtime capabilities
 
-The production-shell decision is now explicit, so the next risk is leaving the eventual cutover undefined. The next slice should focus on retirement prerequisites for the compatibility shell, not on resurrecting deprecated bridge paths or widening the current release surface.
+The cutover gates are now explicit. The next risk is wrapper drift between `nmc-memory-plugin` and `adapter-openclaw`, not lack of clarity about what still blocks the direct-install cutover.

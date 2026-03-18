@@ -59,6 +59,7 @@ Control-plane v3 stays intentionally careful:
 - runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
 - `snapshot` and `health` now emit release-qualification metadata that marks `control-plane` as the supported migration-release operator surface and `nmc-memory-plugin` as the compatibility shell
 - that release qualification also records that `nmc-memory-plugin` remains the current production install/setup shell and that direct installation of `adapter-openclaw` is not supported in this slice
+- the same release qualification now enumerates the pending retirement prerequisites for any future direct-install cutover away from `nmc-memory-plugin`
 
 Packaging note:
 

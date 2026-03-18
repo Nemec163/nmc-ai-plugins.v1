@@ -291,6 +291,28 @@ function main() {
       snapshot.releaseQualification.compatibilityShell.directAdapterInstall,
       'not-supported'
     );
+    assert.equal(
+      snapshot.releaseQualification.retirementPrerequisites.target,
+      'adapter-openclaw-direct-install'
+    );
+    assert.equal(
+      snapshot.releaseQualification.retirementPrerequisites.cutoverReady,
+      false
+    );
+    assert.equal(
+      snapshot.releaseQualification.retirementPrerequisites.pendingGateCount,
+      5
+    );
+    assert.deepEqual(
+      snapshot.releaseQualification.retirementPrerequisites.gates.map((gate) => gate.id),
+      [
+        'install-manifest-surface',
+        'wrapper-convergence',
+        'skill-discovery-surface',
+        'shipped-artifact-layout',
+        'regression-cutover-coverage',
+      ]
+    );
     assert.equal(snapshot.releaseQualification.bridgeStatus.gatewayOpsSnapshot, 'retired');
     assert.equal(
       snapshot.queues.conflicts.items.some((conflict) => conflict.code === 'orphan-job'),

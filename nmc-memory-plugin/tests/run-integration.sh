@@ -465,10 +465,12 @@ test_packaged_artifact_install_smoke() {
   if [ "$(json_query "$LAST_STDOUT" "kind")" = "control-plane-snapshot" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.qualified")" = "true" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.productionStatus")" = "current-production-install-shell" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.directAdapterInstall")" = "not-supported" ]; then
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.directAdapterInstall")" = "not-supported" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.cutoverReady")" = "false" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.id")" = "wrapper-convergence" ]; then
     pass "packed artifact control-plane CLI runs after extract"
   else
-    fail "packed artifact control-plane CLI runs after extract" "Expected control-plane snapshot with qualified release boundary and retained production-shell metadata"
+    fail "packed artifact control-plane CLI runs after extract" "Expected control-plane snapshot with retained production-shell metadata and explicit retirement prerequisites"
     return
   fi
 

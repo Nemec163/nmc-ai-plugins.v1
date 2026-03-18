@@ -104,6 +104,24 @@ Exit gate:
 Status:
 - complete on `2026-03-19` by explicitly retaining `nmc-memory-plugin` as the production OpenClaw install/setup shell for the migration release, adding release-qualification metadata for that decision, and updating docs to defer any direct-install adapter cutover into a later deliberate breaking slice
 
+### 5. Compatibility-Shell Retirement Prerequisites
+
+Goal:
+- define the explicit gates that must be cleared before `nmc-memory-plugin` can stop being the production OpenClaw install/setup shell
+
+Exit gate:
+- the repository records the direct-install cutover gates in docs and machine-readable release qualification
+- installed-artifact automation can inspect those gates without inferring them from scattered docs or duplicated shell code
+- the next implementation slice can target one concrete prerequisite instead of reopening the entire packaging question
+
+Status:
+- complete on `2026-03-19` by recording five pending cutover gates in release qualification and docs:
+  - `install-manifest-surface`: `openclaw.plugin.json` and `openclaw.extensions` still live under `nmc-memory-plugin`
+  - `wrapper-convergence`: `nmc-memory-plugin/index.js`, `nmc-memory-plugin/lib/openclaw-setup.js`, and `nmc-memory-plugin/scripts/setup-openclaw.js` still diverge from `packages/adapter-openclaw`
+  - `skill-discovery-surface`: live installs still discover bundled skills through `nmc-memory-plugin/skills`
+  - `shipped-artifact-layout`: installed control-plane and gateway paths still assume `~/.openclaw/extensions/nmc-memory-plugin/`
+  - `regression-cutover-coverage`: the regression baseline still freezes plugin-shell packaging rather than a direct adapter-install surface
+
 ## Non-Goals For This Slice
 
 The deliberate migration release planning slice should not:
@@ -114,6 +132,7 @@ The deliberate migration release planning slice should not:
 - redesign packaging beyond the existing compatibility shell
 - retire `nmc-memory-plugin` as the production install/setup shell
 - turn `packages/adapter-openclaw` into a supported direct install target in the same slice
+- clear any of the retirement gates by changing behavior in the same slice that defines them
 
 ## Verification For This Planning Slice
 

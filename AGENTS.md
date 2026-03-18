@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `compatibility-shell cutover decision — retain nmc-memory-plugin as the production install shell`
-- next roadmap slice: `compatibility-shell retirement prerequisites — define the direct-install cutover gates`
+- completed roadmap slice: `compatibility-shell retirement prerequisites — define the direct-install cutover gates`
+- next roadmap slice: `compatibility-shell wrapper convergence — collapse duplicated OpenClaw shell entrypoints`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -91,7 +91,8 @@ Phase 0 is complete:
 - `repo-local bridge retirement` deleted `packages/memory-os-gateway/lib/ops.js`, removed the root package exports for the deprecated bridge, and replaced root fixture coverage with negative package-boundary assertions without changing shipped surfaces or operator capabilities
 - `shipped-mirror bridge cleanup decision` deleted `nmc-memory-plugin/packages/memory-os-gateway/lib/ops.js` and updated machine-readable/operator docs so the deprecated gateway ops bridge is now retired in both root and shipped mirrors
 - `compatibility-shell cutover decision` retained `nmc-memory-plugin` as the production install/setup shell for the current migration release, added machine-readable release qualification for that decision, and kept `adapter-openclaw` out of the supported direct-install surface
-- the next slice is `compatibility-shell retirement prerequisites`, which should define the direct-install cutover gates without widening scope into new operator capabilities
+- `compatibility-shell retirement prerequisites` defined the machine-readable direct-install cutover gates for retiring `nmc-memory-plugin` as the production shell without changing shipped behavior
+- the next slice is `compatibility-shell wrapper convergence`, which should collapse duplicated OpenClaw shell entrypoints without widening scope into new operator capabilities
 
 ## Commit Convention
 
