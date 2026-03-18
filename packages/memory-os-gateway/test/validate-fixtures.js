@@ -8,12 +8,14 @@ const { spawnSync } = require('node:child_process');
 
 const {
   bootstrap,
+  captureRuntime,
   completeJob,
   feedback,
   getCanonicalCurrent,
   getHealth,
   getOpsSnapshot,
   getProjection,
+  getRuntimeDelta,
   getRoleBundle,
   getStatus,
   propose,
@@ -33,6 +35,32 @@ const CLI_PATH = path.resolve(__dirname, '../bin/memory-os-gateway.js');
 
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'memory-os-gateway-validate-'));
+}
+
+function hashCanonTree(memoryRoot) {
+  const crypto = require('node:crypto');
+  const canonRoot = path.join(memoryRoot, 'core');
+  const snapshot = {};
+  const stack = [canonRoot];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const entryPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(entryPath);
+        continue;
+      }
+
+      const relativePath = path.relative(memoryRoot, entryPath).split(path.sep).join('/');
+      snapshot[relativePath] = crypto
+        .createHash('sha1')
+        .update(fs.readFileSync(entryPath))
+        .digest('hex');
+    }
+  }
+
+  return snapshot;
 }
 
 function main() {
@@ -85,6 +113,8 @@ function main() {
   assert.equal(status.manifest.recordCounts.events, 0);
   assert.equal(status.intake.pendingFiles, 1);
   assert.equal(status.intake.backlogAlert, true);
+  assert.equal(status.runtime.shadowExists, false);
+  assert.equal(status.runtime.runCount, 0);
 
   const health = getHealth({
     memoryRoot: FIXTURE_MEMORY_ROOT,
@@ -106,6 +136,159 @@ function main() {
     assert.equal(verification.manifest.record_counts.facts, 2);
   } finally {
     fs.rmSync(verifyRoot, { recursive: true, force: true });
+  }
+
+  const runtimeRoot = makeTempRoot();
+  try {
+    const runtimeWorkspaceRoot = path.join(runtimeRoot, 'workspace');
+    const artifactsFile = path.join(runtimeRoot, 'runtime-artifacts.json');
+    const inputsFile = path.join(runtimeRoot, 'runtime-inputs.json');
+    fs.cpSync(WORKSPACE_FIXTURE, runtimeWorkspaceRoot, { recursive: true });
+    const canonSnapshot = hashCanonTree(runtimeWorkspaceRoot);
+
+    fs.writeFileSync(
+      artifactsFile,
+      `${JSON.stringify(
+        {
+          episodic: [
+            {
+              id: 'ep-001',
+              summary: 'Observed a repeated hesitation before volatile-morning entries.',
+              text: 'Observed hesitation before volatile-morning entries during the run.',
+              observedAt: '2026-03-18T11:55:00Z',
+              tags: ['trading', 'volatility'],
+            },
+          ],
+          semanticCache: [
+            {
+              id: 'sc-001',
+              summary: 'Volatile mornings map to slower confirmation-first guidance.',
+            },
+          ],
+          procedural: [
+            {
+              id: 'proc-001',
+              summary: 'Start with a confirmation checklist before suggesting momentum entries.',
+            },
+          ],
+          procedureFeedback: [
+            {
+              id: 'pf-001',
+              summary: 'The confirmation checklist reduced contradictory guidance in this run.',
+            },
+          ],
+          retrievalTraces: [
+            {
+              id: 'rt-001',
+              summary: 'Retrieved current state and pending claims before answering.',
+            },
+          ],
+          triggers: [
+            {
+              id: 'tr-001',
+              summary: 'Current-question phrasing triggered volatile-morning recall flow.',
+            },
+          ],
+          reflections: [
+            {
+              id: 'rf-001',
+              summary: 'Runtime memory should stay inspectable and non-authoritative.',
+            },
+          ],
+        },
+        null,
+        2
+      )}\n`,
+      'utf8'
+    );
+    fs.writeFileSync(
+      inputsFile,
+      `${JSON.stringify(
+        [
+          {
+            kind: 'transcript',
+            sourceSession: 'codex-2026-03-18-001',
+            path: 'transcripts/codex-2026-03-18-001.jsonl',
+          },
+        ],
+        null,
+        2
+      )}\n`,
+      'utf8'
+    );
+
+    const capture = captureRuntime({
+      memoryRoot: runtimeWorkspaceRoot,
+      runId: 'codex-2026-03-18-001',
+      source: 'gateway-test',
+      capturedAt: '2026-03-18T12:00:00Z',
+      runtimeInputs: JSON.parse(fs.readFileSync(inputsFile, 'utf8')),
+      artifacts: JSON.parse(fs.readFileSync(artifactsFile, 'utf8')),
+    });
+    assert.equal(capture.record.authoritative, false);
+    assert.equal(fs.existsSync(capture.runPath), true);
+
+    const runtimeDelta = getRuntimeDelta({
+      memoryRoot: runtimeWorkspaceRoot,
+      limit: 5,
+    });
+    assert.equal(runtimeDelta.exists, true);
+    assert.equal(runtimeDelta.runCount, 1);
+    assert.equal(runtimeDelta.totalArtifacts, 7);
+    assert.equal(runtimeDelta.buckets.episodic.count, 1);
+    assert.equal(runtimeDelta.buckets.procedureFeedback.entries[0].id, 'pf-001');
+
+    const canonicalCurrent = getCanonicalCurrent({
+      memoryRoot: runtimeWorkspaceRoot,
+    });
+    assert.equal(canonicalCurrent.kind, 'canonical-current');
+    assert.equal(canonicalCurrent.projections.state.records[0].recordId, 'st-2026-03-05-001');
+
+    const runtimeStatus = getStatus({
+      memoryRoot: runtimeWorkspaceRoot,
+    });
+    assert.equal(runtimeStatus.runtime.shadowExists, true);
+    assert.equal(runtimeStatus.runtime.runCount, 1);
+    assert.equal(runtimeStatus.runtime.totalArtifacts, 7);
+    assert.deepEqual(hashCanonTree(runtimeWorkspaceRoot), canonSnapshot);
+
+    const cliCaptureResult = spawnSync(
+      process.execPath,
+      [
+        CLI_PATH,
+        'capture-runtime',
+        '--memory-root',
+        runtimeWorkspaceRoot,
+        '--run-id',
+        'codex-2026-03-18-cli',
+        '--source',
+        'gateway-cli-test',
+        '--captured-at',
+        '2026-03-18T13:00:00Z',
+        '--artifacts-file',
+        artifactsFile,
+        '--runtime-inputs-file',
+        inputsFile,
+      ],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(cliCaptureResult.status, 0, cliCaptureResult.stderr);
+    assert.equal(JSON.parse(cliCaptureResult.stdout).record.runId, 'codex-2026-03-18-cli');
+
+    const cliRuntimeDeltaResult = spawnSync(
+      process.execPath,
+      [CLI_PATH, 'get-runtime-delta', '--memory-root', runtimeWorkspaceRoot],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(cliRuntimeDeltaResult.status, 0, cliRuntimeDeltaResult.stderr);
+    assert.equal(JSON.parse(cliRuntimeDeltaResult.stdout).runCount, 2);
+    assert.deepEqual(hashCanonTree(runtimeWorkspaceRoot), canonSnapshot);
+  } finally {
+    fs.rmSync(runtimeRoot, { recursive: true, force: true });
   }
 
   const orchestrationRoot = makeTempRoot();
@@ -319,7 +502,7 @@ function main() {
   }
 
   console.log(
-    'Validated read, bootstrap, safe write orchestration, query, status, verify, health, and CLI flows through memory-os-gateway.'
+    'Validated read, bootstrap, shadow runtime, safe write orchestration, query, status, verify, health, and CLI flows through memory-os-gateway.'
   );
 }
 

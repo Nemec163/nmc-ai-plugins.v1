@@ -13,6 +13,7 @@
     "./ops": "./lib/ops.js",
     "./query": "./lib/query.js",
     "./read": "./lib/read.js",
+    "./runtime": "./lib/runtime.js",
     "./status": "./lib/status.js",
     "./verify": "./lib/verify.js",
     "./write": "./lib/write.js"
@@ -33,6 +34,7 @@
     "@nmc/memory-agents": "0.0.0",
     "@nmc/memory-canon": "0.0.0",
     "@nmc/memory-scripts": "0.0.0",
-    "@nmc/memory-workspace": "0.0.0"
+    "@nmc/memory-workspace": "0.0.0",
+    "memory-os-runtime": "0.0.0"
   }
 }

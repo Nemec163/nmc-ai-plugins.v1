@@ -31,9 +31,14 @@ function loadMemoryWorkspace() {
   return loadPackage('@nmc/memory-workspace', '../../memory-workspace');
 }
 
+function loadMemoryRuntime() {
+  return loadPackage('memory-os-runtime', '../../memory-os-runtime');
+}
+
 module.exports = {
   loadMemoryAgents,
   loadMemoryCanon,
+  loadMemoryRuntime,
   loadMemoryScripts,
   loadMemoryWorkspace,
 };

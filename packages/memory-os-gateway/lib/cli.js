@@ -9,6 +9,7 @@ const {
 } = require('./bootstrap');
 const { getHealth } = require('./health');
 const { query } = require('./query');
+const { captureRuntime, getRuntimeDelta } = require('./runtime');
 const {
   getCanonicalCurrent,
   getProjection,
@@ -72,6 +73,8 @@ function printUsage() {
   console.error('  bootstrap-role --role-id <id> --workspace-dir <path> --shared-skills-root <path> --system-root <path> --memory-root <path> [--state-dir <path>] [--install-date <date>] [--overwrite]');
   console.error('  bootstrap-workspace --state-dir <path> --workspace-root <path> --system-root <path> --memory-root <path> --system-template-root <path> --memory-template-root <path> --skills-source-root <path> [--shared-skills-root <path>] [--install-date <date>] [--overwrite]');
   console.error('  query --memory-root <path> --text <query> [--limit <n>] [--include-pending]');
+  console.error('  get-runtime-delta --memory-root <path> [--limit <n>]');
+  console.error('  capture-runtime --memory-root <path> --run-id <id> --artifacts-file <path> [--runtime-inputs-file <path>] [--source <label>] [--captured-at <ts>] [--overwrite]');
   console.error('  status --memory-root <path>');
   console.error('  verify --memory-root <path> [--updated-at <ts>] [--today <date>]');
   console.error('  health --memory-root <path>');
@@ -153,6 +156,25 @@ function runCli(argv) {
         text: requireFlag(flags, 'text'),
         limit: flags.limit ? Number(flags.limit) : undefined,
         includePending: flags['include-pending'] === true ? true : undefined,
+      });
+      break;
+    case 'get-runtime-delta':
+      result = getRuntimeDelta({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        limit: flags.limit ? Number(flags.limit) : undefined,
+      });
+      break;
+    case 'capture-runtime':
+      result = captureRuntime({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        runId: requireFlag(flags, 'run-id'),
+        source: flags.source,
+        capturedAt: flags['captured-at'],
+        artifacts: readJsonFile(requireFlag(flags, 'artifacts-file')),
+        runtimeInputs: flags['runtime-inputs-file']
+          ? readJsonFile(flags['runtime-inputs-file'])
+          : undefined,
+        overwrite: toBoolean(flags.overwrite),
       });
       break;
     case 'status':

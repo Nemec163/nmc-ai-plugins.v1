@@ -2,5 +2,19 @@
   "name": "memory-os-runtime",
   "version": "0.0.0",
   "private": true,
-  "description": "Non-canonical runtime memory package placeholder for shadow-mode extraction."
+  "description": "Non-canonical runtime memory package for shadow-mode storage and inspection.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./store": "./lib/store.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  }
 }

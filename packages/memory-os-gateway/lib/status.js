@@ -5,6 +5,7 @@ const path = require('node:path');
 
 const { loadMemoryCanon } = require('./load-deps');
 const { readManifestSnapshot } = require('./read');
+const { getRuntimeDelta } = require('./runtime');
 
 function fileMtimeEpoch(filePath) {
   return Math.floor(fs.statSync(filePath).mtimeMs / 1000);
@@ -48,6 +49,7 @@ function getStatus(options) {
   const canon = loadMemoryCanon();
   const manifestPath = canon.resolveManifestPath(memoryRoot);
   const manifest = readManifestSnapshot(memoryRoot);
+  const runtimeDelta = getRuntimeDelta({ memoryRoot, limit: 5 });
   const pendingDir = path.join(memoryRoot, 'intake/pending');
   const processedDir = path.join(memoryRoot, 'intake/processed');
   const nowEpoch = Math.floor(Date.now() / 1000);
@@ -116,6 +118,23 @@ function getStatus(options) {
     retention: {
       processedFilesOlderThan90Days: processedStaleCount,
       retentionAlert: processedStaleCount > 0,
+    },
+    runtime: {
+      shadowExists: runtimeDelta.exists,
+      runtimeRoot: runtimeDelta.runtimeRoot,
+      shadowRoot: runtimeDelta.shadowRoot,
+      manifestPath: runtimeDelta.manifestPath,
+      disposable: runtimeDelta.disposable,
+      rebuildableFrom: runtimeDelta.rebuildableFrom,
+      runCount: runtimeDelta.runCount,
+      totalArtifacts: runtimeDelta.totalArtifacts,
+      lastCapturedAt: runtimeDelta.lastCapturedAt,
+      buckets: Object.fromEntries(
+        Object.entries(runtimeDelta.buckets).map(([bucketName, bucket]) => [
+          bucketName,
+          bucket.count,
+        ])
+      ),
     },
     overall: {
       status: overallStatus,

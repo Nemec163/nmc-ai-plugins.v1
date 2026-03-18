@@ -10,6 +10,8 @@ Current v1 surface:
 - `getRoleBundle` / `get_role_bundle`
 - `bootstrap`
 - `query`
+- `getRuntimeDelta` / `get_runtime_delta`
+- `captureRuntime` / `capture_runtime`
 - `getStatus` / `status`
 - `verify`
 - `getHealth` / `health`
@@ -35,5 +37,11 @@ Write orchestration stays non-authoritative in this slice:
 - `propose` stores structured proposal payloads under `intake/proposals/`
 - `feedback` merges curator decisions and materializes `intake/pending/YYYY-MM-DD.md` when the batch is fully reviewed
 - `complete-job` writes a non-canonical job receipt under `intake/jobs/` and exposes the single-writer lock scaffold and promotion request for the legacy apply path without writing canon directly
+
+Shadow runtime stays separate from canon in this slice:
+
+- `captureRuntime` writes shadow-mode runtime artifacts under `runtime/shadow/`
+- `getRuntimeDelta` exposes the non-authoritative runtime layer separately from canonical current
+- `status` reports runtime shadow counts without widening into canon mutation or orchestration ownership
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan and phase sequencing.

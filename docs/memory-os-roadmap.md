@@ -5,11 +5,15 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 4 / PR 4.2 — Expand Codex to Full Single-Run Contract`
-- next: `Phase 5 / PR 5.1 — Add memory-os-runtime in Shadow Mode`
+- completed: `Phase 5 / PR 5.1 — Add memory-os-runtime in Shadow Mode`
+- next: `Phase 5.5 — OpenClaw Runtime-Backed Orchestration`
 - last verified on: `2026-03-18`
 - verified in this slice:
+  - `/usr/local/bin/node packages/memory-os-runtime/test/validate-fixtures.js`
+  - `/usr/local/bin/node packages/memory-os-gateway/test/validate-fixtures.js`
+  - `/usr/local/bin/node packages/adapter-conformance/test/validate-fixtures.js`
   - `/usr/local/bin/node packages/adapter-codex/test/validate-fixtures.js`
+  - `/usr/local/bin/node packages/adapter-openclaw/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
@@ -1248,6 +1252,22 @@ Rollback:
 
 #### PR 5.1: Add `memory-os-runtime` in Shadow Mode
 
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- replaced the `packages/memory-os-runtime` placeholder with a real CommonJS shadow-store package that records episodic, semantic, procedural, feedback, trace, trigger, and reflection artifacts under `runtime/shadow/` instead of canon
+- added gateway-backed `captureRuntime` and `getRuntimeDelta` surfaces plus CLI commands so canonical current and shadow runtime can be inspected separately without reaching into files directly
+- extended gateway `status` output with a runtime section that reports shadow-store counts, disposability, and rebuildability while keeping canon mutation behind the existing promotion path
+- proved the slice with package-local runtime tests, gateway shadow-runtime fixture coverage, adapter/conformance checks, and the full contract/integration baseline while confirming canon files stay unchanged during runtime capture
+- verified with `/usr/local/bin/node packages/memory-os-runtime/test/validate-fixtures.js`
+- verified with `/usr/local/bin/node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `/usr/local/bin/node packages/adapter-conformance/test/validate-fixtures.js`
+- verified with `/usr/local/bin/node packages/adapter-codex/test/validate-fixtures.js`
+- verified with `/usr/local/bin/node packages/adapter-openclaw/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
+
 Capture advanced runtime memory outside the canon tree. No canonical writes.
 
 Start with:
@@ -1586,10 +1606,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 5, PR 5.1:
+The next implementation step should be Phase 5.5:
 
-- add `memory-os-runtime` in shadow mode so episodic memory, semantic cache, and procedural feedback can be stored outside canon without becoming authoritative
-- surface canonical current and runtime delta separately so runtime state stays inspectable, disposable, and rebuildable from canon plus captured runtime inputs
-- keep PR 5.1 pinned to non-canonical storage and observability rather than letting runtime components mutate canon or widen into orchestration ownership
+- integrate OpenClaw as an orchestration adapter over the new shadow runtime so it can consume recall bundles without reclaiming memory ownership
+- keep runtime explicitly non-authoritative while proposals, feedback, and completion continue to flow through gateway surfaces and the single promotion path
+- treat the go/no-go review for shadow runtime as the gate before widening into runtime-backed orchestration behavior
 
-PR 4.2 is now complete, so the next risk is letting runtime artifacts leak into canonical workflows before the shadow/runtime boundary is explicit enough. Keep PR 5.1 focused on isolated non-canonical storage plus clear separation between canonical current and runtime delta.
+PR 5.1 is now complete, so the next risk is letting runtime-backed orchestration reintroduce OpenClaw-specific memory ownership or covert canon writes. Keep Phase 5.5 focused on consumption and observability over the existing shadow/runtime boundary rather than widening authority.
