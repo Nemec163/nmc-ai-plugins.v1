@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
@@ -11,6 +12,10 @@ const LLM_RUNNER_BIN_PATH = path.join(ROOT_DIR, 'bin', 'run-llm-phase.js');
 const WRAPPER_PATH = path.resolve(
   ROOT_DIR,
   '../../nmc-memory-plugin/skills/memory-pipeline/pipeline.sh'
+);
+const WORKSPACE_FIXTURE = path.resolve(
+  ROOT_DIR,
+  '../../nmc-memory-plugin/tests/fixtures/workspace'
 );
 
 const {
@@ -46,6 +51,16 @@ function ensureBashSyntax(pathname) {
       `bash -n failed for ${pathname}\nstdout:\n${result.stdout || ''}\nstderr:\n${result.stderr || ''}`
     );
   }
+}
+
+function makeTempWorkspace() {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'memory-pipeline-validate-'));
+  const workspaceRoot = path.join(tempRoot, 'workspace');
+  fs.cpSync(WORKSPACE_FIXTURE, workspaceRoot, { recursive: true });
+  return {
+    tempRoot,
+    workspaceRoot,
+  };
 }
 
 function main() {
@@ -116,14 +131,23 @@ function main() {
   assert.equal(dryRunCli.status, 0, dryRunCli.stderr);
   assert.equal(dryRunCli.stdout.trim(), 'openclaw skill run memory-curate --date 2026-03-05');
 
-  const runResult = runAdapterInvocation({
-    adapterModule: path.resolve(ROOT_DIR, '../adapter-openclaw'),
-    phase: 'apply',
-    date: '2026-03-05',
-    llmRunner: 'true',
-    memoryRoot: '/tmp/workspace/system/memory',
-  });
-  assert.equal(runResult.status, 0);
+  const tempWorkspace = makeTempWorkspace();
+  try {
+    const runResult = runAdapterInvocation({
+      adapterModule: path.resolve(ROOT_DIR, '../adapter-openclaw'),
+      phase: 'apply',
+      date: '2026-03-05',
+      llmRunner: 'true',
+      memoryRoot: tempWorkspace.workspaceRoot,
+    });
+    assert.equal(runResult.status, 0);
+    assert.equal(
+      fs.existsSync(path.join(tempWorkspace.workspaceRoot, 'intake/processed/2026-03-05.md')),
+      true
+    );
+  } finally {
+    fs.rmSync(tempWorkspace.tempRoot, { recursive: true, force: true });
+  }
 
   console.log('Validated pipeline contract assertions through @nmc/memory-pipeline.');
 }

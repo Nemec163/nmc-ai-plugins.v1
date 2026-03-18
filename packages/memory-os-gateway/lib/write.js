@@ -329,13 +329,15 @@ function completeJob(options) {
     proposal.pending_batch_path = pendingBatch.relativePath;
   }
 
-  const operation = options.operation || 'legacy-apply';
+  const operation = options.operation || 'core-promoter';
   const holder = options.holder || `gateway:${proposalId}`;
   const promotionRequest = {
     type: 'canon-write',
     memory_root: memoryRoot,
     writer: canon.CANON_SINGLE_WRITER,
     operation,
+    batch_date: proposal.batch_date,
+    pending_batch_path: pendingBatch.relativePath,
   };
   const promotionValidation = canon.validatePromotionRequest(promotionRequest);
   if (!promotionValidation.valid) {

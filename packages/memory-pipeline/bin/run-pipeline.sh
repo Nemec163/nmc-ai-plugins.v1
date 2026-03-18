@@ -235,7 +235,7 @@ need_llm_runner=0
 for phase in "${requested_phases[@]}"; do
   set_phase_status "$phase" 'pending'
   case "$phase" in
-    extract|curate|apply)
+    extract|curate)
       need_llm_runner=1
       ;;
   esac

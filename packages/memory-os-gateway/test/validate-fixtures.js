@@ -129,7 +129,7 @@ function main() {
           target_layer: 'L3',
           target_domain: 'work',
           claim:
-            'The gateway write path should queue reviewed claims before legacy apply owns canon serialization.',
+            'The gateway write path should queue reviewed claims before the core promoter owns canon serialization.',
         },
       ],
     });
@@ -174,13 +174,13 @@ function main() {
     );
     assert.equal(
       completed.receipt.write_path.promotion_request.operation,
-      'legacy-apply'
+      'core-promoter'
     );
 
     acquireCanonWriteLock({
       memoryRoot: orchestrationWorkspaceRoot,
       holder: 'ops-lock-holder',
-      operation: 'legacy-apply',
+      operation: 'core-promoter',
       acquiredAt: '2026-03-18T14:00:00Z',
     });
 
@@ -199,7 +199,7 @@ function main() {
           authoritative: false,
           pending_batch_path: 'intake/pending/2026-03-18.md',
           write_path: {
-            implementation: 'legacy-apply',
+            implementation: 'core-promoter',
             single_writer: completed.receipt.write_path.single_writer,
             promotion_request: completed.receipt.write_path.promotion_request,
             lock_path: completed.receipt.write_path.lock_path,

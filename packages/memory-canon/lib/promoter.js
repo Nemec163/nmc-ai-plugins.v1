@@ -9,6 +9,7 @@ const {
   PROMOTER_IMPLEMENTATIONS,
   PROMOTER_REQUEST_TYPES,
 } = require('./constants');
+const { promoteCanonBatch } = require('./core-promoter');
 const { createCanonWriteLock, validateCanonWriteLock } = require('./lock');
 const { resolveCanonLockPath } = require('./layout');
 const { VALIDATION_ERROR_CODES } = require('./load-contracts');
@@ -207,18 +208,50 @@ function createPromoterInterface(overrides = {}) {
     single_writer: overrides.singleWriter || CANON_SINGLE_WRITER,
     validateRequest: overrides.validateRequest || validatePromotionRequest,
     acquireLock: overrides.acquireLock || acquireCanonWriteLock,
-    promote:
-      overrides.promote ||
-      (() => {
-        throw new Error('Canon promotion is not implemented in this slice.');
-      }),
+    promote: overrides.promote || promote,
     releaseLock: overrides.releaseLock || releaseCanonWriteLock,
   });
+}
+
+function promote(request) {
+  const validation = validatePromotionRequest(request);
+  if (!validation.valid) {
+    throw new Error(firstIssueMessage(validation, 'Invalid promotion request.'));
+  }
+
+  const holder = request.holder || request.writer;
+  const normalizedRequest = {
+    ...request,
+    holder,
+    operation: request.operation || PROMOTER_IMPLEMENTATIONS[1],
+  };
+
+  const acquired = acquireCanonWriteLock(normalizedRequest);
+  if (!acquired.acquired && acquired.existingLock && acquired.existingLock.holder !== holder) {
+    throw new Error(
+      `Canon write lock already held by ${acquired.existingLock.holder}.`
+    );
+  }
+
+  try {
+    const result = promoteCanonBatch(normalizedRequest);
+    return {
+      promoted: true,
+      lockPath: acquired.lockPath,
+      single_writer: CANON_SINGLE_WRITER,
+      ...result,
+    };
+  } finally {
+    if (acquired.acquired) {
+      releaseCanonWriteLock(normalizedRequest);
+    }
+  }
 }
 
 module.exports = {
   acquireCanonWriteLock,
   createPromoterInterface,
+  promote,
   releaseCanonWriteLock,
   validatePromotionRequest,
 };

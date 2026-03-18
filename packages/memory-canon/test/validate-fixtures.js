@@ -20,6 +20,7 @@ const {
   validatePromotionRequest,
   verifyCanonWorkspace,
 } = require('..');
+const { parseProjectionRecords } = require('../../memory-os-gateway/lib/records');
 
 const FIXTURE_ROOT = path.resolve(
   __dirname,
@@ -47,12 +48,67 @@ function loadGoldenChecksums(filePath) {
   return checksums;
 }
 
+function normalizeRecords(memoryRoot, relativePath) {
+  const filePath = path.join(memoryRoot, relativePath);
+  const content = fs.readFileSync(filePath, 'utf8');
+
+  return parseProjectionRecords(content).map((record) => ({
+    anchorId: record.anchorId,
+    recordId: record.metadata.record_id || null,
+    type: record.metadata.type || null,
+    confidence: record.metadata.confidence || null,
+    status: record.metadata.status || null,
+    evidence: [...(record.metadata.evidence || [])].sort(),
+    links: [...(record.metadata.links || [])]
+      .map((link) => ({
+        rel: link.rel,
+        target: link.target,
+      }))
+      .sort((left, right) => {
+        const leftKey = `${left.rel}:${left.target}`;
+        const rightKey = `${right.rel}:${right.target}`;
+        return leftKey.localeCompare(rightKey);
+      }),
+  }));
+}
+
+function blankWritableCanon(memoryRoot) {
+  const targets = [
+    'core/user/timeline/2026/03/05.md',
+    'core/user/knowledge/work.md',
+    'core/user/knowledge/preferences.md',
+    'core/user/state/current.md',
+    'core/agents/trader/PITFALLS.md',
+  ];
+
+  targets.forEach((relativePath) => {
+    const filePath = path.join(memoryRoot, relativePath);
+    if (fs.existsSync(filePath)) {
+      fs.rmSync(filePath);
+    }
+  });
+
+  const processedPath = path.join(memoryRoot, 'intake/processed/2026-03-05.md');
+  if (fs.existsSync(processedPath)) {
+    fs.rmSync(processedPath);
+  }
+
+  fs.writeFileSync(
+    path.join(memoryRoot, 'core/meta/manifest.json'),
+    '{\n  "schema_version": "1.0",\n  "last_updated": null,\n  "record_counts": {\n    "events": 0,\n    "facts": 0,\n    "states": 0,\n    "identities": 0,\n    "competences": 0\n  },\n  "checksums": {},\n  "edges_count": 0\n}\n',
+    'utf8'
+  );
+  fs.writeFileSync(path.join(memoryRoot, 'core/meta/graph/edges.jsonl'), '', 'utf8');
+}
+
 function main() {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'memory-canon-fixture-'));
   const workspaceCopy = path.join(tempRoot, 'workspace');
+  const promotionCopy = path.join(tempRoot, 'promotion-workspace');
 
   try {
     copyDirectory(WORKSPACE_ROOT, workspaceCopy);
+    copyDirectory(WORKSPACE_ROOT, promotionCopy);
 
     const verification = verifyCanonWorkspace({
       memoryRoot: workspaceCopy,
@@ -114,7 +170,7 @@ function main() {
         type: 'canon-write',
         memory_root: workspaceCopy,
         writer: CANON_SINGLE_WRITER,
-        operation: 'legacy-apply',
+        operation: 'core-promoter',
       }).valid,
       true
     );
@@ -126,7 +182,7 @@ function main() {
       memoryRoot: workspaceCopy,
       holder: 'fixture-lock-helper',
       acquiredAt: '2026-03-17T00:00:30Z',
-      operation: 'legacy-apply',
+      operation: 'core-promoter',
     });
     assert.equal(directAcquire.path, lockPath);
     assert.equal(readCanonWriteLock(workspaceCopy).lock.holder, 'fixture-lock-helper');
@@ -143,7 +199,7 @@ function main() {
       type: 'canon-write',
       memory_root: workspaceCopy,
       writer: CANON_SINGLE_WRITER,
-      operation: 'legacy-apply',
+      operation: 'core-promoter',
       holder: 'fixture-test',
     };
     const acquired = promoter.acquireLock(request);
@@ -157,6 +213,60 @@ function main() {
     const released = promoter.releaseLock(request);
     assert.equal(released.released, true);
     assert.equal(fs.existsSync(lockPath), false);
+
+    blankWritableCanon(promotionCopy);
+
+    const promoted = promoter.promote({
+      type: 'canon-write',
+      memory_root: promotionCopy,
+      writer: CANON_SINGLE_WRITER,
+      holder: 'fixture-promoter',
+      operation: 'core-promoter',
+      batch_date: '2026-03-05',
+    });
+    assert.equal(promoted.promoted, true);
+    assert.equal(
+      fs.existsSync(path.join(promotionCopy, 'intake/processed/2026-03-05.md')),
+      true
+    );
+    assert.equal(
+      fs.existsSync(path.join(promotionCopy, 'intake/pending/2026-03-05.md')),
+      false
+    );
+
+    const expectedPaths = [
+      'core/user/timeline/2026/03/05.md',
+      'core/user/knowledge/work.md',
+      'core/user/knowledge/preferences.md',
+      'core/user/state/current.md',
+      'core/agents/trader/PITFALLS.md',
+    ];
+
+    expectedPaths.forEach((relativePath) => {
+      assert.deepEqual(
+        normalizeRecords(promotionCopy, relativePath),
+        normalizeRecords(WORKSPACE_ROOT, relativePath),
+        `Expected normalized promoted records to match frozen fixture for ${relativePath}`
+      );
+    });
+
+    const promotedVerification = verifyCanonWorkspace({
+      memoryRoot: promotionCopy,
+      updatedAt: '2026-03-17T00:00:00Z',
+      today: '2026-03-17',
+    });
+    const expectedVerification = verifyCanonWorkspace({
+      memoryRoot: workspaceCopy,
+      updatedAt: '2026-03-17T00:00:00Z',
+      today: '2026-03-17',
+    });
+
+    assert.deepEqual(promotedVerification.recordCounts, expectedVerification.recordCounts);
+    assert.equal(promotedVerification.edgesCount, expectedVerification.edgesCount);
+    assert.equal(
+      fs.readFileSync(path.join(promotionCopy, 'core/meta/graph/edges.jsonl'), 'utf8'),
+      fs.readFileSync(path.join(workspaceCopy, 'core/meta/graph/edges.jsonl'), 'utf8')
+    );
 
     console.log(
       'Validated 6 canonical record fixtures and rebuilt 6 graph edges through @nmc/memory-canon.'

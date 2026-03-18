@@ -3,6 +3,7 @@
 const { spawnSync } = require('node:child_process');
 
 let cachedMemoryContracts = null;
+let cachedMemoryCanon = null;
 
 function loadMemoryContracts() {
   if (cachedMemoryContracts) {
@@ -22,6 +23,27 @@ function loadMemoryContracts() {
 
     cachedMemoryContracts = require('../../memory-contracts');
     return cachedMemoryContracts;
+  }
+}
+
+function loadMemoryCanon() {
+  if (cachedMemoryCanon) {
+    return cachedMemoryCanon;
+  }
+
+  try {
+    cachedMemoryCanon = require('@nmc/memory-canon');
+    return cachedMemoryCanon;
+  } catch (error) {
+    if (
+      error.code !== 'MODULE_NOT_FOUND' ||
+      !String(error.message || '').includes('@nmc/memory-canon')
+    ) {
+      throw error;
+    }
+
+    cachedMemoryCanon = require('../../memory-canon');
+    return cachedMemoryCanon;
   }
 }
 
@@ -50,6 +72,24 @@ function describeAdapterInvocation(options) {
 }
 
 function runAdapterInvocation(options) {
+  if (options.phase === 'apply') {
+    const canon = loadMemoryCanon();
+    const promoter = canon.createPromoterInterface();
+    promoter.promote({
+      type: 'canon-write',
+      memory_root: options.memoryRoot,
+      writer: canon.CANON_SINGLE_WRITER,
+      holder: `pipeline:${options.date}`,
+      operation: 'core-promoter',
+      batch_date: options.date,
+    });
+
+    return {
+      status: 0,
+      signal: null,
+    };
+  }
+
   const invocation = getAdapterInvocation(options);
   const result = spawnSync(invocation.command, invocation.args, {
     stdio: 'inherit',

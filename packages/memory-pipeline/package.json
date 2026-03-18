@@ -21,6 +21,7 @@
     "memory-pipeline": "./bin/run-pipeline.sh"
   },
   "dependencies": {
+    "@nmc/memory-canon": "0.0.0",
     "@nmc/memory-contracts": "0.0.0"
   },
   "scripts": {
