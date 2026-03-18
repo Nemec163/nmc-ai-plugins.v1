@@ -1,0 +1,33 @@
+{
+  "name": "adapter-openclaw",
+  "version": "0.0.0",
+  "private": true,
+  "description": "OpenClaw-specific adapter package over extracted Memory OS core modules.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./conformance-adapter": "./lib/conformance-adapter.js",
+    "./pipeline-adapter": "./lib/pipeline-adapter.js",
+    "./register": "./lib/register.js",
+    "./runtime-orchestration": "./lib/runtime-orchestration.js",
+    "./setup": "./lib/openclaw-setup.js",
+    "./setup-cli": "./lib/setup-cli.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "skills/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  },
+  "dependencies": {
+    "@nmc/memory-contracts": "0.0.0",
+    "@nmc/memory-agents": "0.0.0",
+    "@nmc/memory-workspace": "0.0.0",
+    "adapter-conformance": "0.0.0",
+    "memory-os-gateway": "0.0.0"
+  }
+}

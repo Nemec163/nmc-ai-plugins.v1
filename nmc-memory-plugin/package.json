@@ -9,6 +9,7 @@
     "index.js",
     "lib/",
     "openclaw.plugin.json",
+    "packages/",
     "scripts/",
     "skills/",
     "templates/",

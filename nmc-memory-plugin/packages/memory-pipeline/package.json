@@ -1,0 +1,30 @@
+{
+  "name": "@nmc/memory-pipeline",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Engine-agnostic extract, curate, apply, and verify sequencing for the Memory OS pipeline.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./adapter-runner": "./lib/adapter-runner.js",
+    "./phases": "./lib/phases.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "bin/",
+    "README.md"
+  ],
+  "bin": {
+    "memory-pipeline-llm-phase": "./bin/run-llm-phase.js",
+    "memory-pipeline": "./bin/run-pipeline.sh"
+  },
+  "dependencies": {
+    "@nmc/memory-canon": "0.0.0",
+    "@nmc/memory-contracts": "0.0.0"
+  },
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  }
+}

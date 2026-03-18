@@ -1,0 +1,23 @@
+{
+  "name": "@nmc/memory-contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared constitutional contracts: record envelopes, schemas, adapter protocols, and error semantics.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./compatibility": "./lib/compatibility.js",
+    "./constants": "./lib/constants.js",
+    "./pipeline-adapter": "./lib/pipeline-adapter.js",
+    "./records": "./lib/records.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  }
+}

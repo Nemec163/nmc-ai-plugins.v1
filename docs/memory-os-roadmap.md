@@ -5,14 +5,12 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 5.5 — OpenClaw Runtime-Backed Orchestration`
-- next: `Phase 6 — Add Control Plane Carefully`
-- last verified on: `2026-03-18`
+- completed: `control-plane v2 — proposals/conflicts queues and manual interventions`
+- next: `control-plane v3 — analytics, audits, runtime inspector, and operator dashboards`
+- last verified on: `2026-03-19`
 - verified in this slice:
-  - `node packages/memory-os-runtime/test/validate-fixtures.js`
-  - `node packages/memory-os-gateway/test/validate-fixtures.js`
-  - `node packages/adapter-openclaw/test/validate-fixtures.js`
-  - `node packages/adapter-conformance/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
@@ -1330,6 +1328,12 @@ Do this only after gateway and runtime have proven stable.
 
 `control-plane` v1 formalizes and replaces the temporary Phase 2.5 harness on stable contracts rather than inheriting authority from it.
 
+Implemented in this slice:
+
+- introduced `packages/control-plane` as the supported read-only SDK/CLI for operator snapshot and health monitoring
+- composed stable gateway status/health/verify/current/runtime surfaces with maintainer board and policy summaries
+- kept scheduler policy, backlog policy semantics, and canon promotion ownership outside the control-plane while leaving the temporary gateway ops harness explicitly migration-scoped
+
 Acceptance criteria:
 
 - operator surfaces exist over stable gateway, runtime, and maintainer capabilities
@@ -1343,6 +1347,32 @@ Main risk:
 Rollback:
 
 - fall back to scripts and manual operation
+
+### control-plane v2: proposals/conflicts queues and manual interventions
+
+Do this only after `control-plane` v1 has frozen the basic operator surface.
+
+Implemented in this slice:
+
+- moved proposal/job/conflict queue inspection into a control-plane-owned read model instead of delegating that contract to the temporary gateway `ops-snapshot`
+- added explicit `queues` and `interventions` SDK/CLI surfaces under `packages/control-plane` with advisory-only manual intervention receipts stored under `runtime/shadow/control-plane/interventions/`
+- kept scheduler policy, backlog policy, queue mutation, and canon promotion authority outside the control-plane while exposing available operator actions per proposal, job, conflict, and active lock
+- preserved the temporary gateway ops harness as a migration bridge, but stopped using it as the supported control-plane queue contract
+- ran the required baseline commands with the updated control-plane, canon, gateway, and adapter fixtures green
+
+Acceptance criteria:
+
+- proposal, job, and conflict queues are exposed through a durable control-plane-owned contract
+- manual intervention surfaces record advisory operator actions without mutating canon, proposal receipts, or job receipts directly
+- scheduler, backlog-policy, and promotion ownership remain outside `packages/control-plane`
+
+Main risk:
+
+- letting advisory intervention receipts drift into implicit orchestration authority
+
+Rollback:
+
+- keep the control-plane snapshot/health surfaces and route queue inspection back through the temporary gateway harness while leaving advisory receipts unused
 
 ## Backward Compatibility Matrix
 
@@ -1605,10 +1635,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 6:
+The next implementation step should be control-plane v3 hardening:
 
-- formalize the temporary ops harness into a supported control-plane surface over stable gateway, runtime, and maintainer contracts
-- keep scheduling, backlog policy, and promotion ownership outside the control-plane
-- preserve runtime as explicitly non-authoritative while operator visibility improves
+- add analytics and audit-oriented operator surfaces over the now-stable queue and intervention contracts
+- introduce runtime inspection without turning runtime into an authoritative source of truth
+- continue reducing the temporary `ops-snapshot` bridge once control-plane parity remains proven
 
-Phase 5.5 is now complete, so the next risk is turning operator visibility into control authority before the contracts are intentionally frozen. Keep Phase 6 focused on read-only and approval-oriented control surfaces rather than scheduler or promotion ownership.
+control-plane v2 is now complete, so the next risk is growing a richer operator UX before queue/intervention history and runtime inspection semantics are intentionally bounded. Keep the next slice focused on analytics, audits, and runtime inspection rather than scheduler or promotion authority.

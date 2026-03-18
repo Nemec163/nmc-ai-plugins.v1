@@ -35,8 +35,7 @@ function loadMemoryAgents() {
       throw error;
     }
 
-    // Agent package tests run directly from source without a workspace install step.
-    cachedMemoryAgents = require("../../packages/memory-agents");
+    cachedMemoryAgents = require("../packages/memory-agents");
     return cachedMemoryAgents;
   }
 }
@@ -57,7 +56,7 @@ function loadMemoryGateway() {
       throw error;
     }
 
-    cachedMemoryGateway = require("../../packages/memory-os-gateway");
+    cachedMemoryGateway = require("../packages/memory-os-gateway");
     return cachedMemoryGateway;
   }
 }
@@ -78,8 +77,7 @@ function loadMemoryWorkspace() {
       throw error;
     }
 
-    // Workspace tests run directly from source without a workspace install step.
-    cachedMemoryWorkspace = require("../../packages/memory-workspace");
+    cachedMemoryWorkspace = require("../packages/memory-workspace");
     return cachedMemoryWorkspace;
   }
 }

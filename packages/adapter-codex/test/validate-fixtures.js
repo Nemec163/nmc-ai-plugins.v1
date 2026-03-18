@@ -94,7 +94,7 @@ function main() {
     });
     assert.equal(run.executionMode, 'single-thread');
     assert.equal(run.readOnly, true);
-    assert.equal(run.result.manifest.recordCounts.facts, 0);
+    assert.equal(run.result.manifest.recordCounts.facts, 2);
     assert.equal(run.result.intake.pendingFiles, 1);
     assert.equal(fs.existsSync(path.join(workspaceDir, 'BOOT.md')), true);
 

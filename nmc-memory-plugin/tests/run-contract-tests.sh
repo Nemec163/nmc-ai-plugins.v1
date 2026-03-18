@@ -20,6 +20,7 @@ WORKSPACE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-workspace/test/validate-
 AGENTS_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-agents/test/validate-fixtures.js"
 PIPELINE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-pipeline/test/validate-fixtures.js"
 GATEWAY_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-os-gateway/test/validate-fixtures.js"
+CONTROL_PLANE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/control-plane/test/validate-fixtures.js"
 ADAPTER_CONFORMANCE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/adapter-conformance/test/validate-fixtures.js"
 ADAPTER_OPENCLAW_FIXTURE_TEST="$PLUGIN_ROOT/../packages/adapter-openclaw/test/validate-fixtures.js"
 ADAPTER_CODEX_FIXTURE_TEST="$PLUGIN_ROOT/../packages/adapter-codex/test/validate-fixtures.js"
@@ -32,6 +33,32 @@ LAST_STDOUT=""
 LAST_STDERR=""
 LAST_EXIT_CODE=0
 
+resolve_executable() {
+  local preferred="$1"
+  shift
+
+  if [ -n "$preferred" ] && [ -x "$preferred" ]; then
+    printf '%s\n' "$preferred"
+    return 0
+  fi
+
+  while [ "$#" -gt 0 ]; do
+    if [ -n "$1" ] && [ -x "$1" ]; then
+      printf '%s\n' "$1"
+      return 0
+    fi
+    shift
+  done
+
+  return 1
+}
+
+resolve_node_bin() {
+  local command_path
+  command_path="$(command -v node 2>/dev/null || true)"
+  resolve_executable "${NODE_BIN:-}" "$command_path" /usr/local/bin/node /opt/homebrew/bin/node /usr/bin/node
+}
+
 cleanup() {
   if [ -n "$TEST_WORKDIR" ] && [ -d "$TEST_WORKDIR" ]; then
     rm -rf "$TEST_WORKDIR"
@@ -42,6 +69,12 @@ cleanup() {
 }
 
 trap cleanup EXIT
+
+NODE_BIN="$(resolve_node_bin || true)"
+if [ -z "$NODE_BIN" ]; then
+  echo "error: node executable not found; set NODE_BIN or add node to PATH" >&2
+  exit 1
+fi
 
 print_case() {
   printf '\n[%s] %s\n' "$1" "$2"
@@ -297,7 +330,7 @@ test_shared_contracts_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-contracts-test.XXXXXX")"
-  run_and_capture node "$CONTRACT_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$CONTRACT_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "shared contracts fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -320,7 +353,7 @@ test_shared_ingest_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-ingest-test.XXXXXX")"
-  run_and_capture node "$INGEST_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$INGEST_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "shared ingest fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -343,7 +376,7 @@ test_shared_canon_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-canon-test.XXXXXX")"
-  run_and_capture node "$CANON_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$CANON_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "shared canon fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -366,7 +399,7 @@ test_shared_maintainer_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-maintainer-test.XXXXXX")"
-  run_and_capture node "$MAINTAINER_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$MAINTAINER_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "shared maintainer fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -389,7 +422,7 @@ test_shared_scripts_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-scripts-test.XXXXXX")"
-  run_and_capture node "$SCRIPTS_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$SCRIPTS_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "shared scripts fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -412,7 +445,7 @@ test_shared_workspace_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-workspace-test.XXXXXX")"
-  run_and_capture node "$WORKSPACE_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$WORKSPACE_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "shared workspace fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -435,7 +468,7 @@ test_shared_agents_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-agents-test.XXXXXX")"
-  run_and_capture node "$AGENTS_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$AGENTS_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "shared agents fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -458,7 +491,7 @@ test_shared_pipeline_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-pipeline-test.XXXXXX")"
-  run_and_capture node "$PIPELINE_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$PIPELINE_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "shared pipeline fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -481,7 +514,7 @@ test_shared_gateway_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-gateway-test.XXXXXX")"
-  run_and_capture node "$GATEWAY_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$GATEWAY_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "shared gateway fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -495,6 +528,29 @@ test_shared_gateway_package_fixture_validation() {
   fi
 }
 
+test_control_plane_package_fixture_validation() {
+  print_case "TEST" "control-plane validates supported operator snapshot and health fixtures"
+
+  if ! require_file "$CONTROL_PLANE_FIXTURE_TEST" "control-plane package fixture test"; then
+    return
+  fi
+
+  cleanup
+  TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-control-plane-test.XXXXXX")"
+  run_and_capture "$NODE_BIN" "$CONTROL_PLANE_FIXTURE_TEST"
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "control-plane fixture validation" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if grep -q "control-plane" "$LAST_STDOUT"; then
+    pass "control-plane fixture validation"
+  else
+    fail "control-plane fixture validation" "Fixture validation output did not confirm control-plane package execution"
+  fi
+}
+
 test_shared_adapter_conformance_package_fixture_validation() {
   print_case "TEST" "adapter-conformance validates shared adapter capability fixtures"
 
@@ -504,7 +560,7 @@ test_shared_adapter_conformance_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-adapter-conformance-test.XXXXXX")"
-  run_and_capture node "$ADAPTER_CONFORMANCE_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$ADAPTER_CONFORMANCE_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "adapter-conformance fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -527,7 +583,7 @@ test_adapter_openclaw_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-adapter-openclaw-test.XXXXXX")"
-  run_and_capture node "$ADAPTER_OPENCLAW_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$ADAPTER_OPENCLAW_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "adapter-openclaw fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -550,7 +606,7 @@ test_adapter_codex_package_fixture_validation() {
 
   cleanup
   TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-adapter-codex-test.XXXXXX")"
-  run_and_capture node "$ADAPTER_CODEX_FIXTURE_TEST"
+  run_and_capture "$NODE_BIN" "$ADAPTER_CODEX_FIXTURE_TEST"
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "adapter-codex fixture validation" "Expected 0, got $LAST_EXIT_CODE"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
@@ -965,6 +1021,7 @@ main() {
   test_shared_agents_package_fixture_validation
   test_shared_pipeline_package_fixture_validation
   test_shared_gateway_package_fixture_validation
+  test_control_plane_package_fixture_validation
   test_shared_adapter_conformance_package_fixture_validation
   test_adapter_openclaw_package_fixture_validation
   test_adapter_codex_package_fixture_validation

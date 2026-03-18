@@ -1,0 +1,40 @@
+{
+  "name": "memory-os-gateway",
+  "version": "0.0.0",
+  "private": true,
+  "description": "In-process SDK and CLI for Memory OS read, bootstrap, query, status, verify, health, and safe write orchestration.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./bootstrap": "./lib/bootstrap.js",
+    "./cli": "./lib/cli.js",
+    "./health": "./lib/health.js",
+    "./ops": "./lib/ops.js",
+    "./query": "./lib/query.js",
+    "./read": "./lib/read.js",
+    "./runtime": "./lib/runtime.js",
+    "./status": "./lib/status.js",
+    "./verify": "./lib/verify.js",
+    "./write": "./lib/write.js"
+  },
+  "files": [
+    "bin/",
+    "index.js",
+    "lib/",
+    "README.md"
+  ],
+  "bin": {
+    "memory-os-gateway": "./bin/memory-os-gateway.js"
+  },
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  },
+  "dependencies": {
+    "@nmc/memory-agents": "0.0.0",
+    "@nmc/memory-canon": "0.0.0",
+    "@nmc/memory-scripts": "0.0.0",
+    "@nmc/memory-workspace": "0.0.0",
+    "memory-os-runtime": "0.0.0"
+  }
+}

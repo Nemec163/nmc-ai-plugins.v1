@@ -24,6 +24,46 @@ LAST_STDOUT=""
 LAST_STDERR=""
 LAST_EXIT_CODE=0
 
+resolve_executable() {
+  local preferred="$1"
+  shift
+
+  if [ -n "$preferred" ] && [ -x "$preferred" ]; then
+    printf '%s\n' "$preferred"
+    return 0
+  fi
+
+  while [ "$#" -gt 0 ]; do
+    if [ -n "$1" ] && [ -x "$1" ]; then
+      printf '%s\n' "$1"
+      return 0
+    fi
+    shift
+  done
+
+  return 1
+}
+
+resolve_node_bin() {
+  local command_path
+  command_path="$(command -v node 2>/dev/null || true)"
+  resolve_executable "${NODE_BIN:-}" "$command_path" /usr/local/bin/node /opt/homebrew/bin/node /usr/bin/node
+}
+
+resolve_npm_bin() {
+  local command_path
+  command_path="$(command -v npm 2>/dev/null || true)"
+  resolve_executable "${NPM_BIN:-}" "$command_path" /usr/local/bin/npm /opt/homebrew/bin/npm /usr/bin/npm
+}
+
+NODE_BIN="$(resolve_node_bin || true)"
+if [ -z "$NODE_BIN" ]; then
+  echo "error: node executable not found; set NODE_BIN or add node to PATH" >&2
+  exit 1
+fi
+
+NPM_BIN="$(resolve_npm_bin || true)"
+
 count_nonempty_lines() {
   awk 'NF { count++ } END { print count + 0 }' "$1"
 }
@@ -334,6 +374,105 @@ test_template_default_agents() {
   fi
 }
 
+test_packaged_artifact_install_smoke() {
+  local node_bin npm_bin tool_dir artifact_root extract_root state_dir workspace_root
+  local config_path package_name packaged_root packaged_setup packaged_onboard
+  local packaged_pipeline packaged_memory_root
+
+  print_case "TEST" "packed nmc-memory-plugin artifact stays self-contained after extract"
+
+  node_bin="$NODE_BIN"
+  npm_bin="$NPM_BIN"
+  if [ -z "$node_bin" ] || [ -z "$npm_bin" ]; then
+    fail "packed artifact toolchain discovery" "Expected working node and npm executables"
+    return
+  fi
+
+  tool_dir="$(dirname "$node_bin")"
+  artifact_root="$TEST_WORKDIR/packed-artifact"
+  extract_root="$artifact_root/extracted"
+  state_dir="$artifact_root/state"
+  workspace_root="$state_dir/workspace"
+  config_path="$state_dir/openclaw.json"
+
+  mkdir -p "$artifact_root" "$extract_root" "$state_dir"
+
+  run_and_capture_in_dir "$artifact_root" env PATH="$tool_dir:$PATH" "$npm_bin" pack "$PLUGIN_ROOT" --silent
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "packed artifact npm pack exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  package_name="$(tail -n 1 "$LAST_STDOUT" | tr -d '\r')"
+  if [ -z "$package_name" ] || [ ! -f "$artifact_root/$package_name" ]; then
+    fail "packed artifact tarball output" "Expected tarball under $artifact_root, got: $(cat "$LAST_STDOUT")"
+    return
+  fi
+
+  tar -xzf "$artifact_root/$package_name" -C "$extract_root"
+  packaged_root="$extract_root/package"
+  packaged_setup="$packaged_root/scripts/setup-openclaw.js"
+  packaged_onboard="$packaged_root/skills/memory-onboard-agent/onboard.sh"
+  packaged_pipeline="$packaged_root/skills/memory-pipeline/pipeline.sh"
+  packaged_memory_root="$workspace_root/system/memory"
+
+  if [ -d "$packaged_root/packages/memory-os-gateway" ] && \
+     [ -f "$packaged_root/packages/memory-scripts/bin/verify.sh" ] && \
+     [ -f "$packaged_root/packages/memory-pipeline/bin/run-pipeline.sh" ]; then
+    pass "packed artifact bundles local runtime packages"
+  else
+    fail "packed artifact bundles local runtime packages" "Expected bundled packages under $packaged_root/packages"
+    return
+  fi
+
+  run_and_capture env PATH="$tool_dir:$PATH" "$node_bin" "$packaged_setup" \
+    --state-dir "$state_dir" \
+    --workspace-root "$workspace_root" \
+    --config-path "$config_path"
+
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "packed artifact setup-openclaw exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if [ -d "$workspace_root/system/memory" ] && [ -f "$config_path" ]; then
+    pass "packed artifact setup-openclaw scaffolds workspace"
+  else
+    fail "packed artifact setup-openclaw scaffolds workspace" "Expected scaffolded workspace and config under $state_dir"
+    return
+  fi
+
+  git -C "$packaged_memory_root" init >/dev/null 2>&1
+  git -C "$packaged_memory_root" config user.name "Packaged Artifact Test"
+  git -C "$packaged_memory_root" config user.email "artifact@example.com"
+  git -C "$packaged_memory_root" add .
+  git -C "$packaged_memory_root" commit -m "test: seed packaged memory" >/dev/null 2>&1
+
+  run_and_capture_in_dir "$workspace_root" env PATH="$tool_dir:$PATH" "$packaged_onboard" analyst
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "packed artifact onboard exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  run_and_capture_in_dir "$workspace_root" env PATH="$tool_dir:$PATH" "$packaged_pipeline" 2026-03-05 --phase verify
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "packed artifact pipeline verify exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if [ -f "$packaged_memory_root/core/agents/analyst/COURSE.md" ] && \
+     [ -f "$packaged_memory_root/core/meta/manifest.json" ] && \
+     grep -Fq 'Phase D — verify' "$LAST_STDOUT"; then
+    pass "packed artifact skill wrappers execute after extract"
+  else
+    fail "packed artifact skill wrappers execute after extract" "Expected onboarded analyst slice and verify output from extracted package"
+  fi
+}
+
 test_openclaw_setup() {
   local state_dir workspace_root config_path alt_workspace_root alt_memory_root today agent file
 
@@ -357,7 +496,7 @@ test_openclaw_setup() {
 }
 EOF
 
-  run_and_capture node "$SETUP_SCRIPT" \
+  run_and_capture "$NODE_BIN" "$SETUP_SCRIPT" \
     --state-dir "$state_dir" \
     --workspace-root "$workspace_root" \
     --config-path "$config_path" \
@@ -569,7 +708,7 @@ PY
   fi
 
   printf 'LOCAL_NOTE\n' >> "$workspace_root/nyx/MEMORY.md"
-  run_and_capture node "$SETUP_SCRIPT" \
+  run_and_capture "$NODE_BIN" "$SETUP_SCRIPT" \
     --state-dir "$state_dir" \
     --workspace-root "$workspace_root" \
     --config-path "$config_path" \
@@ -593,7 +732,7 @@ PY
     fail "setup-openclaw idempotent config merge" "Expected stable counts after rerun"
   fi
 
-  run_and_capture node "$SETUP_SCRIPT" \
+  run_and_capture "$NODE_BIN" "$SETUP_SCRIPT" \
     --state-dir "$state_dir" \
     --workspace-root "$alt_workspace_root" \
     --memory-root "$alt_memory_root" \
@@ -650,7 +789,7 @@ test_runtime_auto_bootstrap() {
 
   print_case "TEST" "runtime entrypoint auto-bootstraps workspace on first plugin load"
 
-  run_and_capture env OPENCLAW_STATE_DIR="$runtime_state_dir" node - "$ENTRY_FILE" <<'EOF'
+  run_and_capture env OPENCLAW_STATE_DIR="$runtime_state_dir" "$NODE_BIN" - "$ENTRY_FILE" <<'EOF'
 const entryPath = process.argv[2];
 const plugin = require(entryPath);
 
@@ -721,7 +860,7 @@ test_runtime_auto_bootstrap_disabled() {
 
   print_case "TEST" "runtime entrypoint skips bootstrap when autoSetup is disabled"
 
-  run_and_capture env OPENCLAW_STATE_DIR="$runtime_state_dir" node - "$ENTRY_FILE" <<'EOF'
+  run_and_capture env OPENCLAW_STATE_DIR="$runtime_state_dir" "$NODE_BIN" - "$ENTRY_FILE" <<'EOF'
 const entryPath = process.argv[2];
 const plugin = require(entryPath);
 
@@ -778,7 +917,7 @@ test_runtime_auto_bootstrap_without_state_dir() {
 
   print_case "TEST" "runtime entrypoint tolerates missing state-dir hints"
 
-  run_and_capture env -u OPENCLAW_STATE_DIR node - "$runtime_root/plugin" <<'EOF'
+  run_and_capture env -u OPENCLAW_STATE_DIR "$NODE_BIN" - "$runtime_root/plugin" <<'EOF'
 const fs = require("fs");
 const path = require("path");
 
@@ -845,7 +984,7 @@ test_scaffolded_workspace_script_detection() {
 
   print_case "TEST" "workspace/system layout is detected by onboard and pipeline scripts from scaffolded root"
 
-  run_and_capture node "$SETUP_SCRIPT" \
+  run_and_capture "$NODE_BIN" "$SETUP_SCRIPT" \
     --state-dir "$state_dir" \
     --workspace-root "$workspace_root" \
     --config-path "$config_path"
@@ -901,7 +1040,7 @@ test_kanban_policy_contract() {
 
   print_case "TEST" "kanban.mjs resolves effective policy values without persisting computed fields"
 
-  run_and_capture node "$SETUP_SCRIPT" \
+  run_and_capture "$NODE_BIN" "$SETUP_SCRIPT" \
     --state-dir "$state_dir" \
     --workspace-root "$workspace_root" \
     --config-path "$config_path"
@@ -927,25 +1066,25 @@ text = text.replace("next_action: null", 'next_action: "Run smoke"')
 task_path.write_text(text, encoding="utf-8")
 PY
 
-  run_and_capture node "$kanban_script" set-board-autonomy partial
+  run_and_capture "$NODE_BIN" "$kanban_script" set-board-autonomy partial
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "kanban set-board-autonomy exit code" "Expected 0, got $LAST_EXIT_CODE"
     return
   fi
 
-  run_and_capture node "$kanban_script" set-board-git-flow pr
+  run_and_capture "$NODE_BIN" "$kanban_script" set-board-git-flow pr
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "kanban set-board-git-flow exit code" "Expected 0, got $LAST_EXIT_CODE"
     return
   fi
 
-  run_and_capture node "$kanban_script" set-autonomy T-0001 ask
+  run_and_capture "$NODE_BIN" "$kanban_script" set-autonomy T-0001 ask
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "kanban set-autonomy exit code" "Expected 0, got $LAST_EXIT_CODE"
     return
   fi
 
-  run_and_capture node "$kanban_script" next --owner lev --json
+  run_and_capture "$NODE_BIN" "$kanban_script" next --owner lev --json
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "kanban next exit code" "Expected 0, got $LAST_EXIT_CODE"
     return
@@ -973,7 +1112,7 @@ PY
     fail "kanban effective autonomy and git flow" "Unexpected next payload: $(cat "$LAST_STDOUT")"
   fi
 
-  run_and_capture node "$kanban_script" set-status T-0001 in_progress
+  run_and_capture "$NODE_BIN" "$kanban_script" set-status T-0001 in_progress
   if [ "$LAST_EXIT_CODE" -ne 0 ]; then
     fail "kanban set-status exit code" "Expected 0, got $LAST_EXIT_CODE"
     return
@@ -1246,6 +1385,7 @@ main() {
   test_skill_frontmatter
   test_template_default_agents
   setup_workspace
+  test_packaged_artifact_install_smoke
   test_openclaw_setup
   test_kanban_policy_contract
   test_runtime_auto_bootstrap

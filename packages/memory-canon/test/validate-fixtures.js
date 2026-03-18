@@ -112,8 +112,8 @@ function main() {
 
     const verification = verifyCanonWorkspace({
       memoryRoot: workspaceCopy,
-      updatedAt: '2026-03-17T00:00:00Z',
-      today: '2026-03-17',
+      updatedAt: '2026-03-18T00:00:00Z',
+      today: '2026-03-18',
     });
 
     assert.deepEqual(verification.recordCounts, {
@@ -151,7 +151,7 @@ function main() {
 
     const lock = createCanonWriteLock({
       holder: 'fixture-test',
-      acquiredAt: '2026-03-17T00:00:00Z',
+      acquiredAt: '2026-03-18T00:00:00Z',
     });
     assert.equal(lock.writer, CANON_SINGLE_WRITER);
     assert.equal(validateCanonWriteLock(lock).valid, true);
@@ -181,7 +181,7 @@ function main() {
     const directAcquire = acquireCanonWriteLock({
       memoryRoot: workspaceCopy,
       holder: 'fixture-lock-helper',
-      acquiredAt: '2026-03-17T00:00:30Z',
+      acquiredAt: '2026-03-18T00:00:30Z',
       operation: 'core-promoter',
     });
     assert.equal(directAcquire.path, lockPath);
@@ -252,13 +252,13 @@ function main() {
 
     const promotedVerification = verifyCanonWorkspace({
       memoryRoot: promotionCopy,
-      updatedAt: '2026-03-17T00:00:00Z',
-      today: '2026-03-17',
+      updatedAt: '2026-03-18T00:00:00Z',
+      today: '2026-03-18',
     });
     const expectedVerification = verifyCanonWorkspace({
       memoryRoot: workspaceCopy,
-      updatedAt: '2026-03-17T00:00:00Z',
-      today: '2026-03-17',
+      updatedAt: '2026-03-18T00:00:00Z',
+      today: '2026-03-18',
     });
 
     assert.deepEqual(promotedVerification.recordCounts, expectedVerification.recordCounts);
