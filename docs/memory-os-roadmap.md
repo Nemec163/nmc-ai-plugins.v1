@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `compatibility-shell retirement prerequisites — define the direct-install cutover gates`
-- next: `compatibility-shell wrapper convergence — collapse duplicated OpenClaw shell entrypoints`
+- completed: `compatibility-shell wrapper convergence — collapse duplicated OpenClaw shell entrypoints`
+- next: `compatibility-shell skill discovery convergence — move live installs off plugin-owned skill discovery`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
@@ -1664,6 +1664,32 @@ Rollback:
 
 - simplify or rename the retirement-gate metadata if a clearer cutover decomposition is required, while keeping the current production-shell decision and existing shipped behavior unchanged
 
+### compatibility-shell wrapper convergence: collapse duplicated OpenClaw shell entrypoints
+
+Do this only after `compatibility-shell retirement prerequisites` has made the remaining direct-install blockers explicit.
+
+Implemented in this slice:
+
+- reduced [nmc-memory-plugin/index.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/index.js), [nmc-memory-plugin/lib/openclaw-setup.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/lib/openclaw-setup.js), and [nmc-memory-plugin/scripts/setup-openclaw.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/scripts/setup-openclaw.js) to thin wrappers over `packages/adapter-openclaw`
+- extended [packages/adapter-openclaw/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/test/validate-fixtures.js) to assert that the compatibility shell re-exports adapter setup behavior and that the standalone setup script matches the adapter CLI help surface
+- extended [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) so the packaged artifact must include `packages/adapter-openclaw`, the packaged control-plane snapshot reports `wrapper-convergence` as `cleared`, and the synthetic runtime plugin test copies the wrapper dependency shape instead of the old plugin-local implementation shape
+- updated `packages/control-plane` release qualification in both root and shipped mirrors so `wrapper-convergence` is now cleared while the remaining retirement gates stay pending
+
+Acceptance criteria:
+
+- plugin-shell runtime/setup entrypoints are thin wrappers over `packages/adapter-openclaw`
+- packaged artifacts include the adapter package needed by those wrappers
+- machine-readable release qualification reports `wrapper-convergence` as cleared while the direct-install cutover remains not ready overall
+- the required regression baseline remains green
+
+Main risk:
+
+- collapsing the wrappers without preserving packaged artifact dependencies, which would keep repo-local tests green while breaking installed plugin behavior
+
+Rollback:
+
+- restore the plugin-local shell implementations temporarily if an installed-artifact or runtime bootstrap regression appears, while keeping the explicit retirement-gate model intact
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -1925,10 +1951,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should clear the most concrete retirement gate first:
+The next implementation step should clear the next remaining retirement gate:
 
-- collapse the duplicated OpenClaw shell entrypoints so `nmc-memory-plugin/index.js`, `nmc-memory-plugin/lib/openclaw-setup.js`, and `nmc-memory-plugin/scripts/setup-openclaw.js` become thin wrappers over `packages/adapter-openclaw`
-- preserve `openclaw nmc-memory setup`, auto-bootstrap behavior, `openclaw.plugin.json`, bundled skill discovery, workspace layout, and shipped operator paths while converging the duplicated implementations
-- keep scope pinned to wrapper convergence rather than changing install ownership, plugin ids, or operator/runtime capabilities
+- move live skill discovery off `nmc-memory-plugin/skills` and onto an adapter-owned or otherwise cutover-safe discovery surface without breaking installed skill availability
+- preserve `openclaw nmc-memory setup`, auto-bootstrap behavior, `openclaw.plugin.json`, workspace layout, and shipped operator paths while reducing dependence on the compatibility shell directory layout
+- keep scope pinned to `skill-discovery-surface` rather than changing install ownership, plugin ids, or operator/runtime capabilities
 
-The cutover gates are now explicit. The next risk is wrapper drift between `nmc-memory-plugin` and `adapter-openclaw`, not lack of clarity about what still blocks the direct-install cutover.
+The wrapper drift gate is now cleared. The next direct-install blocker is the live skill discovery surface that still assumes `nmc-memory-plugin/skills`.

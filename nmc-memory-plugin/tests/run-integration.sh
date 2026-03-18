@@ -417,10 +417,12 @@ test_packaged_artifact_install_smoke() {
   packaged_onboard="$packaged_root/skills/memory-onboard-agent/onboard.sh"
   packaged_pipeline="$packaged_root/skills/memory-pipeline/pipeline.sh"
   packaged_control_plane_cli="$packaged_root/packages/control-plane/bin/memory-control-plane.js"
+  packaged_adapter_root="$packaged_root/packages/adapter-openclaw"
   packaged_gateway_root="$packaged_root/packages/memory-os-gateway"
   packaged_memory_root="$workspace_root/system/memory"
 
-  if [ -d "$packaged_root/packages/memory-os-gateway" ] && \
+  if [ -d "$packaged_root/packages/adapter-openclaw" ] && \
+     [ -d "$packaged_root/packages/memory-os-gateway" ] && \
      [ -d "$packaged_root/packages/control-plane" ] && \
      [ -d "$packaged_root/packages/memory-maintainer" ] && \
      [ -f "$packaged_root/packages/memory-scripts/bin/verify.sh" ] && \
@@ -467,10 +469,12 @@ test_packaged_artifact_install_smoke() {
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.productionStatus")" = "current-production-install-shell" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.directAdapterInstall")" = "not-supported" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.cutoverReady")" = "false" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.id")" = "wrapper-convergence" ]; then
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.pendingGateCount")" = "4" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.id")" = "wrapper-convergence" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.status")" = "cleared" ]; then
     pass "packed artifact control-plane CLI runs after extract"
   else
-    fail "packed artifact control-plane CLI runs after extract" "Expected control-plane snapshot with retained production-shell metadata and explicit retirement prerequisites"
+    fail "packed artifact control-plane CLI runs after extract" "Expected control-plane snapshot with retained production-shell metadata and updated retirement prerequisites"
     return
   fi
 
@@ -972,6 +976,12 @@ fs.mkdirSync(path.join(pluginRoot, "lib"), { recursive: true });
 fs.copyFileSync(
   "nmc-memory-plugin/lib/openclaw-setup.js",
   path.join(pluginRoot, "lib", "openclaw-setup.js"),
+);
+fs.mkdirSync(path.join(pluginRoot, "packages"), { recursive: true });
+fs.cpSync(
+  "nmc-memory-plugin/packages/adapter-openclaw",
+  path.join(pluginRoot, "packages", "adapter-openclaw"),
+  { recursive: true },
 );
 
 const plugin = require(path.join(pluginRoot, "index.js"));

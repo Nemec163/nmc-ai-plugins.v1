@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -42,6 +43,15 @@ const {
 
 const PLUGIN_ROOT = path.resolve(__dirname, "../../../nmc-memory-plugin");
 const ADAPTER_SKILLS_ROOT = getBundledSkillsRoot();
+const PLUGIN_SETUP_MODULE_PATH = path.join(PLUGIN_ROOT, "lib", "openclaw-setup.js");
+const PLUGIN_SETUP_SCRIPT_PATH = path.join(PLUGIN_ROOT, "scripts", "setup-openclaw.js");
+const SHIPPED_ADAPTER_SETUP_MODULE_PATH = path.join(
+  PLUGIN_ROOT,
+  "packages",
+  "adapter-openclaw",
+  "lib",
+  "openclaw-setup.js",
+);
 
 function listSkillNames(rootDir) {
   return fs
@@ -108,8 +118,20 @@ function main() {
     pluginName: "NMC Memory Plugin",
     pluginRoot: PLUGIN_ROOT,
   });
+  const pluginShell = require(PLUGIN_ROOT);
+  const pluginSetupModule = require(PLUGIN_SETUP_MODULE_PATH);
+  const shippedAdapterSetupModule = require(SHIPPED_ADAPTER_SETUP_MODULE_PATH);
   assert.equal(plugin.id, PLUGIN_ID);
   assert.equal(plugin.name, "NMC Memory Plugin");
+  assert.equal(pluginShell.id, plugin.id);
+  assert.equal(pluginShell.name, plugin.name);
+  assert.deepEqual(
+    Object.keys(pluginSetupModule).sort(),
+    Object.keys(shippedAdapterSetupModule).sort(),
+  );
+  assert.equal(pluginSetupModule.PLUGIN_ID, PLUGIN_ID);
+  assert.equal(typeof pluginSetupModule.setupOpenClaw, "function");
+  assert.equal(typeof pluginSetupModule.maybeAutoSetup, "function");
 
   const setupRoot = makeTempRoot();
   try {
@@ -179,6 +201,17 @@ function main() {
   const cliHelp = runSetupCli(["--help"], PLUGIN_ROOT);
   assert.equal(cliHelp.exitCode, 0);
   assert.match(cliHelp.stdout, /Usage: node scripts\/setup-openclaw\.js/);
+  const shellCliHelp = spawnSync(
+    process.execPath,
+    [PLUGIN_SETUP_SCRIPT_PATH, "--help"],
+    {
+      cwd: PLUGIN_ROOT,
+      encoding: "utf8",
+    },
+  );
+  assert.equal(shellCliHelp.status, 0);
+  assert.equal(shellCliHelp.stdout, cliHelp.stdout);
+  assert.equal(shellCliHelp.stderr, "");
 
   const pipelineAdapter = createOpenClawPipelineAdapter();
   assert.deepEqual(pipelineAdapter.runExtract({

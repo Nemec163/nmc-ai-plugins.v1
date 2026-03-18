@@ -32,4 +32,8 @@ release. This package stays internal/private for now: OpenClaw-specific logic
 and bundled skill assets should live here, while `nmc-memory-plugin/skills/`
 remains the compatibility discovery surface for live installs.
 
+The shell entrypoints in `nmc-memory-plugin/` now collapse to thin wrappers over
+this package; remaining cutover work is about install ownership, skill
+discovery, and shipped path contracts rather than duplicated bootstrap logic.
+
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.

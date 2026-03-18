@@ -122,6 +122,19 @@ Status:
   - `shipped-artifact-layout`: installed control-plane and gateway paths still assume `~/.openclaw/extensions/nmc-memory-plugin/`
   - `regression-cutover-coverage`: the regression baseline still freezes plugin-shell packaging rather than a direct adapter-install surface
 
+### 6. Compatibility-Shell Wrapper Convergence
+
+Goal:
+- remove duplicated runtime/setup shell logic now that the direct-install retirement gates are explicit
+
+Exit gate:
+- `nmc-memory-plugin/index.js`, `nmc-memory-plugin/lib/openclaw-setup.js`, and `nmc-memory-plugin/scripts/setup-openclaw.js` delegate to `packages/adapter-openclaw`
+- shipped-artifact packaging includes `packages/adapter-openclaw` so the thin wrappers stay valid after `npm pack`
+- release qualification keeps the direct-install cutover blocked, but no longer treats wrapper divergence as a pending prerequisite
+
+Status:
+- complete on `2026-03-19` by collapsing the three plugin shell entrypoints into thin wrappers over `packages/adapter-openclaw`, extending adapter/package tests to guard the wrapper shape, and marking `wrapper-convergence` as cleared while leaving the other direct-install retirement gates pending
+
 ## Non-Goals For This Slice
 
 The deliberate migration release planning slice should not:
@@ -132,7 +145,7 @@ The deliberate migration release planning slice should not:
 - redesign packaging beyond the existing compatibility shell
 - retire `nmc-memory-plugin` as the production install/setup shell
 - turn `packages/adapter-openclaw` into a supported direct install target in the same slice
-- clear any of the retirement gates by changing behavior in the same slice that defines them
+- clear retirement gates unrelated to wrapper convergence in the same slice
 
 ## Verification For This Planning Slice
 

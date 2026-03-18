@@ -26,8 +26,14 @@ The orchestration context stays explicitly non-authoritative:
 - runtime recall is labeled non-authoritative through the freshness boundary
 - maintainer references point at `system/tasks`, `system/policy`, and `system/scripts` instead of reintroducing adapter-owned tasking rules
 
-The compatibility shell remains in `nmc-memory-plugin/`, but OpenClaw-specific
-logic and bundled skill assets should live here. `nmc-memory-plugin/skills/`
+The compatibility shell remains in `nmc-memory-plugin/`, which also stays the
+current production install/setup surface for OpenClaw during the migration
+release. This package stays internal/private for now: OpenClaw-specific logic
+and bundled skill assets should live here, while `nmc-memory-plugin/skills/`
 remains the compatibility discovery surface for live installs.
+
+The shell entrypoints in `nmc-memory-plugin/` now collapse to thin wrappers over
+this package; remaining cutover work is about install ownership, skill
+discovery, and shipped path contracts rather than duplicated bootstrap logic.
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.

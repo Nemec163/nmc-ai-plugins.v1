@@ -26,10 +26,10 @@ function buildCheck(name, ok, detail) {
   };
 }
 
-function buildRetirementGate(id, detail) {
+function buildRetirementGate(id, status, detail) {
   return {
     id,
-    status: 'pending',
+    status,
     detail,
   };
 }
@@ -77,22 +77,27 @@ function getControlPlaneReleaseQualification(snapshot) {
   const retirementGates = [
     buildRetirementGate(
       'install-manifest-surface',
+      'pending',
       'openclaw.plugin.json and openclaw.extensions still live under nmc-memory-plugin'
     ),
     buildRetirementGate(
       'wrapper-convergence',
-      'nmc-memory-plugin runtime/setup entrypoints still diverge from adapter-openclaw implementations'
+      'cleared',
+      'nmc-memory-plugin runtime/setup entrypoints now delegate to adapter-openclaw wrappers'
     ),
     buildRetirementGate(
       'skill-discovery-surface',
+      'pending',
       'live installs still discover bundled skills through nmc-memory-plugin/skills'
     ),
     buildRetirementGate(
       'shipped-artifact-layout',
+      'pending',
       'installed operator and programmatic paths still assume ~/.openclaw/extensions/nmc-memory-plugin/'
     ),
     buildRetirementGate(
       'regression-cutover-coverage',
+      'pending',
       'the regression baseline still freezes plugin-shell packaging rather than a direct adapter install surface'
     ),
   ];
@@ -117,7 +122,7 @@ function getControlPlaneReleaseQualification(snapshot) {
     retirementPrerequisites: {
       target: 'adapter-openclaw-direct-install',
       cutoverReady: false,
-      pendingGateCount: retirementGates.length,
+      pendingGateCount: retirementGates.filter((gate) => gate.status !== 'cleared').length,
       gates: retirementGates,
     },
     bridgeStatus: {

@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `compatibility-shell retirement prerequisites — define the direct-install cutover gates`
-- next roadmap slice: `compatibility-shell wrapper convergence — collapse duplicated OpenClaw shell entrypoints`
+- completed roadmap slice: `compatibility-shell wrapper convergence — collapse duplicated OpenClaw shell entrypoints`
+- next roadmap slice: `compatibility-shell skill discovery convergence — move live installs off plugin-owned skill discovery`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -92,7 +92,8 @@ Phase 0 is complete:
 - `shipped-mirror bridge cleanup decision` deleted `nmc-memory-plugin/packages/memory-os-gateway/lib/ops.js` and updated machine-readable/operator docs so the deprecated gateway ops bridge is now retired in both root and shipped mirrors
 - `compatibility-shell cutover decision` retained `nmc-memory-plugin` as the production install/setup shell for the current migration release, added machine-readable release qualification for that decision, and kept `adapter-openclaw` out of the supported direct-install surface
 - `compatibility-shell retirement prerequisites` defined the machine-readable direct-install cutover gates for retiring `nmc-memory-plugin` as the production shell without changing shipped behavior
-- the next slice is `compatibility-shell wrapper convergence`, which should collapse duplicated OpenClaw shell entrypoints without widening scope into new operator capabilities
+- `compatibility-shell wrapper convergence` collapsed the duplicated OpenClaw shell entrypoints into thin wrappers over `packages/adapter-openclaw` and cleared that retirement gate without changing install ownership or shipped behavior
+- the next slice is `compatibility-shell skill discovery convergence`, which should move live installs off plugin-owned skill discovery without widening scope into new operator capabilities
 
 ## Commit Convention
 
