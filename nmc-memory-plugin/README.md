@@ -18,20 +18,25 @@ Release-boundary note:
 - live skill discovery now resolves through `packages/adapter-openclaw/skills`, while `nmc-memory-plugin/skills` remains the compatibility wrapper surface for direct script paths.
 - the plugin shell entrypoints now delegate through thin wrappers over `packages/adapter-openclaw`; remaining direct-install blockers are tracked separately in release-qualification metadata and the migration plan.
 - the supported Memory OS operator surface is bundled inside the shipped plugin at `packages/control-plane`; the deprecated `memory-os-gateway ops-snapshot` bridge is retired.
-- the shipped plugin mirror does not export the deprecated gateway ops SDK from `packages/memory-os-gateway` at the package level; installed-artifact automation should bind only to `packages/control-plane`.
+- the shipped plugin mirror does not export the deprecated gateway ops SDK from `packages/memory-os-gateway` at the package level; installed-artifact automation should bind through the shell-owned `bin/`, `control-plane/`, and `memory-os-gateway/` wrappers.
 - the post-freeze cutover and repo-local bridge retirement sequence are tracked in [../docs/deliberate-migration-release-plan.md](../docs/deliberate-migration-release-plan.md).
 
 Supported operator commands from an installed plugin artifact:
 
 ```bash
-node ~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js snapshot \
+node ~/.openclaw/extensions/nmc-memory-plugin/bin/memory-control-plane.js snapshot \
   --memory-root ~/.openclaw/workspace/system/memory \
   --system-root ~/.openclaw/workspace/system
 
-node ~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js health \
+node ~/.openclaw/extensions/nmc-memory-plugin/bin/memory-control-plane.js health \
   --memory-root ~/.openclaw/workspace/system/memory \
   --system-root ~/.openclaw/workspace/system
+
+node ~/.openclaw/extensions/nmc-memory-plugin/bin/memory-os-gateway.js status \
+  --memory-root ~/.openclaw/workspace/system/memory
 ```
+
+Installed programmatic access should use the shell-owned wrapper directories `~/.openclaw/extensions/nmc-memory-plugin/control-plane/` and `~/.openclaw/extensions/nmc-memory-plugin/memory-os-gateway/` rather than reaching into nested `packages/` paths.
 
 The default workspace template ships with predefined agent slices:
 - `nyx` - orchestrator and main user-facing agent, Chief Product Officer, `opus 4.6`

@@ -6,8 +6,11 @@
   "type": "commonjs",
   "main": "./index.js",
   "files": [
+    "bin/",
+    "control-plane/",
     "index.js",
     "lib/",
+    "memory-os-gateway/",
     "openclaw.plugin.json",
     "packages/",
     "scripts/",

@@ -23,25 +23,34 @@ The deprecated `memory-os-gateway ops-snapshot` bridge is retired and is not par
 
 ### Supported Operator Surface
 
-The shipped plugin artifact now carries the supported Memory OS operator CLI under:
+The shipped plugin artifact now carries shell-owned operator and gateway wrappers under:
 
 ```bash
-~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js
+~/.openclaw/extensions/nmc-memory-plugin/bin/memory-control-plane.js
+~/.openclaw/extensions/nmc-memory-plugin/bin/memory-os-gateway.js
 ```
 
 Typical usage against the managed workspace:
 
 ```bash
-node ~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js snapshot \
+node ~/.openclaw/extensions/nmc-memory-plugin/bin/memory-control-plane.js snapshot \
   --memory-root ~/.openclaw/workspace/system/memory \
   --system-root ~/.openclaw/workspace/system
 
-node ~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js health \
+node ~/.openclaw/extensions/nmc-memory-plugin/bin/memory-control-plane.js health \
   --memory-root ~/.openclaw/workspace/system/memory \
   --system-root ~/.openclaw/workspace/system
+
+node ~/.openclaw/extensions/nmc-memory-plugin/bin/memory-os-gateway.js status \
+  --memory-root ~/.openclaw/workspace/system/memory
 ```
 
-Supported operator commands come from `packages/control-plane` and include `snapshot`, `health`, `queues`, `analytics`, `audits`, `runtime-inspector`, and advisory `record-intervention`. Keep migration-release usage pinned to that surface rather than to deprecated gateway bridge commands.
+Supported operator commands still come from `packages/control-plane` and include `snapshot`, `health`, `queues`, `analytics`, `audits`, `runtime-inspector`, and advisory `record-intervention`, but installed-artifact usage should prefer the shell-owned wrapper paths above rather than reaching into nested `packages/` paths. Gateway CLI access should likewise go through the shell-owned wrapper rather than `packages/memory-os-gateway/bin/`.
+
+For installed programmatic access, prefer the shell-owned wrapper directories:
+
+- `~/.openclaw/extensions/nmc-memory-plugin/control-plane/`
+- `~/.openclaw/extensions/nmc-memory-plugin/memory-os-gateway/`
 
 ## Managed Bootstrap
 

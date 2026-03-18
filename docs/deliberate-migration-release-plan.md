@@ -148,6 +148,19 @@ Exit gate:
 Status:
 - complete on `2026-03-19` by repointing the plugin manifest at `packages/adapter-openclaw/skills`, updating shipped-artifact assertions and bootstrap fixtures to freeze the adapter-owned discovery root, and marking `skill-discovery-surface` as cleared while leaving install-manifest, shipped-layout, and regression-cutover gates pending
 
+### 8. Compatibility-Shell Shipped Artifact Layout Convergence
+
+Goal:
+- expose stable shell-owned installed-artifact paths for operator and gateway usage without changing compatibility-shell ownership or direct-install policy
+
+Exit gate:
+- installed CLI usage goes through `nmc-memory-plugin/bin/memory-control-plane.js` and `nmc-memory-plugin/bin/memory-os-gateway.js` rather than nested `packages/*/bin/` paths
+- installed programmatic usage goes through shell-owned wrapper directories under `nmc-memory-plugin/control-plane/` and `nmc-memory-plugin/memory-os-gateway/`
+- packed-artifact tests and release qualification no longer treat `shipped-artifact-layout` as pending
+
+Status:
+- complete on `2026-03-19` by adding shell-owned CLI and programmatic wrappers in `nmc-memory-plugin`, updating packed-artifact smoke coverage and installed-artifact docs to use those wrapper paths, and marking `shipped-artifact-layout` as cleared while leaving install-manifest and regression-cutover gates pending
+
 ## Non-Goals For This Slice
 
 The deliberate migration release planning slice should not:

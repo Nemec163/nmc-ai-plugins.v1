@@ -378,8 +378,9 @@ test_packaged_artifact_install_smoke() {
   local node_bin npm_bin tool_dir artifact_root extract_root state_dir workspace_root
   local config_path package_name packaged_root packaged_setup packaged_onboard
   local packaged_pipeline packaged_memory_root packaged_control_plane_cli
-  local packaged_gateway_root packaged_probe_root packaged_manifest
-  local packaged_discovery_root
+  local packaged_gateway_cli packaged_gateway_root packaged_probe_root
+  local packaged_manifest packaged_discovery_root
+  local packaged_programmatic_control_plane packaged_programmatic_gateway
 
   print_case "TEST" "packed nmc-memory-plugin artifact stays self-contained after extract"
 
@@ -416,12 +417,15 @@ test_packaged_artifact_install_smoke() {
   packaged_root="$extract_root/package"
   packaged_manifest="$packaged_root/openclaw.plugin.json"
   packaged_setup="$packaged_root/scripts/setup-openclaw.js"
+  packaged_control_plane_cli="$packaged_root/bin/memory-control-plane.js"
+  packaged_gateway_cli="$packaged_root/bin/memory-os-gateway.js"
   packaged_onboard="$packaged_root/skills/memory-onboard-agent/onboard.sh"
   packaged_pipeline="$packaged_root/skills/memory-pipeline/pipeline.sh"
-  packaged_control_plane_cli="$packaged_root/packages/control-plane/bin/memory-control-plane.js"
   packaged_adapter_root="$packaged_root/packages/adapter-openclaw"
   packaged_discovery_root="$packaged_adapter_root/skills"
   packaged_gateway_root="$packaged_root/packages/memory-os-gateway"
+  packaged_programmatic_control_plane="$packaged_root/control-plane"
+  packaged_programmatic_gateway="$packaged_root/memory-os-gateway"
   packaged_memory_root="$workspace_root/system/memory"
 
   if [ -d "$packaged_root/packages/adapter-openclaw" ] && \
@@ -429,12 +433,15 @@ test_packaged_artifact_install_smoke() {
      [ -d "$packaged_root/packages/memory-os-gateway" ] && \
      [ -d "$packaged_root/packages/control-plane" ] && \
      [ -d "$packaged_root/packages/memory-maintainer" ] && \
+     [ -f "$packaged_gateway_cli" ] && \
      [ -f "$packaged_root/packages/memory-scripts/bin/verify.sh" ] && \
      [ -f "$packaged_root/packages/memory-pipeline/bin/run-pipeline.sh" ] && \
-     [ -f "$packaged_control_plane_cli" ]; then
-    pass "packed artifact bundles local runtime packages"
+     [ -f "$packaged_control_plane_cli" ] && \
+     [ -f "$packaged_programmatic_control_plane/index.js" ] && \
+     [ -f "$packaged_programmatic_gateway/index.js" ]; then
+    pass "packed artifact bundles shell-owned operator and gateway wrappers"
   else
-    fail "packed artifact bundles local runtime packages" "Expected bundled packages under $packaged_root/packages"
+    fail "packed artifact bundles shell-owned operator and gateway wrappers" "Expected bundled wrapper surface under $packaged_root"
     return
   fi
 
@@ -463,6 +470,25 @@ test_packaged_artifact_install_smoke() {
     return
   fi
 
+  run_and_capture env PATH="$tool_dir:$PATH" "$node_bin" "$packaged_gateway_cli" \
+    status \
+    --memory-root "$packaged_memory_root"
+
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "packed artifact gateway CLI exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if [ "$(json_query "$LAST_STDOUT" "manifest.exists")" = "true" ] && \
+     [ "$(json_query "$LAST_STDOUT" "manifest.schemaVersion")" = "1.0" ] && \
+     [ "$(json_query "$LAST_STDOUT" "overall.status")" = "OK" ]; then
+    pass "packed artifact gateway CLI runs through shell-owned wrapper"
+  else
+    fail "packed artifact gateway CLI runs through shell-owned wrapper" "Expected gateway status JSON through $packaged_gateway_cli"
+    return
+  fi
+
   run_and_capture env PATH="$tool_dir:$PATH" "$node_bin" "$packaged_control_plane_cli" \
     snapshot \
     --memory-root "$packaged_memory_root" \
@@ -480,14 +506,26 @@ test_packaged_artifact_install_smoke() {
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.productionStatus")" = "current-production-install-shell" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.directAdapterInstall")" = "not-supported" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.cutoverReady")" = "false" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.pendingGateCount")" = "3" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.pendingGateCount")" = "2" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.id")" = "wrapper-convergence" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.status")" = "cleared" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.2.id")" = "skill-discovery-surface" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.2.status")" = "cleared" ]; then
-    pass "packed artifact control-plane CLI runs after extract"
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.2.status")" = "cleared" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.3.id")" = "shipped-artifact-layout" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.3.status")" = "cleared" ]; then
+    pass "packed artifact control-plane CLI runs through shell-owned wrapper"
   else
-    fail "packed artifact control-plane CLI runs after extract" "Expected control-plane snapshot with retained production-shell metadata and updated retirement prerequisites"
+    fail "packed artifact control-plane CLI runs through shell-owned wrapper" "Expected control-plane snapshot with retained production-shell metadata and updated retirement prerequisites"
+    return
+  fi
+
+  run_and_capture env PATH="$tool_dir:$PATH" "$node_bin" -e 'const assert = require("node:assert/strict"); const controlPlane = require(process.argv[1]); const gateway = require(process.argv[2]); assert.equal(typeof controlPlane.getControlPlaneSnapshot, "function"); assert.equal(typeof controlPlane.getControlPlaneHealth, "function"); assert.equal(typeof gateway.getStatus, "function"); assert.equal(typeof gateway.verify, "function");' "$packaged_programmatic_control_plane" "$packaged_programmatic_gateway"
+
+  if [ "$LAST_EXIT_CODE" -eq 0 ]; then
+    pass "packed artifact programmatic wrappers avoid internal package paths"
+  else
+    fail "packed artifact programmatic wrappers avoid internal package paths" "Expected stable shell-owned require paths under $packaged_root"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
     return
   fi
 

@@ -63,8 +63,10 @@ Control-plane v3 stays intentionally careful:
 
 Packaging note:
 
-- when the compatibility shell is shipped through `nmc-memory-plugin`, the supported operator surface is bundled under `nmc-memory-plugin/packages/control-plane/`
-- the packaged CLI entrypoint is `node ~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js <command> ...`
+- when the compatibility shell is shipped through `nmc-memory-plugin`, the supported operator surface is still implemented by `packages/control-plane/`
+- the supported installed-artifact CLI entrypoint is the shell-owned wrapper `node ~/.openclaw/extensions/nmc-memory-plugin/bin/memory-control-plane.js <command> ...`
+- the supported installed-artifact programmatic wrapper is `~/.openclaw/extensions/nmc-memory-plugin/control-plane/`
+- installed-artifact automation should prefer that shell-owned wrapper over nested `packages/control-plane/bin/` paths
 
 Compatibility note:
 

@@ -5,14 +5,10 @@
 
 ## Progress Snapshot
 
-- completed: `compatibility-shell skill discovery convergence — move live installs off plugin-owned skill discovery`
-- next: `compatibility-shell shipped artifact layout convergence — reduce installed path dependence on ~/.openclaw/extensions/nmc-memory-plugin/`
+- completed: `compatibility-shell shipped artifact layout convergence — reduce installed path dependence on ~/.openclaw/extensions/nmc-memory-plugin/`
+- next: `compatibility-shell regression cutover coverage convergence — move regression coverage off plugin-shell packaging assumptions`
 - last verified on: `2026-03-19`
 - verified in this slice:
-  - `PATH="/usr/local/bin:$PATH" node packages/adapter-conformance/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node nmc-memory-plugin/packages/control-plane/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -1721,6 +1717,33 @@ Rollback:
 
 - point `openclaw.plugin.json` back at `skills` temporarily if an installed OpenClaw runtime cannot resolve nested manifest-relative skill roots, while keeping the adapter-owned bootstrap source and explicit release gate model intact
 
+### compatibility-shell shipped artifact layout convergence: reduce installed path dependence on ~/.openclaw/extensions/nmc-memory-plugin/
+
+Do this only after `compatibility-shell skill discovery convergence` has moved live discovery onto adapter-owned assets and the next direct-install blocker is the installed wrapper layout itself.
+
+Implemented in this slice:
+
+- added shell-owned installed-artifact CLI wrappers at [nmc-memory-plugin/bin/memory-control-plane.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/bin/memory-control-plane.js) and [nmc-memory-plugin/bin/memory-os-gateway.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/bin/memory-os-gateway.js) so users no longer need nested `packages/*/bin/` paths after install
+- added shell-owned programmatic wrappers at [nmc-memory-plugin/control-plane/index.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/control-plane/index.js) and [nmc-memory-plugin/memory-os-gateway/index.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/memory-os-gateway/index.js), and bundled them through [nmc-memory-plugin/package.json](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/package.json)
+- extended [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) so packed artifacts must include the shell-owned wrappers, the wrapper CLIs execute after extract, and the wrapper module paths work without reaching into nested `packages/` internals
+- updated installed-artifact docs in [docs/implementation-guide.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/implementation-guide.md), [nmc-memory-plugin/README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/README.md), [packages/control-plane/README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/control-plane/README.md), [nmc-memory-plugin/packages/control-plane/README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/control-plane/README.md), and [nmc-memory-plugin/packages/memory-os-gateway/README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/memory-os-gateway/README.md) to point at shell-owned wrapper paths
+- updated `packages/control-plane` release qualification in both root and shipped mirrors so `shipped-artifact-layout` is now cleared while the remaining retirement gates stay pending
+
+Acceptance criteria:
+
+- installed CLI and programmatic guidance no longer depends on nested `packages/control-plane/...` or `packages/memory-os-gateway/...` paths
+- packed artifacts include shell-owned operator and gateway wrappers that work after extract
+- machine-readable release qualification reports `shipped-artifact-layout` as cleared while the direct-install cutover remains not ready overall
+- the required regression baseline remains green
+
+Main risk:
+
+- adding shell-owned wrappers without freezing them in packed-artifact smoke coverage, which would keep repo-local docs aligned while leaving the installed artifact dependent on internal package layout
+
+Rollback:
+
+- point installed-artifact docs and smoke coverage back at the nested `packages/*` paths temporarily if shell-owned wrappers expose an unexpected packaging/runtime regression, while keeping direct-install policy unchanged
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -1984,8 +2007,8 @@ Rules:
 
 The next implementation step should clear the next remaining retirement gate:
 
-- reduce installed control-plane and programmatic path dependence on `~/.openclaw/extensions/nmc-memory-plugin/` while preserving the current compatibility shell ownership
-- keep `openclaw nmc-memory setup`, auto-bootstrap behavior, `openclaw.plugin.json`, workspace layout, and current wrapper paths intact while narrowing the shipped artifact layout assumptions
-- keep scope pinned to `shipped-artifact-layout` rather than changing install ownership, plugin ids, or operator/runtime capabilities
+- move regression coverage off plugin-shell packaging assumptions and toward the future direct adapter-install cutover surface without changing the current production install shell
+- preserve `openclaw nmc-memory setup`, auto-bootstrap behavior, `openclaw.plugin.json`, workspace layout, and the newly introduced shell-owned wrapper paths while tightening regression evidence around the remaining cutover
+- keep scope pinned to `regression-cutover-coverage` rather than changing install ownership, plugin ids, or operator/runtime capabilities
 
-The skill discovery gate is now cleared. The next direct-install blocker is the shipped artifact layout that still assumes the compatibility shell install path.
+The shipped artifact layout gate is now cleared. The next direct-install blocker is the regression baseline, which still freezes plugin-shell packaging rather than a direct adapter-install surface.

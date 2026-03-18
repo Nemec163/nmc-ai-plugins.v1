@@ -92,8 +92,8 @@ function getControlPlaneReleaseQualification(snapshot) {
     ),
     buildRetirementGate(
       'shipped-artifact-layout',
-      'pending',
-      'installed operator and programmatic paths still assume ~/.openclaw/extensions/nmc-memory-plugin/'
+      'cleared',
+      'installed operator and programmatic paths now resolve through shell-owned wrappers instead of internal packages/ layout'
     ),
     buildRetirementGate(
       'regression-cutover-coverage',

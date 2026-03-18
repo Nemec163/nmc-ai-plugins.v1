@@ -27,11 +27,18 @@ CLI entrypoint:
 node packages/memory-os-gateway/bin/memory-os-gateway.js status --memory-root /path/to/memory
 ```
 
+Installed-artifact wrapper:
+
+```sh
+node ~/.openclaw/extensions/nmc-memory-plugin/bin/memory-os-gateway.js status --memory-root /path/to/memory
+```
+
 Temporary Phase 2.5 ops harness:
 
 - the deprecated gateway ops bridge has been retired from this shipped mirror as well
 - the supported Phase 6 operator surface lives in `packages/control-plane`
 - this shipped `nmc-memory-plugin` mirror does not export `getOpsSnapshot` / `inspectOps` from `require('memory-os-gateway')` or `require('memory-os-gateway/ops')`
+- the compatibility shell exposes stable installed-artifact wrapper paths at `bin/memory-os-gateway.js` and `memory-os-gateway/`
 - operators should use `memory-control-plane snapshot|queues|health|analytics|audits|runtime-inspector`
 
 Current cutover note:
