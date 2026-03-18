@@ -2,5 +2,23 @@
   "name": "@nmc/memory-pipeline",
   "version": "0.0.0",
   "private": true,
-  "description": "Engine-agnostic extract, curate, apply, and verify orchestration placeholders."
+  "description": "Engine-agnostic extract, curate, apply, and verify sequencing for the Memory OS pipeline.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./phases": "./lib/phases.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "bin/",
+    "README.md"
+  ],
+  "bin": {
+    "memory-pipeline": "./bin/run-pipeline.sh"
+  },
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  }
 }

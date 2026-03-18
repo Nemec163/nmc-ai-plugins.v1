@@ -16,6 +16,7 @@ const CANON_EXTRA_PATHS = [
 ];
 
 let cachedMemoryAgents = null;
+let cachedMemoryGateway = null;
 let cachedMemoryWorkspace = null;
 
 function loadMemoryAgents() {
@@ -37,6 +38,27 @@ function loadMemoryAgents() {
     // Agent package tests run directly from source without a workspace install step.
     cachedMemoryAgents = require("../../packages/memory-agents");
     return cachedMemoryAgents;
+  }
+}
+
+function loadMemoryGateway() {
+  if (cachedMemoryGateway) {
+    return cachedMemoryGateway;
+  }
+
+  try {
+    cachedMemoryGateway = require("memory-os-gateway");
+    return cachedMemoryGateway;
+  } catch (error) {
+    if (
+      error.code !== "MODULE_NOT_FOUND" ||
+      !String(error.message || "").includes("memory-os-gateway")
+    ) {
+      throw error;
+    }
+
+    cachedMemoryGateway = require("../../packages/memory-os-gateway");
+    return cachedMemoryGateway;
   }
 }
 
@@ -489,66 +511,25 @@ function setupOpenClaw(rawOptions = {}) {
     throw new Error("pluginRoot is required");
   }
 
-  const memoryAgents = loadMemoryAgents();
-  const memoryWorkspace = loadMemoryWorkspace();
+  const memoryGateway = loadMemoryGateway();
   const options = normalizeOptions(rawOptions);
-  ensureDir(options.stateDir);
-  ensureDir(options.workspaceRoot);
-  ensureDir(options.systemRoot);
-
-  const systemCreated = memoryWorkspace.copySystemTemplate(
-    path.join(options.pluginRoot, "templates", "workspace-system"),
-    options.systemRoot,
-    options.overwrite,
-    options.installDate,
-  );
-  const memoryCreated = memoryWorkspace.copyMemoryTemplate(
-    path.join(options.pluginRoot, "templates", "workspace-memory"),
-    options.memoryRoot,
-    options.overwrite,
-    options.installDate,
-  );
-  const sharedSkills = memoryWorkspace.createSharedSkillsWorkspace(
-    path.join(options.pluginRoot, "skills"),
-    options.sharedSkillsRoot,
-    options.overwrite,
-  );
-  const agents = memoryAgents.PREDEFINED_AGENTS.map((agent) => {
-    const workspaceDir = path.join(options.workspaceRoot, agent.id);
-    const memoryPath = relativeWorkspacePath(workspaceDir, options.memoryRoot);
-    const systemPath = relativeWorkspacePath(workspaceDir, options.systemRoot);
-    const files = memoryAgents.agentWorkspaceFiles(
-      agent,
-      options.installDate,
-      memoryPath,
-      systemPath,
-    );
-
-    return memoryWorkspace.scaffoldAgentWorkspace({
-      agentId: agent.id,
-      workspaceDir,
-      files,
-      sharedSkillsRoot: sharedSkills.root,
-      systemRoot: options.systemRoot,
-      overwrite: options.overwrite,
-    });
-  });
-  const agentState = memoryAgents.PREDEFINED_AGENTS.map((agent) =>
-    memoryWorkspace.ensureAgentState(agent.id, options.stateDir),
-  );
-  const config = options.writeConfig ? updateConfig(options) : null;
-
-  return {
+  const bootstrapResult = memoryGateway.bootstrap({
     stateDir: options.stateDir,
     workspaceRoot: options.workspaceRoot,
     systemRoot: options.systemRoot,
     memoryRoot: options.memoryRoot,
+    sharedSkillsRoot: options.sharedSkillsRoot,
+    systemTemplateRoot: path.join(options.pluginRoot, "templates", "workspace-system"),
+    memoryTemplateRoot: path.join(options.pluginRoot, "templates", "workspace-memory"),
+    skillsSourceRoot: path.join(options.pluginRoot, "skills"),
+    installDate: options.installDate,
+    overwrite: options.overwrite,
+  });
+  const config = options.writeConfig ? updateConfig(options) : null;
+
+  return {
+    ...bootstrapResult,
     config,
-    systemCreated,
-    memoryCreated,
-    sharedSkills,
-    agents,
-    agentState,
   };
 }
 

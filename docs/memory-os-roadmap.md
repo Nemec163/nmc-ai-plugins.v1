@@ -5,9 +5,13 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 1b / PR 1b.4 — Extract @nmc/memory-workspace Scaffolding`
-- next: `Phase 1b / PR 1b.5 — Extract @nmc/memory-pipeline`
-- last verified on: `2026-03-17`
+- completed: `Phase 2.5 — Temporary Ops Harness / Eval Surface`
+- next: `Phase 3 / PR 3.1 — Move OpenClaw Registration and Config Logic`
+- last verified on: `2026-03-18`
+- verified in this slice:
+  - `node packages/memory-os-gateway/test/validate-fixtures.js`
+  - `./nmc-memory-plugin/tests/run-contract-tests.sh`
+  - `./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -837,6 +841,20 @@ Rollback:
 
 #### PR 1b.5: Extract `@nmc/memory-pipeline`
 
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- extracted package-owned phase sequencing into `packages/memory-pipeline/bin/run-pipeline.sh` while preserving the existing shell contract for argument parsing, dry-run output, summary formatting, stop-on-error behavior, and memory-root detection
+- added `@nmc/memory-pipeline` package exports for phase constants and selection helpers without introducing a second adapter-facing abstraction ahead of Phase 3.2
+- reduced `nmc-memory-plugin/skills/memory-pipeline/pipeline.sh` to a thin compatibility wrapper that injects the legacy verify entrypoint path and delegates execution to the shared package script
+- added a package proof test for the extracted pipeline entrypoint, exports, wrapper wiring, and shell syntax
+- verified with `bash -n packages/memory-pipeline/bin/run-pipeline.sh`
+- verified with `bash -n nmc-memory-plugin/skills/memory-pipeline/pipeline.sh`
+- verified with `node packages/memory-pipeline/test/validate-fixtures.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
+
 Move sequencing and engine-agnostic pipeline contracts into a dedicated extension package:
 
 - extract
@@ -862,6 +880,18 @@ Rollback:
 ### Phase 2: Introduce Gateway
 
 #### PR 2.1: Introduce `memory-os-gateway` as In-Process SDK
+
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- introduced `packages/memory-os-gateway` as a shared CommonJS SDK and JSON CLI over canon reads, projection/current reads, role bundles, workspace and role bootstrap, query, status, verify, and health operations
+- kept write orchestration out of scope while returning structured data from gateway APIs and preserving projection rebuildability from canon
+- switched `nmc-memory-plugin/lib/openclaw-setup.js` to consume gateway bootstrap orchestration while keeping OpenClaw-specific config mutation inside the adapter layer
+- added package proof tests and folded the new gateway fixture validation into the existing contract baseline without replacing the repository regression gates
+- verified with `node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
 
 Start with read and bootstrap operations:
 
@@ -891,6 +921,20 @@ Rollback:
 
 #### PR 2.2: Add Safe Proposal and Write-Orchestration Surfaces
 
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- extended `packages/memory-os-gateway` with non-authoritative `propose`, `feedback`, and `completeJob` surfaces while leaving `lease_job` out of scope until job contracts are formalized
+- routed reviewed proposal batches into pipeline-compatible `intake/pending/YYYY-MM-DD.md` materialization instead of granting direct canon write access
+- added non-canonical `intake/proposals/` and `intake/jobs/` orchestration receipts so adapters can submit and complete mediated write flows without file-level canon knowledge
+- exposed canon lock read/acquire/release helpers in `@nmc/memory-canon` and verified lock scaffolding through both direct helpers and the promoter interface without transferring final canon serialization ownership
+- added package proof coverage for safe write orchestration and folded the new gateway/canon checks into the existing regression baseline
+- verified with `node packages/memory-canon/test/validate-fixtures.js`
+- verified with `node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
+
 Add safe orchestration APIs before a second adapter gets a write-capable path:
 
 - `propose`
@@ -915,6 +959,18 @@ Rollback:
 - keep write orchestration behind package-local callers only
 
 ### Phase 2.5: Temporary Ops Harness / Eval Surface
+
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- extended `packages/memory-os-gateway` with a temporary `ops-snapshot` read model that inspects proposal receipts, job receipts, active canon locks, backlog state, degraded-mode signals, verify output, and current canonical projections without introducing new write authority
+- kept the harness explicitly migration-scoped and disposable by packaging it as a read-only gateway SDK/CLI surface instead of a durable control-plane contract
+- derived conflict visibility from existing gateway-backed receipts and canon lock state so operators can inspect orphan jobs, missing handoff artifacts, invalid lock state, and other write-path inconsistencies without direct file spelunking
+- added package proof coverage for SDK and CLI inspection flows, including proposal/job receipt summaries, conflict detection, active lock visibility, degraded-mode inspection, and current projection exposure
+- verified with `node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
 
 Add a temporary gateway-backed operator surface over the gateway:
 
@@ -1448,10 +1504,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 1b, PR 1b.5:
+The next implementation step should be Phase 3, PR 3.1:
 
-- extract `@nmc/memory-pipeline` for engine-agnostic sequencing of `extract`, `curate`, `apply`, and `verify`
-- keep `pipeline.sh` behavior, dry-run semantics, and failure handling unchanged while moving sequencing ownership out of adapter-local shell logic
-- preserve the existing integration script as the primary regression gate while untangling phase orchestration from plugin-local entrypoints
+- move OpenClaw registration, plugin CLI wiring, auto-bootstrap lifecycle hooks, and config mutation into a thinner `adapter-openclaw` facade
+- keep `openclaw nmc-memory setup`, auto-bootstrap behavior, and `openclaw.json` merge semantics unchanged while reducing adapter-local ownership
+- preserve gateway-backed bootstrap and read surfaces as the stable core boundary instead of reintroducing file-level coupling from the adapter
 
-PR 1b.4 is now complete, so the next risk is over-abstracting pipeline sequencing before a second adapter exists. Keep PR 1b.5 focused on engine-agnostic sequencing contracts while preserving current shell behavior and regression coverage.
+Phase 2.5 is now complete, so the next risk is leaving OpenClaw-specific registration and config behavior spread across the compatibility plugin. Keep PR 3.1 focused on moving engine-specific lifecycle and config code behind a thin adapter facade without changing the existing setup UX.

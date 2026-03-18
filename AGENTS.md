@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `Phase 1b / PR 1b.4 — Extract @nmc/memory-workspace Scaffolding`
-- next roadmap slice: `Phase 1b / PR 1b.5 — Extract @nmc/memory-pipeline`
+- completed roadmap slice: `Phase 2.5 — Temporary Ops Harness / Eval Surface`
+- next roadmap slice: `Phase 3 / PR 3.1 — Move OpenClaw Registration and Config Logic`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -26,14 +26,14 @@ At the beginning of a new session:
 Work one roadmap slice at a time. Treat each `PR x.y` heading in the roadmap as the unit of delivery.
 
 1. Gather minimal local context for the current slice.
-2. If the slice is non-trivial, architecture-sensitive, or risky, run `codex-claude` in `plan` mode before making structural decisions.
+2. If the slice is non-trivial, architecture-sensitive, or risky, do a deliberate planning pass before making structural decisions.
 3. Keep scope pinned to the active roadmap slice. Do not partially start the next slice in the same change unless the user explicitly asks for it.
 4. Implement the smallest viable change that satisfies the roadmap acceptance criteria.
 5. Run targeted verification for the touched area.
 6. Run the regression baseline:
    - `./nmc-memory-plugin/tests/run-contract-tests.sh`
    - `./nmc-memory-plugin/tests/run-integration.sh`
-7. If the change has regression risk, run `codex-claude` in `review` mode before finalizing.
+7. If the change has regression risk, do a focused review pass before finalizing.
 8. Update [docs/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/memory-os-roadmap.md):
    - mark the completed roadmap slice as done
    - update `Immediate Next Step`
@@ -66,7 +66,11 @@ Phase 0 is complete:
 - `PR 1b.2` extracted `@nmc/memory-workspace` for shared path, filesystem, and template-copy helpers while preserving setup output and runtime bootstrap behavior
 - `PR 1b.3` extracted `@nmc/memory-agents` for predefined roster definitions, machine-readable role manifests, role bundles, and deterministic agent workspace rendering while preserving plugin-local scaffold placement and config mutation
 - `PR 1b.4` extracted higher-level `@nmc/memory-workspace` scaffold orchestration for template copy, shared skill wiring, agent workspace materialization, and agent state directories while preserving current `system/` layout, symlink behavior, and `openclaw.json` semantics
-- Phase 1b should continue with `PR 1b.5` and move engine-agnostic pipeline sequencing into `@nmc/memory-pipeline` without changing current `pipeline.sh` behavior, dry-run semantics, or failure handling
+- `PR 1b.5` extracted `@nmc/memory-pipeline` for engine-agnostic sequencing of `extract`, `curate`, `apply`, and `verify` while preserving current `pipeline.sh` behavior, dry-run semantics, and failure handling through a thin plugin-local wrapper
+- `PR 2.1` introduced `memory-os-gateway` as the in-process SDK for read, bootstrap, query, status, verify, and health operations while keeping OpenClaw-specific config mutation in the adapter layer
+- `PR 2.2` added safe gateway-mediated proposal, feedback, pending-batch materialization, job receipts, and lock scaffolding surfaces without granting direct canon write access
+- `Phase 2.5` added a temporary read-only gateway ops harness for jobs, proposals, conflicts, locks, verify, status, degraded-mode inspection, and current projections without widening into control-plane ownership
+- the next slice is `Phase 3 / PR 3.1`, which should move OpenClaw registration and config mutation into a thinner adapter facade while preserving existing setup and bootstrap behavior
 
 ## Commit Convention
 

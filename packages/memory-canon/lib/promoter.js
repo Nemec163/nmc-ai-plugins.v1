@@ -1,11 +1,16 @@
 'use strict';
 
+const fs = require('node:fs');
+const path = require('node:path');
+
 const {
   CANON_SINGLE_WRITER,
   CURRENT_SCHEMA_VERSION,
   PROMOTER_IMPLEMENTATIONS,
   PROMOTER_REQUEST_TYPES,
 } = require('./constants');
+const { createCanonWriteLock, validateCanonWriteLock } = require('./lock');
+const { resolveCanonLockPath } = require('./layout');
 const { VALIDATION_ERROR_CODES } = require('./load-contracts');
 
 function buildIssue(code, message, path) {
@@ -22,6 +27,16 @@ function isPlainObject(value) {
 
 function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
+}
+
+function firstIssueMessage(validation, fallback) {
+  if (!validation || validation.valid || !Array.isArray(validation.issues)) {
+    return fallback;
+  }
+
+  return validation.issues[0] && validation.issues[0].message
+    ? validation.issues[0].message
+    : fallback;
 }
 
 function validatePromotionRequest(request) {
@@ -86,31 +101,124 @@ function validatePromotionRequest(request) {
   };
 }
 
+function readLockFile(lockPath) {
+  if (!fs.existsSync(lockPath)) {
+    return null;
+  }
+
+  return JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+}
+
+function acquireCanonWriteLock(request) {
+  const validation = validatePromotionRequest(request);
+  if (!validation.valid) {
+    throw new Error(firstIssueMessage(validation, 'Invalid promotion request.'));
+  }
+
+  const memoryRoot = path.resolve(request.memory_root);
+  const lockPath = resolveCanonLockPath(memoryRoot);
+  fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+
+  const acquiredAt = request.acquired_at || new Date().toISOString();
+  const holder = request.holder || request.writer;
+  const lock = createCanonWriteLock({
+    writer: request.writer,
+    mode: request.mode,
+    operation: request.operation,
+    holder,
+    acquiredAt,
+    checkpointPath: request.checkpoint_path,
+  });
+  const lockValidation = validateCanonWriteLock(lock);
+  if (!lockValidation.valid) {
+    throw new Error(firstIssueMessage(lockValidation, 'Invalid canon write lock.'));
+  }
+
+  try {
+    fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, {
+      encoding: 'utf8',
+      flag: 'wx',
+    });
+  } catch (error) {
+    if (error && error.code === 'EEXIST') {
+      return {
+        acquired: false,
+        lockPath,
+        single_writer: CANON_SINGLE_WRITER,
+        existingLock: readLockFile(lockPath),
+      };
+    }
+
+    throw error;
+  }
+
+  return {
+    acquired: true,
+    lockPath,
+    single_writer: CANON_SINGLE_WRITER,
+    lock,
+  };
+}
+
+function releaseCanonWriteLock(request) {
+  const validation = validatePromotionRequest(request);
+  if (!validation.valid) {
+    throw new Error(firstIssueMessage(validation, 'Invalid promotion request.'));
+  }
+
+  const memoryRoot = path.resolve(request.memory_root);
+  const lockPath = resolveCanonLockPath(memoryRoot);
+  if (!fs.existsSync(lockPath)) {
+    return {
+      released: false,
+      existed: false,
+      lockPath,
+      single_writer: CANON_SINGLE_WRITER,
+    };
+  }
+
+  const existingLock = readLockFile(lockPath);
+  if (
+    request.holder &&
+    existingLock &&
+    isNonEmptyString(existingLock.holder) &&
+    existingLock.holder !== request.holder
+  ) {
+    throw new Error(
+      `Cannot release canon write lock held by ${existingLock.holder}.`
+    );
+  }
+
+  fs.rmSync(lockPath);
+
+  return {
+    released: true,
+    existed: true,
+    lockPath,
+    single_writer: CANON_SINGLE_WRITER,
+    lock: existingLock,
+  };
+}
+
 function createPromoterInterface(overrides = {}) {
   return Object.freeze({
     schema_version: CURRENT_SCHEMA_VERSION,
     implementation: overrides.implementation || PROMOTER_IMPLEMENTATIONS[1],
     single_writer: overrides.singleWriter || CANON_SINGLE_WRITER,
     validateRequest: overrides.validateRequest || validatePromotionRequest,
-    acquireLock:
-      overrides.acquireLock ||
-      (() => {
-        throw new Error('Canon promoter lock acquisition is not implemented in this slice.');
-      }),
+    acquireLock: overrides.acquireLock || acquireCanonWriteLock,
     promote:
       overrides.promote ||
       (() => {
         throw new Error('Canon promotion is not implemented in this slice.');
       }),
-    releaseLock:
-      overrides.releaseLock ||
-      (() => {
-        throw new Error('Canon promoter lock release is not implemented in this slice.');
-      }),
+    releaseLock: overrides.releaseLock || releaseCanonWriteLock,
   });
 }
 
 module.exports = {
+  acquireCanonWriteLock,
   createPromoterInterface,
+  releaseCanonWriteLock,
   validatePromotionRequest,
 };

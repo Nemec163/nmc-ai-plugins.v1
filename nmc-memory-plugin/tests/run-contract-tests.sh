@@ -18,6 +18,8 @@ MAINTAINER_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-maintainer/test/validat
 SCRIPTS_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-scripts/test/validate-fixtures.js"
 WORKSPACE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-workspace/test/validate-fixtures.js"
 AGENTS_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-agents/test/validate-fixtures.js"
+PIPELINE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-pipeline/test/validate-fixtures.js"
+GATEWAY_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-os-gateway/test/validate-fixtures.js"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -444,6 +446,52 @@ test_shared_agents_package_fixture_validation() {
   fi
 }
 
+test_shared_pipeline_package_fixture_validation() {
+  print_case "TEST" "@nmc/memory-pipeline validates shared phase sequencing fixtures"
+
+  if ! require_file "$PIPELINE_FIXTURE_TEST" "shared pipeline package fixture test"; then
+    return
+  fi
+
+  cleanup
+  TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-pipeline-test.XXXXXX")"
+  run_and_capture node "$PIPELINE_FIXTURE_TEST"
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "shared pipeline fixture validation" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if grep -q "@nmc/memory-pipeline" "$LAST_STDOUT"; then
+    pass "shared pipeline fixture validation"
+  else
+    fail "shared pipeline fixture validation" "Fixture validation output did not confirm pipeline package execution"
+  fi
+}
+
+test_shared_gateway_package_fixture_validation() {
+  print_case "TEST" "memory-os-gateway validates shared read, bootstrap, and health fixtures"
+
+  if ! require_file "$GATEWAY_FIXTURE_TEST" "shared gateway package fixture test"; then
+    return
+  fi
+
+  cleanup
+  TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-memory-gateway-test.XXXXXX")"
+  run_and_capture node "$GATEWAY_FIXTURE_TEST"
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "shared gateway fixture validation" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if grep -q "memory-os-gateway" "$LAST_STDOUT"; then
+    pass "shared gateway fixture validation"
+  else
+    fail "shared gateway fixture validation" "Fixture validation output did not confirm gateway package execution"
+  fi
+}
+
 test_verify_contracts() {
   local manifest_file edges_file actual_schema
 
@@ -843,6 +891,8 @@ main() {
   test_shared_scripts_package_fixture_validation
   test_shared_workspace_package_fixture_validation
   test_shared_agents_package_fixture_validation
+  test_shared_pipeline_package_fixture_validation
+  test_shared_gateway_package_fixture_validation
   test_verify_contracts
   test_status_output_contract
   test_pipeline_dry_run_contract

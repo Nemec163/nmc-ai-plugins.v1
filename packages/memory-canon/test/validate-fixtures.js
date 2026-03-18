@@ -6,10 +6,13 @@ const os = require('node:os');
 const path = require('node:path');
 
 const {
+  acquireCanonWriteLock,
   CANON_SINGLE_WRITER,
   buildManifestSnapshot,
   createCanonWriteLock,
   createPromoterInterface,
+  readCanonWriteLock,
+  releaseCanonWriteLock,
   resolveCanonLockPath,
   validateCanonWriteLock,
   validateGraphEdge,
@@ -118,6 +121,42 @@ function main() {
 
     const promoter = createPromoterInterface();
     assert.equal(promoter.single_writer, CANON_SINGLE_WRITER);
+
+    const directAcquire = acquireCanonWriteLock({
+      memoryRoot: workspaceCopy,
+      holder: 'fixture-lock-helper',
+      acquiredAt: '2026-03-17T00:00:30Z',
+      operation: 'legacy-apply',
+    });
+    assert.equal(directAcquire.path, lockPath);
+    assert.equal(readCanonWriteLock(workspaceCopy).lock.holder, 'fixture-lock-helper');
+    assert.equal(
+      releaseCanonWriteLock({
+        memoryRoot: workspaceCopy,
+        expectedHolder: 'fixture-lock-helper',
+      }).released,
+      true
+    );
+    assert.equal(readCanonWriteLock(workspaceCopy), null);
+
+    const request = {
+      type: 'canon-write',
+      memory_root: workspaceCopy,
+      writer: CANON_SINGLE_WRITER,
+      operation: 'legacy-apply',
+      holder: 'fixture-test',
+    };
+    const acquired = promoter.acquireLock(request);
+    assert.equal(acquired.acquired, true);
+    assert.equal(fs.existsSync(lockPath), true);
+
+    const secondAcquire = promoter.acquireLock(request);
+    assert.equal(secondAcquire.acquired, false);
+    assert.equal(secondAcquire.existingLock.holder, 'fixture-test');
+
+    const released = promoter.releaseLock(request);
+    assert.equal(released.released, true);
+    assert.equal(fs.existsSync(lockPath), false);
 
     console.log(
       'Validated 6 canonical record fixtures and rebuilt 6 graph edges through @nmc/memory-canon.'

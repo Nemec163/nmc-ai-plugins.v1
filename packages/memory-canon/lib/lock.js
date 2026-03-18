@@ -1,11 +1,15 @@
 'use strict';
 
+const fs = require('node:fs');
+const path = require('node:path');
+
 const {
   CANON_LOCK_MODES,
   CANON_SINGLE_WRITER,
   CURRENT_SCHEMA_VERSION,
 } = require('./constants');
 const { VALIDATION_ERROR_CODES } = require('./load-contracts');
+const { resolveCanonLockPath } = require('./layout');
 
 function buildIssue(code, message, path) {
   return {
@@ -127,7 +131,93 @@ function validateCanonWriteLock(lock) {
   };
 }
 
+function readCanonWriteLock(memoryRoot) {
+  const lockPath = resolveCanonLockPath(path.resolve(memoryRoot));
+  if (!fs.existsSync(lockPath)) {
+    return null;
+  }
+
+  const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+  return {
+    path: lockPath,
+    lock,
+    validation: validateCanonWriteLock(lock),
+  };
+}
+
+function acquireCanonWriteLock(options) {
+  if (!isNonEmptyString(options.memoryRoot)) {
+    throw new Error('memoryRoot must be a non-empty string.');
+  }
+
+  const memoryRoot = path.resolve(options.memoryRoot);
+  const lockPath = resolveCanonLockPath(memoryRoot);
+  if (fs.existsSync(lockPath)) {
+    throw new Error(`Canon write lock already exists: ${lockPath}`);
+  }
+
+  const lock = createCanonWriteLock({
+    writer: options.writer,
+    mode: options.mode,
+    operation: options.operation,
+    holder: options.holder,
+    acquiredAt: options.acquiredAt || new Date().toISOString(),
+    checkpointPath: options.checkpointPath,
+  });
+  const validation = validateCanonWriteLock(lock);
+  if (!validation.valid) {
+    throw new Error(
+      `Invalid canon write lock: ${validation.issues.map((issue) => issue.message).join(' ')}`
+    );
+  }
+
+  fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+  fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, 'utf8');
+
+  return {
+    path: lockPath,
+    lock,
+    validation,
+  };
+}
+
+function releaseCanonWriteLock(options) {
+  if (!isNonEmptyString(options.memoryRoot)) {
+    throw new Error('memoryRoot must be a non-empty string.');
+  }
+
+  const lockPath = resolveCanonLockPath(path.resolve(options.memoryRoot));
+  if (!fs.existsSync(lockPath)) {
+    return {
+      path: lockPath,
+      released: false,
+    };
+  }
+
+  const current = readCanonWriteLock(options.memoryRoot);
+  if (
+    isNonEmptyString(options.expectedHolder) &&
+    current &&
+    current.lock &&
+    current.lock.holder !== options.expectedHolder
+  ) {
+    throw new Error(
+      `Canon write lock holder mismatch: expected ${options.expectedHolder}, found ${current.lock.holder}`
+    );
+  }
+
+  fs.unlinkSync(lockPath);
+  return {
+    path: lockPath,
+    released: true,
+    lock: current ? current.lock : null,
+  };
+}
+
 module.exports = {
+  acquireCanonWriteLock,
   createCanonWriteLock,
+  readCanonWriteLock,
+  releaseCanonWriteLock,
   validateCanonWriteLock,
 };
