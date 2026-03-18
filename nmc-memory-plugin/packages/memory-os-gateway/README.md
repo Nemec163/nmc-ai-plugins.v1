@@ -17,7 +17,6 @@ Current v1 surface:
 - `getStatus` / `status`
 - `verify`
 - `getHealth` / `health`
-- `getOpsSnapshot` / `inspectOps`
 - `propose`
 - `feedback`
 - `completeJob` / `complete_job`
@@ -30,6 +29,7 @@ node packages/memory-os-gateway/bin/memory-os-gateway.js status --memory-root /p
 
 Temporary Phase 2.5 ops harness:
 
+- compatibility-only SDK entrypoint: `getOpsSnapshot` / `inspectOps`
 - `ops-snapshot` exposes read-only proposal, job, conflict, lock, status, verify, degraded-mode, and current projection visibility
 - the snapshot is explicitly migration-scoped, deprecated, and compatibility-only; the supported Phase 6 operator surface now lives in `packages/control-plane`
 - `ops-snapshot` now emits machine-readable release-boundary metadata pointing operators to `memory-control-plane snapshot|queues|health|analytics|audits|runtime-inspector`

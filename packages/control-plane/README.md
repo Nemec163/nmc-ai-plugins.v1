@@ -59,6 +59,11 @@ Control-plane v3 stays intentionally careful:
 - runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
 - `snapshot` and `health` now emit release-qualification metadata that marks `control-plane` as the supported migration-release operator surface and `nmc-memory-plugin` as the compatibility shell
 
+Packaging note:
+
+- when the compatibility shell is shipped through `nmc-memory-plugin`, the supported operator surface is bundled under `nmc-memory-plugin/packages/control-plane/`
+- the packaged CLI entrypoint is `node ~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js <command> ...`
+
 Compatibility note:
 
 - `memory-os-gateway ops-snapshot` remains available only as a deprecated compatibility bridge
