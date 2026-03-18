@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `compatibility-shell shipped artifact layout convergence — reduce installed path dependence on ~/.openclaw/extensions/nmc-memory-plugin/`
-- next roadmap slice: `compatibility-shell regression cutover coverage convergence — move regression coverage off plugin-shell packaging assumptions`
+- completed roadmap slice: `compatibility-shell regression cutover coverage — move regression coverage off plugin-shell packaging assumptions`
+- next roadmap slice: `compatibility-shell install manifest surface convergence — move OpenClaw install manifest ownership off nmc-memory-plugin`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -95,7 +95,8 @@ Phase 0 is complete:
 - `compatibility-shell wrapper convergence` collapsed the duplicated OpenClaw shell entrypoints into thin wrappers over `packages/adapter-openclaw` and cleared that retirement gate without changing install ownership or shipped behavior
 - `compatibility-shell skill discovery convergence` moved live OpenClaw skill discovery onto `packages/adapter-openclaw/skills`, kept `nmc-memory-plugin/skills` as compatibility wrappers, and cleared that retirement gate without widening scope into new operator capabilities
 - `compatibility-shell shipped artifact layout convergence` added shell-owned CLI and programmatic wrappers under `nmc-memory-plugin`, moved installed-artifact guidance and smoke coverage onto those wrapper paths, and cleared that retirement gate without widening scope into new operator capabilities
-- the next slice is `compatibility-shell regression cutover coverage convergence`, which should move regression coverage off plugin-shell packaging assumptions without widening scope into new operator capabilities
+- `compatibility-shell regression cutover coverage` added synthetic direct-surface regression coverage through `packages/adapter-openclaw`, cleared that retirement gate, and left `install-manifest-surface` as the only pending direct-install blocker
+- the next slice is `compatibility-shell install manifest surface convergence`, which should move OpenClaw install manifest ownership off `nmc-memory-plugin` without widening scope into new operator capabilities
 
 ## Commit Convention
 

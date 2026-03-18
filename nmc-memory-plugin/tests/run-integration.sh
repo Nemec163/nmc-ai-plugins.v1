@@ -506,13 +506,15 @@ test_packaged_artifact_install_smoke() {
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.productionStatus")" = "current-production-install-shell" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.directAdapterInstall")" = "not-supported" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.cutoverReady")" = "false" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.pendingGateCount")" = "2" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.pendingGateCount")" = "1" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.id")" = "wrapper-convergence" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.status")" = "cleared" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.2.id")" = "skill-discovery-surface" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.2.status")" = "cleared" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.3.id")" = "shipped-artifact-layout" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.3.status")" = "cleared" ]; then
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.3.status")" = "cleared" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.4.id")" = "regression-cutover-coverage" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.4.status")" = "cleared" ]; then
     pass "packed artifact control-plane CLI runs through shell-owned wrapper"
   else
     fail "packed artifact control-plane CLI runs through shell-owned wrapper" "Expected control-plane snapshot with retained production-shell metadata and updated retirement prerequisites"
@@ -1080,6 +1082,85 @@ EOF
   fi
 }
 
+test_adapter_direct_surface_smoke() {
+  local direct_root state_dir workspace_root config_path
+
+  direct_root="$TEST_WORKDIR/direct-adapter-root"
+  state_dir="$TEST_WORKDIR/direct-adapter-state"
+  workspace_root="$state_dir/workspace"
+  config_path="$state_dir/openclaw.json"
+
+  print_case "TEST" "adapter-openclaw synthetic direct surface bootstraps without compatibility-shell wrappers"
+
+  mkdir -p "$direct_root/templates"
+  cp -R "$PLUGIN_ROOT/templates/workspace-system" "$direct_root/templates/workspace-system"
+  cp -R "$PLUGIN_ROOT/templates/workspace-memory" "$direct_root/templates/workspace-memory"
+
+  run_and_capture "$NODE_BIN" - "$direct_root" "$state_dir" "$workspace_root" "$config_path" <<'EOF'
+const path = require("path");
+const { createOpenClawPlugin } = require(path.resolve("packages/adapter-openclaw"));
+
+const pluginRoot = process.argv[2];
+const stateDir = process.argv[3];
+const workspaceRoot = process.argv[4];
+const configPath = process.argv[5];
+
+const plugin = createOpenClawPlugin({
+  pluginId: "nmc-memory-plugin",
+  pluginName: "NMC Memory Plugin",
+  pluginRoot,
+});
+const services = [];
+
+plugin.register({
+  config: {
+    plugins: {
+      entries: {
+        "nmc-memory-plugin": {
+          config: {
+            stateDir,
+            workspaceRoot,
+            configPath,
+          },
+        },
+      },
+    },
+  },
+  logger: {
+    info() {},
+    error(message) {
+      console.error(message);
+    },
+  },
+  registerCli() {},
+  registerService(service) {
+    services.push(service);
+  },
+});
+
+if (services.length !== 1) {
+  console.error(`expected one service, got ${services.length}`);
+  process.exit(1);
+}
+
+services[0].start();
+EOF
+
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "adapter direct surface bootstrap exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if [ -d "$workspace_root/system/memory" ] && \
+     [ -f "$config_path" ] && \
+     [ -L "$workspace_root/system/skills/memory-query" ]; then
+    pass "adapter direct surface bootstrap scaffolds workspace"
+  else
+    fail "adapter direct surface bootstrap scaffolds workspace" "Expected synthetic direct surface to scaffold workspace and shared skills"
+  fi
+}
+
 test_scaffolded_workspace_script_detection() {
   local state_dir workspace_root config_path
 
@@ -1496,6 +1577,7 @@ main() {
   test_runtime_auto_bootstrap
   test_runtime_auto_bootstrap_disabled
   test_runtime_auto_bootstrap_without_state_dir
+  test_adapter_direct_surface_smoke
   test_scaffolded_workspace_script_detection
   test_verify_success
   test_status_output

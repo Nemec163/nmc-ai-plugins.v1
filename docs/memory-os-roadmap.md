@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `compatibility-shell shipped artifact layout convergence — reduce installed path dependence on ~/.openclaw/extensions/nmc-memory-plugin/`
-- next: `compatibility-shell regression cutover coverage convergence — move regression coverage off plugin-shell packaging assumptions`
+- completed: `compatibility-shell regression cutover coverage — move regression coverage off plugin-shell packaging assumptions`
+- next: `compatibility-shell install manifest surface convergence — move OpenClaw install manifest ownership off nmc-memory-plugin`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
@@ -1744,6 +1744,31 @@ Rollback:
 
 - point installed-artifact docs and smoke coverage back at the nested `packages/*` paths temporarily if shell-owned wrappers expose an unexpected packaging/runtime regression, while keeping direct-install policy unchanged
 
+### compatibility-shell regression cutover coverage: move regression coverage off plugin-shell packaging assumptions
+
+Do this only after `compatibility-shell shipped artifact layout convergence` has cleared the installed wrapper-path gate and the remaining regression gap is proving a future direct surface rather than the current compatibility shell alone.
+
+Implemented in this slice:
+
+- extended [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) with a synthetic direct-surface smoke that bootstraps `packages/adapter-openclaw` against a temp plugin root containing only the managed templates, without routing through `nmc-memory-plugin` shell wrappers
+- updated release qualification in [packages/control-plane/lib/release-qualification.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/control-plane/lib/release-qualification.js) and [nmc-memory-plugin/packages/control-plane/lib/release-qualification.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/control-plane/lib/release-qualification.js) so `regression-cutover-coverage` is now cleared
+- updated [packages/control-plane/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/control-plane/test/validate-fixtures.js), [nmc-memory-plugin/packages/control-plane/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/control-plane/test/validate-fixtures.js), and packed-artifact assertions in [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) so the machine-readable retirement-gate model now reflects that only `install-manifest-surface` remains pending
+
+Acceptance criteria:
+
+- the regression baseline covers a synthetic direct adapter surface in addition to compatibility-shell packaging
+- machine-readable release qualification reports `regression-cutover-coverage` as cleared while the direct-install cutover remains not ready overall
+- `install-manifest-surface` is the only remaining pending retirement gate
+- the required regression baseline remains green
+
+Main risk:
+
+- mistaking repo-local adapter fixture coverage for cutover coverage without actually freezing a direct-surface path in the regression baseline
+
+Rollback:
+
+- drop the synthetic direct-surface smoke temporarily if it proves too brittle, while keeping the compatibility-shell baseline intact and leaving `regression-cutover-coverage` pending until a narrower replacement lands
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -2007,8 +2032,8 @@ Rules:
 
 The next implementation step should clear the next remaining retirement gate:
 
-- move regression coverage off plugin-shell packaging assumptions and toward the future direct adapter-install cutover surface without changing the current production install shell
-- preserve `openclaw nmc-memory setup`, auto-bootstrap behavior, `openclaw.plugin.json`, workspace layout, and the newly introduced shell-owned wrapper paths while tightening regression evidence around the remaining cutover
-- keep scope pinned to `regression-cutover-coverage` rather than changing install ownership, plugin ids, or operator/runtime capabilities
+- move OpenClaw install manifest ownership off `nmc-memory-plugin` so the last remaining direct-install blocker no longer lives in the compatibility shell
+- preserve `openclaw nmc-memory setup`, auto-bootstrap behavior, workspace layout, and the now-cleared regression/install wrapper coverage while deciding the final manifest and extension ownership surface
+- keep scope pinned to `install-manifest-surface` rather than widening into new runtime, operator, or adapter capabilities
 
-The shipped artifact layout gate is now cleared. The next direct-install blocker is the regression baseline, which still freezes plugin-shell packaging rather than a direct adapter-install surface.
+The regression coverage gate is now cleared. The last remaining direct-install blocker is the install manifest surface that still lives under `nmc-memory-plugin`.

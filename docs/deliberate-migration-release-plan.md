@@ -161,6 +161,19 @@ Exit gate:
 Status:
 - complete on `2026-03-19` by adding shell-owned CLI and programmatic wrappers in `nmc-memory-plugin`, updating packed-artifact smoke coverage and installed-artifact docs to use those wrapper paths, and marking `shipped-artifact-layout` as cleared while leaving install-manifest and regression-cutover gates pending
 
+### 9. Compatibility-Shell Regression Cutover Coverage
+
+Goal:
+- move the regression baseline off pure compatibility-shell packaging assumptions by freezing a synthetic direct adapter surface alongside the current production shell
+
+Exit gate:
+- the regression baseline exercises adapter-openclaw setup/runtime flows without routing through `nmc-memory-plugin` shell wrappers
+- release qualification no longer treats `regression-cutover-coverage` as pending
+- install-manifest remains the last unresolved direct-install retirement gate
+
+Status:
+- complete on `2026-03-19` by adding a synthetic direct-surface bootstrap smoke to `nmc-memory-plugin/tests/run-integration.sh`, updating release qualification and control-plane fixture expectations, and leaving `install-manifest-surface` as the only remaining retirement gate
+
 ## Non-Goals For This Slice
 
 The deliberate migration release planning slice should not:

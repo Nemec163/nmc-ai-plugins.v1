@@ -97,8 +97,8 @@ function getControlPlaneReleaseQualification(snapshot) {
     ),
     buildRetirementGate(
       'regression-cutover-coverage',
-      'pending',
-      'the regression baseline still freezes plugin-shell packaging rather than a direct adapter install surface'
+      'cleared',
+      'the regression baseline now covers a synthetic direct adapter surface alongside compatibility-shell packaging'
     ),
   ];
 

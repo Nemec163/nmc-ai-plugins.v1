@@ -301,7 +301,7 @@ function main() {
     );
     assert.equal(
       snapshot.releaseQualification.retirementPrerequisites.pendingGateCount,
-      2
+      1
     );
     assert.deepEqual(
       snapshot.releaseQualification.retirementPrerequisites.gates.map((gate) => gate.id),
@@ -323,6 +323,10 @@ function main() {
     );
     assert.equal(
       snapshot.releaseQualification.retirementPrerequisites.gates[3].status,
+      'cleared'
+    );
+    assert.equal(
+      snapshot.releaseQualification.retirementPrerequisites.gates[4].status,
       'cleared'
     );
     assert.equal(snapshot.releaseQualification.bridgeStatus.gatewayOpsSnapshot, 'retired');
