@@ -5,12 +5,12 @@
 
 ## Progress Snapshot
 
-- completed: `release hardening — compatibility-only ops bridge and migration-release qualification`
-- next: `deliberate migration release prep — package the supported operator surface and remove remaining ambiguity from the compatibility shell`
+- completed: `deliberate migration release prep — package the supported operator surface and remove remaining ambiguity from the compatibility shell`
+- next: `bridge retirement — remove the temporary ops harness from shipped compatibility surfaces`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" npm pack ./nmc-memory-plugin --silent --pack-destination "$artifact_root"`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
@@ -1425,6 +1425,33 @@ Rollback:
 
 - keep the new release-boundary docs and qualification metadata, but relax the gateway bridge deprecation wording while the remaining migration packaging decisions are resolved
 
+### deliberate migration release prep: package the supported operator surface and remove remaining ambiguity from the compatibility shell
+
+Do this only after `release hardening` has qualified the supported operator surface and clarified the compatibility shell boundary.
+
+Implemented in this slice:
+
+- bundled `packages/control-plane` into the shipped `nmc-memory-plugin` artifact so the supported read-only operator surface ships wherever the compatibility shell is installed
+- closed the packaged dependency chain needed by the shipped operator surface by bundling `packages/memory-maintainer` alongside the existing gateway, canon, runtime, workspace, agent, and script packages
+- extended the packed-artifact integration smoke to assert that an extracted plugin tarball contains the bundled control-plane package and can execute `memory-control-plane snapshot` directly against the scaffolded workspace
+- updated plugin-facing docs to reference the installed-artifact path for the supported operator CLI and to keep `memory-os-gateway ops-snapshot` framed as deprecated compatibility-only output
+- ran the required baseline commands with the packaged operator surface and extracted-artifact smoke green
+
+Acceptance criteria:
+
+- `npm pack ./nmc-memory-plugin` ships `packages/control-plane` and the dependency closure it needs to run from the extracted plugin artifact
+- the shipped plugin artifact can execute the supported control-plane CLI directly against the managed workspace without depending on the monorepo root
+- plugin-facing docs point operators to the bundled control-plane surface instead of implying that only the repository-local package path is supported
+- deprecated gateway bridge output remains compatibility-only and is not presented as the supported operator contract
+
+Main risk:
+
+- letting the packaged mirror of the supported operator surface drift from the canonical repository package and quietly reintroduce migration-release ambiguity
+
+Rollback:
+
+- keep the documentation boundary updates, but stop presenting the bundled control-plane CLI as shipped-ready until the compatibility artifact can carry the full dependency closure again
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -1686,10 +1713,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be deliberate migration release prep around the now-qualified operator surface:
+The next implementation step should be bridge retirement around the now-shipped operator surface:
 
-- package and document the supported operator surface so `control-plane` is deliverable wherever the compatibility shell is shipped
-- remove or further narrow any remaining compatibility-only bridge output that could be mistaken for a supported operator contract
-- keep migration-release scope pinned to packaging, documentation, and boundary cleanup rather than expanding control-plane authority
+- remove the remaining temporary `memory-os-gateway ops-snapshot` harness from shipped compatibility surfaces, or narrow it further until it can no longer be mistaken for a supported operator contract
+- freeze and document the deliberate migration-release surface now that the bundled control-plane CLI is deliverable from the installed plugin artifact
+- keep scope pinned to bridge retirement and release-surface cleanup rather than adding new operator capabilities
 
-release hardening is now complete, so the next risk is shipping a compatibility shell whose bundled artifacts still underspecify the supported operator surface. The next slice should focus on deliberate migration-release prep and bridge retirement, not new operator capabilities.
+deliberate migration release prep is now complete, so the next risk is continuing to ship deprecated gateway bridge surfaces alongside the now-deliverable bundled control-plane CLI. The next slice should focus on bridge retirement and release-surface cleanup, not new operator capabilities.

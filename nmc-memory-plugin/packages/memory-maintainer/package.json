@@ -1,0 +1,23 @@
+{
+  "name": "@nmc/memory-maintainer",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Task, policy, and kanban execution contracts for the shared system layer.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./constants": "./lib/constants.js",
+    "./parser": "./lib/parser.js",
+    "./settings": "./lib/settings.js",
+    "./task": "./lib/task.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  }
+}

@@ -14,7 +14,19 @@ The package is shipped in the current OpenClaw plugin format:
 Release-boundary note:
 
 - `nmc-memory-plugin` is the compatibility shell for setup, auto-bootstrap, bundled skills, and the stable OpenClaw packaging surface.
-- the supported Memory OS operator surface now lives in repository packages such as `packages/control-plane`; the temporary `memory-os-gateway ops-snapshot` bridge is deprecated compatibility-only output.
+- the supported Memory OS operator surface is bundled inside the shipped plugin at `packages/control-plane`; the temporary `memory-os-gateway ops-snapshot` bridge is deprecated compatibility-only output.
+
+Supported operator commands from an installed plugin artifact:
+
+```bash
+node ~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js snapshot \
+  --memory-root ~/.openclaw/workspace/system/memory \
+  --system-root ~/.openclaw/workspace/system
+
+node ~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js health \
+  --memory-root ~/.openclaw/workspace/system/memory \
+  --system-root ~/.openclaw/workspace/system
+```
 
 The default workspace template ships with predefined agent slices:
 - `nyx` - orchestrator and main user-facing agent, Chief Product Officer, `opus 4.6`

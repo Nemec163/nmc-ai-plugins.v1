@@ -11,8 +11,33 @@ The current repository ships one production plugin, `nmc-memory-plugin`, in the 
 - `openclaw.plugin.json` declares the manifest and config schema.
 - `package.json` exposes `./index.js` through `openclaw.extensions`.
 - `index.js` registers the `nmc-memory setup` CLI and the runtime bootstrap service.
+- `packages/control-plane/` is bundled inside the shipped plugin as the supported read-only operator surface.
 - `templates/workspace-memory/` and `templates/workspace-system/` provide the managed scaffold.
 - `skills/` bundles the memory pipeline, maintenance scripts, and kanban operator.
+
+The deprecated `memory-os-gateway ops-snapshot` output remains compatibility-only and is not the supported operator contract.
+
+### Supported Operator Surface
+
+The shipped plugin artifact now carries the supported Memory OS operator CLI under:
+
+```bash
+~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js
+```
+
+Typical usage against the managed workspace:
+
+```bash
+node ~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js snapshot \
+  --memory-root ~/.openclaw/workspace/system/memory \
+  --system-root ~/.openclaw/workspace/system
+
+node ~/.openclaw/extensions/nmc-memory-plugin/packages/control-plane/bin/memory-control-plane.js health \
+  --memory-root ~/.openclaw/workspace/system/memory \
+  --system-root ~/.openclaw/workspace/system
+```
+
+Supported operator commands come from `packages/control-plane` and include `snapshot`, `health`, `queues`, `analytics`, `audits`, `runtime-inspector`, and advisory `record-intervention`. Keep migration-release usage pinned to that surface rather than to deprecated gateway bridge commands.
 
 ## Managed Bootstrap
 

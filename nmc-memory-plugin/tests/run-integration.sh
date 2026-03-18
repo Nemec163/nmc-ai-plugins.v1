@@ -377,7 +377,7 @@ test_template_default_agents() {
 test_packaged_artifact_install_smoke() {
   local node_bin npm_bin tool_dir artifact_root extract_root state_dir workspace_root
   local config_path package_name packaged_root packaged_setup packaged_onboard
-  local packaged_pipeline packaged_memory_root
+  local packaged_pipeline packaged_memory_root packaged_control_plane_cli
 
   print_case "TEST" "packed nmc-memory-plugin artifact stays self-contained after extract"
 
@@ -415,11 +415,15 @@ test_packaged_artifact_install_smoke() {
   packaged_setup="$packaged_root/scripts/setup-openclaw.js"
   packaged_onboard="$packaged_root/skills/memory-onboard-agent/onboard.sh"
   packaged_pipeline="$packaged_root/skills/memory-pipeline/pipeline.sh"
+  packaged_control_plane_cli="$packaged_root/packages/control-plane/bin/memory-control-plane.js"
   packaged_memory_root="$workspace_root/system/memory"
 
   if [ -d "$packaged_root/packages/memory-os-gateway" ] && \
+     [ -d "$packaged_root/packages/control-plane" ] && \
+     [ -d "$packaged_root/packages/memory-maintainer" ] && \
      [ -f "$packaged_root/packages/memory-scripts/bin/verify.sh" ] && \
-     [ -f "$packaged_root/packages/memory-pipeline/bin/run-pipeline.sh" ]; then
+     [ -f "$packaged_root/packages/memory-pipeline/bin/run-pipeline.sh" ] && \
+     [ -f "$packaged_control_plane_cli" ]; then
     pass "packed artifact bundles local runtime packages"
   else
     fail "packed artifact bundles local runtime packages" "Expected bundled packages under $packaged_root/packages"
@@ -441,6 +445,26 @@ test_packaged_artifact_install_smoke() {
     pass "packed artifact setup-openclaw scaffolds workspace"
   else
     fail "packed artifact setup-openclaw scaffolds workspace" "Expected scaffolded workspace and config under $state_dir"
+    return
+  fi
+
+  run_and_capture env PATH="$tool_dir:$PATH" "$node_bin" "$packaged_control_plane_cli" \
+    snapshot \
+    --memory-root "$packaged_memory_root" \
+    --system-root "$workspace_root/system" \
+    --skip-verify
+
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "packed artifact control-plane CLI exit code" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if [ "$(json_query "$LAST_STDOUT" "kind")" = "control-plane-snapshot" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.qualified")" = "true" ]; then
+    pass "packed artifact control-plane CLI runs after extract"
+  else
+    fail "packed artifact control-plane CLI runs after extract" "Expected control-plane snapshot with qualified release boundary"
     return
   fi
 
