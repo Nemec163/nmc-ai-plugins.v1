@@ -5,11 +5,11 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 2.5 — Temporary Ops Harness / Eval Surface`
-- next: `Phase 3 / PR 3.1 — Move OpenClaw Registration and Config Logic`
+- completed: `Phase 3 / PR 3.1 — Move OpenClaw Registration and Config Logic`
+- next: `Phase 3 / PR 3.2 — Introduce a Narrow Pipeline Adapter Interface`
 - last verified on: `2026-03-18`
 - verified in this slice:
-  - `node packages/memory-os-gateway/test/validate-fixtures.js`
+  - `node packages/adapter-openclaw/test/validate-fixtures.js`
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
@@ -999,6 +999,17 @@ Rollback:
 
 #### PR 3.1: Move OpenClaw Registration and Config Logic
 
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- moved OpenClaw-specific setup orchestration, `openclaw.json` mutation, managed bindings, and `memorySearch.extraPaths` registration into `packages/adapter-openclaw/lib/openclaw-setup.js`
+- moved standalone setup CLI parsing into `packages/adapter-openclaw/lib/setup-cli.js` and runtime registration into `packages/adapter-openclaw/lib/register.js`
+- reduced `nmc-memory-plugin/index.js`, `nmc-memory-plugin/lib/openclaw-setup.js`, and `nmc-memory-plugin/scripts/setup-openclaw.js` to thin compatibility shells over the adapter package while preserving the existing plugin entrypoint and setup command surface
+- verified with `node packages/adapter-openclaw/test/validate-fixtures.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
+
 Concentrate engine-specific behavior into `adapter-openclaw`:
 
 - plugin manifest
@@ -1504,10 +1515,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 3, PR 3.1:
+The next implementation step should be Phase 3, PR 3.2:
 
-- move OpenClaw registration, plugin CLI wiring, auto-bootstrap lifecycle hooks, and config mutation into a thinner `adapter-openclaw` facade
-- keep `openclaw nmc-memory setup`, auto-bootstrap behavior, and `openclaw.json` merge semantics unchanged while reducing adapter-local ownership
-- preserve gateway-backed bootstrap and read surfaces as the stable core boundary instead of reintroducing file-level coupling from the adapter
+- introduce a narrow adapter interface for `extract`, `curate`, and transitional `apply` invocation inside `@nmc/memory-pipeline`
+- keep `pipeline.sh` behavior, dry-run semantics, and failure handling unchanged while routing LLM phase execution through `adapter-openclaw`
+- preserve the current compatibility shell while reducing direct `openclaw skill run` ownership inside shared pipeline code
 
-Phase 2.5 is now complete, so the next risk is leaving OpenClaw-specific registration and config behavior spread across the compatibility plugin. Keep PR 3.1 focused on moving engine-specific lifecycle and config code behind a thin adapter facade without changing the existing setup UX.
+PR 3.1 is now complete, so the next risk is over-abstracting pipeline execution before a second adapter exists. Keep PR 3.2 focused on a minimal invocation boundary that preserves current shell behavior and regression coverage.

@@ -20,6 +20,7 @@ WORKSPACE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-workspace/test/validate-
 AGENTS_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-agents/test/validate-fixtures.js"
 PIPELINE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-pipeline/test/validate-fixtures.js"
 GATEWAY_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-os-gateway/test/validate-fixtures.js"
+ADAPTER_OPENCLAW_FIXTURE_TEST="$PLUGIN_ROOT/../packages/adapter-openclaw/test/validate-fixtures.js"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -492,6 +493,29 @@ test_shared_gateway_package_fixture_validation() {
   fi
 }
 
+test_adapter_openclaw_package_fixture_validation() {
+  print_case "TEST" "adapter-openclaw validates setup, runtime bootstrap, and CLI fixtures"
+
+  if ! require_file "$ADAPTER_OPENCLAW_FIXTURE_TEST" "adapter-openclaw package fixture test"; then
+    return
+  fi
+
+  cleanup
+  TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-adapter-openclaw-test.XXXXXX")"
+  run_and_capture node "$ADAPTER_OPENCLAW_FIXTURE_TEST"
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "adapter-openclaw fixture validation" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if grep -q "adapter-openclaw" "$LAST_STDOUT"; then
+    pass "adapter-openclaw fixture validation"
+  else
+    fail "adapter-openclaw fixture validation" "Fixture validation output did not confirm adapter package execution"
+  fi
+}
+
 test_verify_contracts() {
   local manifest_file edges_file actual_schema
 
@@ -893,6 +917,7 @@ main() {
   test_shared_agents_package_fixture_validation
   test_shared_pipeline_package_fixture_validation
   test_shared_gateway_package_fixture_validation
+  test_adapter_openclaw_package_fixture_validation
   test_verify_contracts
   test_status_output_contract
   test_pipeline_dry_run_contract
