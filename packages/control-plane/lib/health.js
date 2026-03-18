@@ -1,9 +1,11 @@
 'use strict';
 
+const { getControlPlaneAnalytics } = require('./analytics');
 const { getControlPlaneSnapshot } = require('./snapshot');
 
 function getControlPlaneHealth(options = {}) {
   const snapshot = getControlPlaneSnapshot(options);
+  const analytics = snapshot.analytics || getControlPlaneAnalytics(options);
   const checks = [
     {
       name: 'gateway-health',
@@ -33,6 +35,25 @@ function getControlPlaneHealth(options = {}) {
       name: 'manual-intervention-log',
       ok: Array.isArray(snapshot.interventions.items),
       detail: `${snapshot.interventions.summary.openCount} open interventions`,
+    },
+    {
+      name: 'operator-analytics-surface',
+      ok:
+        analytics.operatorSurface.readOnly === true &&
+        analytics.operatorSurface.runtimeAuthoritative === false,
+      detail: `${analytics.queues.conflicts} conflicts, ${analytics.runtime.runCount} runtime runs`,
+    },
+    {
+      name: 'runtime-inspector-surface',
+      ok: snapshot.runtime.inspector.authoritative === false,
+      detail: snapshot.runtime.inspector.shadowExists
+        ? 'runtime shadow inspectable'
+        : 'no runtime shadow',
+    },
+    {
+      name: 'operator-audits-surface',
+      ok: Array.isArray(snapshot.audits.trail),
+      detail: `${snapshot.audits.summary.totalEntries} audit entries`,
     },
     {
       name: 'maintainer-settings',
@@ -92,6 +113,7 @@ function getControlPlaneHealth(options = {}) {
       conflictCount: snapshot.queues.conflicts.count,
       openInterventionCount: snapshot.interventions.summary.openCount,
       runtimeRunCount: snapshot.runtime.delta.runCount,
+      auditEntryCount: snapshot.audits.summary.totalEntries,
       taskCount: snapshot.maintainer.board.tasks.total,
       invalidTaskCount: snapshot.maintainer.board.invalidTasks.count,
     },

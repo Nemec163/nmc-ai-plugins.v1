@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `control-plane v2 — proposals/conflicts queues and manual interventions`
-- next: `control-plane v3 — analytics, audits, runtime inspector, and operator dashboards`
+- completed: `control-plane v3 — analytics, audits, runtime inspector, and operator dashboards`
+- next: `release hardening — retire the temporary ops bridge and prepare deliberate migration release criteria`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
@@ -1374,6 +1374,32 @@ Rollback:
 
 - keep the control-plane snapshot/health surfaces and route queue inspection back through the temporary gateway harness while leaving advisory receipts unused
 
+### control-plane v3: analytics, audits, runtime inspector, and operator dashboards
+
+Do this only after `control-plane` v2 has frozen queue and intervention semantics.
+
+Implemented in this slice:
+
+- added explicit `analytics`, `audit`, and `runtime-inspector` SDK/CLI surfaces under `packages/control-plane` as the bounded operator-facing dashboard contract over stable queue, intervention, lock, and runtime read models
+- kept runtime inspection read-only and explicitly non-authoritative by routing through gateway/runtime contracts and preserving runtime freshness boundaries in the operator surface
+- extended `snapshot` and `health` so the supported control-plane contract now exposes queue analytics, audit history, and runtime inspection without inheriting scheduler, backlog-policy, or promotion authority
+- preserved the temporary gateway `ops-snapshot` harness only as a migration bridge while moving the supported operator contract further into `packages/control-plane`
+- ran the required baseline commands with control-plane analytics, audit, and runtime inspection fixture coverage green
+
+Acceptance criteria:
+
+- analytics and audit-oriented operator surfaces exist over the durable queue and intervention contracts
+- runtime inspection is exposed through the control-plane without turning runtime into an authoritative source of truth
+- operator dashboard data is available through supported SDK/CLI read models without expanding control-plane ownership into scheduler, queue policy, or canon promotion logic
+
+Main risk:
+
+- letting operator analytics or runtime inspection drift into implicit orchestration authority instead of remaining observational
+
+Rollback:
+
+- keep snapshot/health/queues/interventions as the supported control-plane contract and disable the additive analytics, audit, and runtime inspection surfaces while retaining the temporary gateway bridge
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -1635,10 +1661,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be control-plane v3 hardening:
+The next implementation step should be release hardening around the now-complete control-plane surface:
 
-- add analytics and audit-oriented operator surfaces over the now-stable queue and intervention contracts
-- introduce runtime inspection without turning runtime into an authoritative source of truth
-- continue reducing the temporary `ops-snapshot` bridge once control-plane parity remains proven
+- continue reducing the temporary `memory-os-gateway ops-snapshot` bridge now that supported queue, audit, analytics, and runtime inspection contracts exist in `packages/control-plane`
+- formalize the deliberate migration-release criteria for the supported Memory OS surface versus the compatibility-only `nmc-memory-plugin` shell
+- add release qualification around the supported operator contract without handing scheduler, queue-policy, or promotion authority to the control-plane
 
-control-plane v2 is now complete, so the next risk is growing a richer operator UX before queue/intervention history and runtime inspection semantics are intentionally bounded. Keep the next slice focused on analytics, audits, and runtime inspection rather than scheduler or promotion authority.
+control-plane v3 is now complete, so the next risk is leaving the temporary bridge and product-surface boundaries ambiguous even though the read-only operator contract has stabilized. Keep the next slice focused on release hardening and migration-release criteria rather than expanding control-plane authority.

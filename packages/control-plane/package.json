@@ -7,10 +7,14 @@
   "main": "./index.js",
   "exports": {
     ".": "./index.js",
+    "./analytics": "./lib/analytics.js",
+    "./audit": "./lib/audit.js",
+    "./audits": "./lib/audits.js",
     "./cli": "./lib/cli.js",
     "./health": "./lib/health.js",
     "./interventions": "./lib/interventions.js",
     "./queues": "./lib/queues.js",
+    "./runtime-inspector": "./lib/runtime-inspector.js",
     "./snapshot": "./lib/snapshot.js"
   },
   "files": [

@@ -2,12 +2,15 @@
 
 Read-only operator surface for Memory OS over stable gateway, runtime, and maintainer contracts.
 
-Current control-plane v2 surface:
+Current control-plane v3 surface:
 
 - `getControlPlaneSnapshot` / `snapshot`
 - `getControlPlaneHealth` / `health`
+- `getControlPlaneAnalytics` / `analytics`
+- `getControlPlaneAudits` / `audits`
 - `getControlPlaneQueues` / `queues`
 - `getControlPlaneInterventions` / `interventions`
+- `getControlPlaneRuntimeInspector` / `runtime-inspector`
 - `recordControlPlaneIntervention`
 
 CLI entrypoint:
@@ -30,9 +33,21 @@ node packages/control-plane/bin/memory-control-plane.js record-intervention \
   --target-kind conflict \
   --conflict-code orphan-job \
   --note "Inspect orphan receipt before re-handoff"
+
+node packages/control-plane/bin/memory-control-plane.js analytics \
+  --memory-root /path/to/system/memory \
+  --today 2026-03-19
+
+node packages/control-plane/bin/memory-control-plane.js audits \
+  --memory-root /path/to/system/memory \
+  --audit-limit 25
+
+node packages/control-plane/bin/memory-control-plane.js runtime-inspector \
+  --memory-root /path/to/system/memory \
+  --runtime-stale-after-days 3
 ```
 
-Control-plane v2 stays intentionally careful:
+Control-plane v3 stays intentionally careful:
 
 - operator visibility only
 - runtime remains explicitly non-authoritative
@@ -40,10 +55,12 @@ Control-plane v2 stays intentionally careful:
 - scheduler, queue policy, and canon promotion authority stay outside this package
 - manual interventions are stored as advisory receipts under `runtime/shadow/control-plane/interventions/`
 - manual interventions never mutate canon, proposal receipts, or job receipts directly
+- analytics and audit surfaces summarize queue, intervention, lock, and runtime history without becoming source-of-truth
+- runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
 
 Compatibility note:
 
 - `memory-os-gateway ops-snapshot` remains as a migration bridge
-- the supported operator queue/intervention contract now lives in `control-plane`
+- the supported operator queue, audit, analytics, and runtime inspection contract now lives in `control-plane`
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.

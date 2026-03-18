@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `control-plane v2 — proposals/conflicts queues and manual interventions`
-- next roadmap slice: `control-plane v3 — analytics, audits, runtime inspector, and operator dashboards`
+- completed roadmap slice: `control-plane v3 — analytics, audits, runtime inspector, and operator dashboards`
+- next roadmap slice: `release hardening — retire the temporary ops bridge and prepare deliberate migration release criteria`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -81,7 +81,8 @@ Phase 0 is complete:
 - `Phase 5.5` integrated OpenClaw as a runtime-backed orchestration adapter over the shadow runtime by adding gateway-backed recall bundles and thin orchestration helpers without reintroducing memory ownership or bypassing the single promotion path into canon
 - `Phase 6` formalized `packages/control-plane` as a supported read-only operator surface and health monitor over stable gateway, runtime, and maintainer contracts while keeping scheduler, backlog-policy, and promotion ownership outside the control-plane
 - `control-plane v2` moved proposal/conflict queue visibility into a control-plane-owned read model and added advisory-only manual intervention receipts under `runtime/shadow/control-plane/interventions/` without inheriting scheduler or promotion authority
-- the next slice is `control-plane v3`, which should add analytics, audits, runtime inspection, and richer operator views without turning runtime, queue policy, or promotion flow into control-plane authority
+- `control-plane v3` added analytics, audit, and runtime-inspector read models under `packages/control-plane`, extended snapshot/health to cover the richer operator surface, and kept runtime explicitly non-authoritative while preserving scheduler, queue-policy, and promotion ownership outside the control-plane
+- the next slice is `release hardening`, which should keep shrinking the temporary `memory-os-gateway ops-snapshot` bridge and clarify the supported migration-release surface without expanding control-plane authority
 
 ## Commit Convention
 

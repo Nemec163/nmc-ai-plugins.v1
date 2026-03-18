@@ -7,14 +7,17 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const {
+  getControlPlaneAnalytics,
+  getControlPlaneAudits,
   getControlPlaneHealth,
   getControlPlaneInterventions,
   getControlPlaneQueues,
+  getControlPlaneRuntimeInspector,
   getControlPlaneSnapshot,
   recordControlPlaneIntervention,
 } = require('..');
 const { acquireCanonWriteLock } = require('../../memory-canon');
-const { completeJob, feedback, propose } = require('../../memory-os-gateway');
+const { captureRuntime, completeJob, feedback, propose } = require('../../memory-os-gateway');
 
 const MEMORY_FIXTURE = path.resolve(
   __dirname,
@@ -154,6 +157,39 @@ Confirm the control-plane view does not imply runtime authority.`
     'utf8'
   );
 
+  captureRuntime({
+    memoryRoot,
+    runId: 'runtime-run-2026-03-18-control-plane',
+    source: 'control-plane-fixture',
+    capturedAt: '2026-03-18T14:15:00Z',
+    artifacts: {
+      episodic: [
+        {
+          id: 'epi-1',
+          summary: 'Operator reviewed queue degradation',
+          text: 'Operator reviewed queue degradation before handoff reconcile.',
+          observedAt: '2026-03-18T14:10:00Z',
+          tags: ['control-plane', 'handoff'],
+        },
+      ],
+      retrievalTraces: [
+        {
+          id: 'trace-1',
+          summary: 'Runtime recall for orphan job',
+          text: 'Recall highlighted orphan job conflict during runtime inspection.',
+          observedAt: '2026-03-18T14:12:00Z',
+          tags: ['orphan-job'],
+        },
+      ],
+    },
+    runtimeInputs: [
+      {
+        kind: 'operator-query',
+        text: 'Inspect orphan job before retrying handoff.',
+      },
+    ],
+  });
+
   return {
     root,
     memoryRoot,
@@ -233,6 +269,10 @@ function main() {
     assert.equal(snapshot.queues.proposals.count, 1);
     assert.equal(snapshot.queues.jobs.count, 2);
     assert.equal(snapshot.queues.lock.exists, true);
+    assert.equal(snapshot.analytics.kind, 'control-plane-analytics');
+    assert.equal(snapshot.audits.kind, 'control-plane-audits');
+    assert.equal(snapshot.runtime.inspector.kind, 'control-plane-runtime-inspector');
+    assert.equal(snapshot.runtime.inspector.authoritative, false);
     assert.equal(
       snapshot.queues.conflicts.items.some((conflict) => conflict.code === 'orphan-job'),
       true
@@ -244,6 +284,47 @@ function main() {
     assert.equal(snapshot.maintainer.board.tasks.byStatus.blocked, 1);
     assert.equal(snapshot.maintainer.board.tasks.byStatus.review, 1);
     assert.equal(snapshot.maintainer.board.invalidTasks.count, 0);
+
+    const analytics = getControlPlaneAnalytics({
+      memoryRoot: fixture.memoryRoot,
+      systemRoot: fixture.systemRoot,
+      today: '2026-03-18',
+    });
+    assert.equal(analytics.kind, 'control-plane-analytics');
+    assert.equal(analytics.queues.proposals, 1);
+    assert.equal(analytics.queues.conflictCodes['orphan-job'], 1);
+    assert.equal(analytics.runtime.runCount, 1);
+    assert.equal(analytics.runtime.busiestBuckets[0].bucket, 'episodic');
+
+    const audits = getControlPlaneAudits({
+      memoryRoot: fixture.memoryRoot,
+      updatedAt: '2026-03-20T00:00:00Z',
+      today: '2026-03-20',
+      staleAfterDays: 0,
+      auditLimit: 20,
+    });
+    assert.equal(audits.kind, 'control-plane-audits');
+    assert.equal(audits.summary.totalEntries >= 1, true);
+    assert.equal(audits.summary.staleCount >= 1, true);
+    assert.equal(
+      audits.trail.some((item) => item.category === 'lock'),
+      true
+    );
+    assert.equal(
+      audits.trail.some((item) => item.category === 'runtime-run'),
+      true
+    );
+
+    const runtimeInspector = getControlPlaneRuntimeInspector({
+      memoryRoot: fixture.memoryRoot,
+      today: '2026-03-18',
+      updatedAt: '2026-03-18T23:00:00Z',
+    });
+    assert.equal(runtimeInspector.kind, 'control-plane-runtime-inspector');
+    assert.equal(runtimeInspector.summary.runCount, 1);
+    assert.equal(runtimeInspector.summary.totalArtifacts, 2);
+    assert.equal(runtimeInspector.freshness.ageDays, 0);
+    assert.equal(runtimeInspector.freshness.runtimeAuthoritative, false);
 
     const degradedHealth = getControlPlaneHealth({
       memoryRoot: fixture.memoryRoot,
@@ -265,8 +346,21 @@ function main() {
       ),
       true
     );
+    assert.equal(
+      degradedHealth.checks.some(
+        (check) => check.name === 'operator-analytics-surface' && check.ok === true
+      ),
+      true
+    );
+    assert.equal(
+      degradedHealth.checks.some(
+        (check) => check.name === 'operator-audits-surface' && check.ok === true
+      ),
+      true
+    );
     assert.equal(degradedHealth.warnings.includes('orphan-job'), true);
     assert.equal(degradedHealth.summary.openInterventionCount, 1);
+    assert.equal(degradedHealth.summary.auditEntryCount >= 1, true);
 
     writeTask(
       path.join(fixture.systemRoot, 'tasks/active/T-102.md'),
@@ -330,6 +424,8 @@ This fixture forces the health monitor into degraded mode.`
     assert.equal(cliSnapshotJson.maintainer.board.tasks.total, 3);
     assert.equal(cliSnapshotJson.queues.proposals.count, 1);
     assert.equal(cliSnapshotJson.interventions.summary.openCount, 1);
+    assert.equal(cliSnapshotJson.analytics.summary.runtimeRunCount, 1);
+    assert.equal(cliSnapshotJson.runtime.inspector.summary.runCount, 1);
 
     const cliHealth = spawnSync(
       process.execPath,
@@ -352,6 +448,46 @@ This fixture forces the health monitor into degraded mode.`
     assert.equal(cliHealth.status, 0, cliHealth.stderr);
     assert.equal(JSON.parse(cliHealth.stdout).status, 'degraded');
 
+    const cliAnalytics = spawnSync(
+      process.execPath,
+      [
+        CLI_PATH,
+        'analytics',
+        '--memory-root',
+        fixture.memoryRoot,
+        '--system-root',
+        fixture.systemRoot,
+        '--today',
+        '2026-03-18',
+      ],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(cliAnalytics.status, 0, cliAnalytics.stderr);
+    assert.equal(JSON.parse(cliAnalytics.stdout).summary.runtimeRunCount, 1);
+
+    const cliAudit = spawnSync(
+      process.execPath,
+      [
+        CLI_PATH,
+        'audits',
+        '--memory-root',
+        fixture.memoryRoot,
+        '--updated-at',
+        '2026-03-20T00:00:00Z',
+        '--today',
+        '2026-03-20',
+        '--stale-after-days',
+        '0',
+      ],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(cliAudit.status, 0, cliAudit.stderr);
+    assert.equal(JSON.parse(cliAudit.stdout).summary.staleCount >= 1, true);
+
     const cliQueues = spawnSync(
       process.execPath,
       [
@@ -370,6 +506,25 @@ This fixture forces the health monitor into degraded mode.`
     );
     assert.equal(cliQueues.status, 0, cliQueues.stderr);
     assert.equal(JSON.parse(cliQueues.stdout).conflicts.count >= 1, true);
+
+    const cliRuntimeInspector = spawnSync(
+      process.execPath,
+      [
+        CLI_PATH,
+        'runtime-inspector',
+        '--memory-root',
+        fixture.memoryRoot,
+        '--updated-at',
+        '2026-03-18T23:00:00Z',
+        '--today',
+        '2026-03-18',
+      ],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(cliRuntimeInspector.status, 0, cliRuntimeInspector.stderr);
+    assert.equal(JSON.parse(cliRuntimeInspector.stdout).summary.runCount, 1);
 
     const cliRecordIntervention = spawnSync(
       process.execPath,
@@ -414,8 +569,11 @@ This fixture forces the health monitor into degraded mode.`
     assert.equal(cliUsage.status, 1);
     assert.match(cliUsage.stderr, /snapshot/);
     assert.match(cliUsage.stderr, /health/);
+    assert.match(cliUsage.stderr, /analytics/);
+    assert.match(cliUsage.stderr, /audits/);
     assert.match(cliUsage.stderr, /queues/);
     assert.match(cliUsage.stderr, /interventions/);
+    assert.match(cliUsage.stderr, /runtime-inspector/);
     assert.match(cliUsage.stderr, /record-intervention/);
     assert.doesNotMatch(cliUsage.stderr, /propose|feedback|complete-job/);
   } finally {

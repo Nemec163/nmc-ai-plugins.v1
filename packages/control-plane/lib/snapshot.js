@@ -1,10 +1,13 @@
 'use strict';
 
+const { getControlPlaneAnalytics } = require('./analytics');
+const { getControlPlaneAudits } = require('./audits');
 const { loadGateway } = require('./load-deps');
 const { getControlPlaneInterventions } = require('./interventions');
 const { getMaintainerSnapshot } = require('./maintainer');
 const { resolveMemoryRoot, resolveSystemRoot } = require('./paths');
 const { getControlPlaneQueues } = require('./queues');
+const { getControlPlaneRuntimeInspector } = require('./runtime-inspector');
 
 function readSection(readFn) {
   try {
@@ -62,6 +65,10 @@ function getControlPlaneSnapshot(options = {}) {
     memoryRoot,
     limit: options.runtimeLimit ? Number(options.runtimeLimit) : undefined,
   });
+  const audits = getControlPlaneAudits({
+    ...options,
+    memoryRoot,
+  });
 
   return {
     kind: 'control-plane-snapshot',
@@ -102,9 +109,21 @@ function getControlPlaneSnapshot(options = {}) {
       degradedMode: queues.degradedMode,
     },
     interventions,
+    analytics: getControlPlaneAnalytics({
+      ...options,
+      memoryRoot,
+      systemRoot,
+    }),
+    audit: audits,
+    audits,
     runtime: {
       authoritative: false,
       delta: runtimeDelta,
+      inspector: getControlPlaneRuntimeInspector({
+        ...options,
+        memoryRoot,
+        systemRoot,
+      }),
     },
     maintainer,
   };
