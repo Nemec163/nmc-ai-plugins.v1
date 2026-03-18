@@ -11,6 +11,8 @@ Current v1 surface:
 - `bootstrap`
 - `query`
 - `getRuntimeDelta` / `get_runtime_delta`
+- `getRuntimeRecallBundle` / `get_runtime_recall_bundle`
+- `getRecallBundle` / `get_recall_bundle`
 - `captureRuntime` / `capture_runtime`
 - `getStatus` / `status`
 - `verify`
@@ -42,6 +44,8 @@ Shadow runtime stays separate from canon in this slice:
 
 - `captureRuntime` writes shadow-mode runtime artifacts under `runtime/shadow/`
 - `getRuntimeDelta` exposes the non-authoritative runtime layer separately from canonical current
+- `getRuntimeRecallBundle` exposes scored runtime recall hits without widening authority
+- `getRecallBundle` composes canonical current, optional role bundle/query context, and runtime recall for orchestration consumers
 - `status` reports runtime shadow counts without widening into canon mutation or orchestration ownership
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan and phase sequencing.

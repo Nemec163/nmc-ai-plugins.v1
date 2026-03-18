@@ -6,6 +6,7 @@ Current v1 surface:
 
 - `captureShadowRuntime`
 - `getRuntimeDelta`
+- `getRuntimeRecallBundle`
 - `listRuntimeRecords`
 - layout helpers for runtime shadow paths
 

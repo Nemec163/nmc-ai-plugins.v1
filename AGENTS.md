@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `Phase 5 / PR 5.1 — Add memory-os-runtime in Shadow Mode`
-- next roadmap slice: `Phase 5.5 — OpenClaw Runtime-Backed Orchestration`
+- completed roadmap slice: `Phase 5.5 — OpenClaw Runtime-Backed Orchestration`
+- next roadmap slice: `Phase 6 — Add Control Plane Carefully`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -78,7 +78,8 @@ Phase 0 is complete:
 - `PR 4.1` introduced `adapter-codex` as the first non-OpenClaw adapter with role-aware bootstrap, canon-safe read-only execution, a package-local single-thread runner, and shared conformance coverage while keeping write orchestration out of scope
 - `PR 4.2` expanded `adapter-codex` into the bounded single-run contract with role-bundle intake, gateway-mediated proposal upload, explicit feedback/completion handoff, and shared conformance coverage while keeping canon writes behind the core promoter
 - `PR 5.1` replaced the `memory-os-runtime` placeholder with a shadow-store package plus gateway runtime surfaces so runtime artifacts live under `runtime/shadow/`, stay separate from canon, remain disposable/rebuildable, and are inspectable without widening into canonical writes
-- the next slice is `Phase 5.5`, which should integrate OpenClaw as a runtime-backed orchestration adapter over the shadow runtime without reintroducing memory ownership or bypassing the single promotion path into canon
+- `Phase 5.5` integrated OpenClaw as a runtime-backed orchestration adapter over the shadow runtime by adding gateway-backed recall bundles and thin orchestration helpers without reintroducing memory ownership or bypassing the single promotion path into canon
+- the next slice is `Phase 6`, which should formalize a cautious control-plane surface over stable gateway, runtime, and maintainer contracts without inheriting scheduler or promotion authority
 
 ## Commit Convention
 

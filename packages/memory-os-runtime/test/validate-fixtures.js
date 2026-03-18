@@ -8,6 +8,7 @@ const path = require('node:path');
 
 const {
   captureShadowRuntime,
+  getRuntimeRecallBundle,
   getRuntimeDelta,
   listRuntimeRecords,
   resolveRuntimeManifestPath,
@@ -139,6 +140,17 @@ function main() {
     assert.equal(runtimeDelta.buckets.reflections.entries[0].id, 'rf-001');
     assert.equal(runtimeDelta.runs[0].runId, 'codex-2026-03-18-001');
     assert.equal(runtimeDelta.manifest.disposable, true);
+
+    const runtimeRecall = getRuntimeRecallBundle({
+      memoryRoot,
+      text: 'current volatile mornings',
+      limit: 5,
+    });
+    assert.equal(runtimeRecall.kind, 'runtime-recall-bundle');
+    assert.equal(runtimeRecall.authoritative, false);
+    assert.equal(runtimeRecall.shadowExists, true);
+    assert.equal(runtimeRecall.buckets.retrievalTraces.entries[0].id, 'rt-001');
+    assert.equal(runtimeRecall.freshnessBoundary.runtimeAuthoritative, false);
 
     const records = listRuntimeRecords({ memoryRoot });
     assert.equal(records.length, 1);

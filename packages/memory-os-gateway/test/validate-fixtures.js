@@ -15,6 +15,7 @@ const {
   getHealth,
   getOpsSnapshot,
   getProjection,
+  getRecallBundle,
   getRuntimeDelta,
   getRoleBundle,
   getStatus,
@@ -238,6 +239,20 @@ function main() {
     assert.equal(runtimeDelta.buckets.episodic.count, 1);
     assert.equal(runtimeDelta.buckets.procedureFeedback.entries[0].id, 'pf-001');
 
+    const recallBundle = getRecallBundle({
+      memoryRoot: runtimeWorkspaceRoot,
+      roleId: 'mnemo',
+      installDate: '2026-03-18',
+      text: 'What is the current approach on volatile mornings?',
+      limit: 5,
+    });
+    assert.equal(recallBundle.kind, 'recall-bundle');
+    assert.equal(recallBundle.authoritative, false);
+    assert.equal(recallBundle.freshnessBoundary.runtimeAuthoritative, false);
+    assert.equal(recallBundle.roleBundle.manifest.id, 'mnemo');
+    assert.equal(recallBundle.runtimeDelta.buckets.retrievalTraces.entries[0].id, 'rt-001');
+    assert.equal(recallBundle.query.runtimeDelta.length > 0, true);
+
     const canonicalCurrent = getCanonicalCurrent({
       memoryRoot: runtimeWorkspaceRoot,
     });
@@ -286,6 +301,27 @@ function main() {
     );
     assert.equal(cliRuntimeDeltaResult.status, 0, cliRuntimeDeltaResult.stderr);
     assert.equal(JSON.parse(cliRuntimeDeltaResult.stdout).runCount, 2);
+
+    const cliRecallBundleResult = spawnSync(
+      process.execPath,
+      [
+        CLI_PATH,
+        'get-recall-bundle',
+        '--memory-root',
+        runtimeWorkspaceRoot,
+        '--role-id',
+        'mnemo',
+        '--install-date',
+        '2026-03-18',
+        '--text',
+        'What is the current approach on volatile mornings?',
+      ],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(cliRecallBundleResult.status, 0, cliRecallBundleResult.stderr);
+    assert.equal(JSON.parse(cliRecallBundleResult.stdout).roleBundle.manifest.id, 'mnemo');
     assert.deepEqual(hashCanonTree(runtimeWorkspaceRoot), canonSnapshot);
   } finally {
     fs.rmSync(runtimeRoot, { recursive: true, force: true });

@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { captureRuntime } = require("../../memory-os-gateway");
 
 function loadAdapterConformance() {
   try {
@@ -24,11 +25,17 @@ const { runAdapterConformanceSuite } = loadAdapterConformance();
 
 const {
   PLUGIN_ID,
+  completeOpenClawHandoff,
   createOpenClawPipelineAdapter,
   createOpenClawPlugin,
   createOpenClawConformanceAdapter,
+  createOpenClawOrchestrationAdapter,
   getBundledSkillsRoot,
+  getOpenClawOrchestrationContext,
+  getOpenClawRecallBundle,
   maybeAutoSetup,
+  proposeOpenClawResults,
+  recordOpenClawFeedback,
   runSetupCli,
   setupOpenClaw,
 } = require("..");
@@ -181,6 +188,123 @@ function main() {
     command: "openclaw",
     args: ["skill", "run", "memory-extract", "--date", "2026-03-18"],
   });
+
+  const orchestrationRoot = makeTempRoot();
+  try {
+    const orchestrationWorkspaceRoot = path.join(orchestrationRoot, "workspace");
+    fs.cpSync(
+      path.resolve(__dirname, "../../../nmc-memory-plugin/tests/fixtures/workspace"),
+      orchestrationWorkspaceRoot,
+      { recursive: true },
+    );
+
+    captureRuntime({
+      memoryRoot: orchestrationWorkspaceRoot,
+      runId: "openclaw-2026-03-18-001",
+      source: "adapter-openclaw-test",
+      capturedAt: "2026-03-18T12:00:00Z",
+      artifacts: {
+        episodic: [
+          {
+            id: "ep-openclaw-001",
+            summary: "OpenClaw runtime observed a repeat current-state question.",
+          },
+        ],
+        retrievalTraces: [
+          {
+            id: "rt-openclaw-001",
+            summary: "OpenClaw orchestration pulled canon current plus runtime shadow.",
+          },
+        ],
+      },
+      runtimeInputs: [
+        {
+          kind: "session",
+          sourceSession: "openclaw-2026-03-18-001",
+        },
+      ],
+    });
+
+    const context = getOpenClawOrchestrationContext({
+      memoryRoot: orchestrationWorkspaceRoot,
+      roleId: "mnemo",
+      installDate: "2026-03-18",
+      limit: 5,
+      text: "What is the current approach on volatile mornings?",
+    });
+    assert.equal(context.kind, "openclaw-orchestration-context");
+    assert.equal(context.authoritative, false);
+    assert.equal(context.roleBundle.manifest.id, "mnemo");
+    assert.equal(context.runtime.buckets.retrievalTraces.entries[0].id, "rt-openclaw-001");
+    assert.equal(context.maintainer.boardDefaultsPath.endsWith("system/tasks/active/.kanban.json"), true);
+
+    const recall = getOpenClawRecallBundle({
+      memoryRoot: orchestrationWorkspaceRoot,
+      roleId: "mnemo",
+      installDate: "2026-03-18",
+      text: "What is the current approach on volatile mornings?",
+    });
+    assert.equal(recall.kind, "openclaw-orchestration-context");
+    assert.equal(recall.freshnessBoundary.runtimeAuthoritative, false);
+
+    const orchestrationAdapter = createOpenClawOrchestrationAdapter();
+    const bundle = orchestrationAdapter.getRecallBundle({
+      memoryRoot: orchestrationWorkspaceRoot,
+      roleId: "mnemo",
+      installDate: "2026-03-18",
+      text: "What is the current approach on volatile mornings?",
+    });
+    assert.equal(orchestrationAdapter.authoritative, false);
+    assert.equal(bundle.freshnessBoundary.runtimeAuthoritative, false);
+    assert.equal(bundle.roleBundle.manifest.id, "mnemo");
+
+    const submission = proposeOpenClawResults({
+      memoryRoot: orchestrationWorkspaceRoot,
+      batchDate: "2026-03-18",
+      proposalId: "proposal-2026-03-18-openclaw-fixture",
+      claims: [
+        {
+          claim_id: "claim-20260318-oc-001",
+          source_session: "openclaw-2026-03-18-001",
+          source_agent: "mnemo",
+          observed_at: "2026-03-18T12:00:00Z",
+          confidence: "high",
+          tags: ["memory", "openclaw"],
+          target_layer: "L3",
+          target_domain: "work",
+          claim: "OpenClaw runtime-backed orchestration should stop at gateway-mediated handoff.",
+        },
+      ],
+    });
+    assert.equal(submission.status, "proposed");
+
+    const review = recordOpenClawFeedback({
+      memoryRoot: orchestrationWorkspaceRoot,
+      proposalId: submission.proposalId,
+      feedback: [
+        {
+          claim_id: "claim-20260318-oc-001",
+          curator_decision: "accept",
+          curator_notes: "Approved through adapter-openclaw orchestration helper.",
+          actor: "adapter-openclaw-test",
+        },
+      ],
+    });
+    assert.equal(review.status, "ready-for-apply");
+
+    const completion = completeOpenClawHandoff({
+      memoryRoot: orchestrationWorkspaceRoot,
+      proposalId: submission.proposalId,
+      holder: "adapter-openclaw-test",
+    });
+    assert.equal(completion.status, "ready-for-handoff");
+    assert.equal(
+      completion.receipt.write_path.promotion_request.operation,
+      "core-promoter",
+    );
+  } finally {
+    fs.rmSync(orchestrationRoot, { recursive: true, force: true });
+  }
 
   const conformance = runAdapterConformanceSuite({
     adapter: createOpenClawConformanceAdapter({

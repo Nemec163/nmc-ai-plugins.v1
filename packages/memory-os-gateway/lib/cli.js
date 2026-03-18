@@ -9,12 +9,17 @@ const {
 } = require('./bootstrap');
 const { getHealth } = require('./health');
 const { query } = require('./query');
-const { captureRuntime, getRuntimeDelta } = require('./runtime');
+const {
+  captureRuntime,
+  getRuntimeDelta,
+  getRuntimeRecallBundle,
+} = require('./runtime');
 const {
   getCanonicalCurrent,
   getProjection,
   readRecord,
 } = require('./read');
+const { getRecallBundle } = require('./recall');
 const { getOpsSnapshot } = require('./ops');
 const { getStatus } = require('./status');
 const { verify } = require('./verify');
@@ -70,10 +75,12 @@ function printUsage() {
   console.error('  get-projection --memory-root <path> --projection-path <path>');
   console.error('  get-canonical-current --memory-root <path>');
   console.error('  get-role-bundle --role-id <id> [--install-date <date>] [--memory-path <path>] [--system-path <path>]');
+  console.error('  get-recall-bundle --memory-root <path> [--role-id <id>] [--install-date <date>] [--memory-path <path>] [--system-path <path>] [--text <query>] [--limit <n>] [--include-pending]');
   console.error('  bootstrap-role --role-id <id> --workspace-dir <path> --shared-skills-root <path> --system-root <path> --memory-root <path> [--state-dir <path>] [--install-date <date>] [--overwrite]');
   console.error('  bootstrap-workspace --state-dir <path> --workspace-root <path> --system-root <path> --memory-root <path> --system-template-root <path> --memory-template-root <path> --skills-source-root <path> [--shared-skills-root <path>] [--install-date <date>] [--overwrite]');
   console.error('  query --memory-root <path> --text <query> [--limit <n>] [--include-pending]');
   console.error('  get-runtime-delta --memory-root <path> [--limit <n>]');
+  console.error('  get-runtime-recall-bundle --memory-root <path> [--text <query>] [--limit <n>]');
   console.error('  capture-runtime --memory-root <path> --run-id <id> --artifacts-file <path> [--runtime-inputs-file <path>] [--source <label>] [--captured-at <ts>] [--overwrite]');
   console.error('  status --memory-root <path>');
   console.error('  verify --memory-root <path> [--updated-at <ts>] [--today <date>]');
@@ -124,6 +131,18 @@ function runCli(argv) {
         systemPath: flags['system-path'],
       });
       break;
+    case 'get-recall-bundle':
+      result = getRecallBundle({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        roleId: flags['role-id'],
+        installDate: flags['install-date'],
+        memoryPath: flags['memory-path'],
+        systemPath: flags['system-path'],
+        limit: flags.limit ? Number(flags.limit) : undefined,
+        text: flags.text,
+        includePending: flags['include-pending'] === true ? true : undefined,
+      });
+      break;
     case 'bootstrap-role':
       result = bootstrapRole({
         roleId: requireFlag(flags, 'role-id'),
@@ -161,6 +180,13 @@ function runCli(argv) {
     case 'get-runtime-delta':
       result = getRuntimeDelta({
         memoryRoot: requireFlag(flags, 'memory-root'),
+        limit: flags.limit ? Number(flags.limit) : undefined,
+      });
+      break;
+    case 'get-runtime-recall-bundle':
+      result = getRuntimeRecallBundle({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        text: flags.text,
         limit: flags.limit ? Number(flags.limit) : undefined,
       });
       break;

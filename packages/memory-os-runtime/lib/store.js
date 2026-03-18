@@ -196,6 +196,35 @@ function sortByNewest(left, right) {
   return String(left.id || left.runId || '').localeCompare(String(right.id || right.runId || ''));
 }
 
+function tokenizeText(input) {
+  return Array.from(
+    new Set(
+      String(input || '')
+        .toLowerCase()
+        .split(/[^a-z0-9]+/i)
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 2)
+    )
+  );
+}
+
+function scoreText(haystack, tokens) {
+  if (!Array.isArray(tokens) || tokens.length === 0) {
+    return 1;
+  }
+
+  const normalized = String(haystack || '').toLowerCase();
+  let score = 0;
+
+  for (const token of tokens) {
+    if (normalized.includes(token)) {
+      score += 1;
+    }
+  }
+
+  return score;
+}
+
 function countArtifacts(artifacts) {
   return RUNTIME_BUCKETS.reduce((total, bucketName) => total + artifacts[bucketName].length, 0);
 }
@@ -382,6 +411,100 @@ function getRuntimeDelta(options) {
   };
 }
 
+function getRuntimeRecallBundle(options) {
+  const memoryRoot = requireMemoryRoot(options);
+  const text = String(options.text || '').trim();
+  const limit = Number.isInteger(options.limit) && options.limit > 0 ? options.limit : 10;
+  const tokens = tokenizeText(text);
+  const records = listRuntimeRecords({ memoryRoot }).map((record) => ({
+    ...record,
+    filePath: resolveRuntimeRunPath(memoryRoot, record.runId),
+  }));
+  const manifestPath = resolveRuntimeManifestPath(memoryRoot);
+  const manifest = fs.existsSync(manifestPath)
+    ? loadJson(manifestPath)
+    : buildManifest(memoryRoot, records, records[0] ? records[0].capturedAt : null);
+  const allHits = [];
+
+  for (const record of records) {
+    for (const bucketName of RUNTIME_BUCKETS) {
+      for (const entry of record.artifacts[bucketName] || []) {
+        const score = scoreText(
+          [
+            bucketName,
+            entry.id,
+            entry.summary,
+            entry.text,
+            Array.isArray(entry.tags) ? entry.tags.join(' ') : '',
+            entry.metadata ? JSON.stringify(entry.metadata) : '',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          tokens
+        );
+
+        if (score === 0) {
+          continue;
+        }
+
+        allHits.push({
+          score,
+          bucket: bucketName,
+          runId: record.runId,
+          source: record.source,
+          capturedAt: record.capturedAt,
+          relativePath: path.relative(memoryRoot, record.filePath).split(path.sep).join('/'),
+          ...entry,
+        });
+      }
+    }
+  }
+
+  allHits.sort((left, right) => {
+    if (right.score !== left.score) {
+      return right.score - left.score;
+    }
+
+    return sortByNewest(left, right);
+  });
+
+  const byBucket = Object.fromEntries(
+    RUNTIME_BUCKETS.map((bucketName) => {
+      const bucketHits = allHits.filter((hit) => hit.bucket === bucketName);
+      return [
+        bucketName,
+        {
+          count: bucketHits.length,
+          entries: bucketHits.slice(0, limit),
+        },
+      ];
+    })
+  );
+
+  return {
+    kind: 'runtime-recall-bundle',
+    authoritative: false,
+    disposable: true,
+    rebuildableFrom: ['canon', 'captured-runtime-inputs'],
+    memoryRoot,
+    text,
+    tokens,
+    manifest,
+    shadowExists: records.length > 0,
+    runCount: records.length,
+    totalArtifacts: manifest.totalArtifacts || 0,
+    lastCapturedAt: manifest.lastCapturedAt || null,
+    totalHits: allHits.length,
+    hits: allHits.slice(0, limit),
+    buckets: byBucket,
+    byBucket,
+    freshnessBoundary: {
+      runtimeLastCapturedAt: manifest.lastCapturedAt || null,
+      runtimeAuthoritative: false,
+    },
+  };
+}
+
 module.exports = {
   RUNTIME_BUCKETS,
   RUNTIME_MANIFEST_PATH,
@@ -391,6 +514,7 @@ module.exports = {
   RUNTIME_SHADOW_ROOT_PATH,
   captureShadowRuntime,
   ensureRuntimeShadowStore,
+  getRuntimeRecallBundle,
   getRuntimeDelta,
   listRuntimeRecords,
   resolveRuntimeManifestPath,

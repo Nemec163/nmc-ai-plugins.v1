@@ -10,6 +10,7 @@
     "./conformance-adapter": "./lib/conformance-adapter.js",
     "./pipeline-adapter": "./lib/pipeline-adapter.js",
     "./register": "./lib/register.js",
+    "./runtime-orchestration": "./lib/runtime-orchestration.js",
     "./setup": "./lib/openclaw-setup.js",
     "./setup-cli": "./lib/setup-cli.js"
   },

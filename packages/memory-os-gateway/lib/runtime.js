@@ -29,9 +29,19 @@ function getRuntimeDelta(options = {}) {
   });
 }
 
+function getRuntimeRecallBundle(options = {}) {
+  const runtime = loadMemoryRuntime();
+  return runtime.getRuntimeRecallBundle({
+    ...options,
+    memoryRoot: requireMemoryRoot(options),
+  });
+}
+
 module.exports = {
   captureRuntime,
   capture_runtime: captureRuntime,
+  getRuntimeRecallBundle,
+  get_runtime_recall_bundle: getRuntimeRecallBundle,
   getRuntimeDelta,
   get_runtime_delta: getRuntimeDelta,
 };

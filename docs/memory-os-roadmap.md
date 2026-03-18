@@ -5,15 +5,14 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 5 / PR 5.1 — Add memory-os-runtime in Shadow Mode`
-- next: `Phase 5.5 — OpenClaw Runtime-Backed Orchestration`
+- completed: `Phase 5.5 — OpenClaw Runtime-Backed Orchestration`
+- next: `Phase 6 — Add Control Plane Carefully`
 - last verified on: `2026-03-18`
 - verified in this slice:
-  - `/usr/local/bin/node packages/memory-os-runtime/test/validate-fixtures.js`
-  - `/usr/local/bin/node packages/memory-os-gateway/test/validate-fixtures.js`
-  - `/usr/local/bin/node packages/adapter-conformance/test/validate-fixtures.js`
-  - `/usr/local/bin/node packages/adapter-codex/test/validate-fixtures.js`
-  - `/usr/local/bin/node packages/adapter-openclaw/test/validate-fixtures.js`
+  - `node packages/memory-os-runtime/test/validate-fixtures.js`
+  - `node packages/memory-os-gateway/test/validate-fixtures.js`
+  - `node packages/adapter-openclaw/test/validate-fixtures.js`
+  - `node packages/adapter-conformance/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
@@ -1606,10 +1605,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 5.5:
+The next implementation step should be Phase 6:
 
-- integrate OpenClaw as an orchestration adapter over the new shadow runtime so it can consume recall bundles without reclaiming memory ownership
-- keep runtime explicitly non-authoritative while proposals, feedback, and completion continue to flow through gateway surfaces and the single promotion path
-- treat the go/no-go review for shadow runtime as the gate before widening into runtime-backed orchestration behavior
+- formalize the temporary ops harness into a supported control-plane surface over stable gateway, runtime, and maintainer contracts
+- keep scheduling, backlog policy, and promotion ownership outside the control-plane
+- preserve runtime as explicitly non-authoritative while operator visibility improves
 
-PR 5.1 is now complete, so the next risk is letting runtime-backed orchestration reintroduce OpenClaw-specific memory ownership or covert canon writes. Keep Phase 5.5 focused on consumption and observability over the existing shadow/runtime boundary rather than widening authority.
+Phase 5.5 is now complete, so the next risk is turning operator visibility into control authority before the contracts are intentionally frozen. Keep Phase 6 focused on read-only and approval-oriented control surfaces rather than scheduler or promotion ownership.
