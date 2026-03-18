@@ -24,7 +24,6 @@ const {
   readRecord,
   verify,
 } = gateway;
-const { getOpsSnapshot } = require('../lib/ops');
 const { acquireCanonWriteLock } = require('../../memory-canon');
 
 const WORKSPACE_FIXTURE = path.resolve(
@@ -436,25 +435,6 @@ function main() {
       'utf8'
     );
 
-    const opsSnapshot = getOpsSnapshot({
-      memoryRoot: orchestrationWorkspaceRoot,
-      updatedAt: '2026-03-18T15:00:00Z',
-      today: '2026-03-18',
-    });
-    assert.equal(opsSnapshot.temporary, true);
-    assert.equal(opsSnapshot.proposals.count, 1);
-    assert.equal(opsSnapshot.jobs.count, 2);
-    assert.equal(opsSnapshot.lock.exists, true);
-    assert.equal(opsSnapshot.degradedMode.active, true);
-    assert.equal(opsSnapshot.deprecated, true);
-    assert.equal(opsSnapshot.releaseBoundary.supported, false);
-    assert.equal(opsSnapshot.releaseBoundary.replacementPackage, 'control-plane');
-    assert.equal(opsSnapshot.releaseBoundary.replacementCli, 'memory-control-plane');
-    assert.equal(
-      opsSnapshot.conflicts.some((conflict) => conflict.code === 'orphan-job'),
-      true
-    );
-    assert.equal(opsSnapshot.current.projections.state.records[0].recordId, 'st-2026-03-05-001');
   } finally {
     fs.rmSync(orchestrationRoot, { recursive: true, force: true });
   }

@@ -3,7 +3,6 @@
 module.exports = {
   ...require('./lib/bootstrap'),
   ...require('./lib/health'),
-  ...require('./lib/ops'),
   ...require('./lib/query'),
   ...require('./lib/recall'),
   ...require('./lib/read'),

@@ -4,6 +4,8 @@ Current-state implementation and operations guide for the managed OpenClaw memor
 
 Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), while package-specific details live in [../nmc-memory-plugin/README.md](../nmc-memory-plugin/README.md).
 
+The current post-freeze cutover and repo-local bridge retirement sequence live in [deliberate-migration-release-plan.md](./deliberate-migration-release-plan.md).
+
 ## Scope
 
 The current repository ships one production plugin, `nmc-memory-plugin`, in the OpenClaw plugin format:
@@ -15,7 +17,9 @@ The current repository ships one production plugin, `nmc-memory-plugin`, in the 
 - `templates/workspace-memory/` and `templates/workspace-system/` provide the managed scaffold.
 - `skills/` bundles the memory pipeline, maintenance scripts, and kanban operator.
 
-The deprecated `memory-os-gateway ops-snapshot` output remains compatibility-only and is not the supported operator contract.
+For the current migration release, `nmc-memory-plugin` remains the only supported production install/setup shell. `packages/adapter-openclaw` is an extracted internal adapter package, not a direct installation target.
+
+The deprecated `memory-os-gateway ops-snapshot` bridge is retired and is not part of the supported operator contract.
 
 ### Supported Operator Surface
 

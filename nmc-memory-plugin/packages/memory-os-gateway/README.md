@@ -29,12 +29,14 @@ node packages/memory-os-gateway/bin/memory-os-gateway.js status --memory-root /p
 
 Temporary Phase 2.5 ops harness:
 
-- deprecated compatibility read model implementation: `lib/ops.js`
-- `getOpsSnapshot` exposes read-only proposal, job, conflict, lock, status, verify, degraded-mode, and current projection visibility
-- the snapshot is explicitly migration-scoped, deprecated, and compatibility-only; the supported Phase 6 operator surface now lives in `packages/control-plane`
+- the deprecated gateway ops bridge has been retired from this shipped mirror as well
+- the supported Phase 6 operator surface lives in `packages/control-plane`
 - this shipped `nmc-memory-plugin` mirror does not export `getOpsSnapshot` / `inspectOps` from `require('memory-os-gateway')` or `require('memory-os-gateway/ops')`
-- the compatibility read model now emits machine-readable release-boundary metadata pointing operators to `memory-control-plane snapshot|queues|health|analytics|audits|runtime-inspector`
-- the harness only inspects gateway-backed state and canon projections; it does not lease jobs, approve writes, or mutate canon
+- operators should use `memory-control-plane snapshot|queues|health|analytics|audits|runtime-inspector`
+
+Current cutover note:
+
+- the post-freeze migration-release cutover and repo-local bridge retirement sequence are tracked in [../../../docs/deliberate-migration-release-plan.md](../../../docs/deliberate-migration-release-plan.md)
 
 Write orchestration stays non-authoritative in this slice:
 

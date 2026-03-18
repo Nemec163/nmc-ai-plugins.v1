@@ -5,12 +5,12 @@
 
 ## Progress Snapshot
 
-- completed: `release-surface freeze — stop exporting the deprecated gateway ops SDK from shipped mirrors`
-- next: `deliberate migration release planning — define the post-freeze cutover beyond the compatibility shell`
+- completed: `compatibility-shell cutover decision — retain nmc-memory-plugin as the production install shell`
+- next: `compatibility-shell retirement prerequisites — define the direct-install cutover gates`
 - last verified on: `2026-03-19`
 - verified in this slice:
-  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node nmc-memory-plugin/packages/control-plane/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
@@ -1505,6 +1505,139 @@ Rollback:
 
 - restore the shipped mirror package-level ops exports while keeping the control-plane release-boundary docs/tests if installed-artifact automation still depends on the deprecated bridge
 
+### deliberate migration release planning: define the post-freeze cutover beyond the compatibility shell
+
+Do this only after `release-surface freeze` has frozen the shipped package/operator boundary.
+
+Implemented in this slice:
+
+- added [docs/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/deliberate-migration-release-plan.md) to make the migration-release cutover explicit instead of leaving it implied by the previous hardening and freeze slices
+- classified the supported release surfaces as: `nmc-memory-plugin` for OpenClaw install/setup compatibility, `packages/control-plane` for operator workflows, and `packages/memory-os-gateway` for supported programmatic access excluding the deprecated ops bridge
+- recorded the retirement sequencing for the remaining repo-local deprecated gateway ops read model so the next follow-up slice is internal bridge migration and retirement, not new operator capability work
+- documented a repository-wide inventory showing that remaining `getOpsSnapshot` / `inspectOps` references are confined to package-local compatibility code, fixture coverage, and docs rather than live runtime consumers
+- updated repository and plugin-facing docs to point at the explicit migration-release plan alongside the existing release-boundary notes
+
+Acceptance criteria:
+
+- the repository has one explicit migration-release plan covering supported surfaces, compatibility-shell scope, and retirement gates for the remaining repo-local deprecated gateway ops read model
+- docs distinguish the OpenClaw compatibility shell from the supported Memory OS operator and programmatic surfaces without changing behavior
+- the next slice is sequenced around repo-local bridge migration/retirement rather than new control-plane capabilities
+- the required regression baseline remains green
+
+Main risk:
+
+- turning a release-planning slice into a premature package or API break before the remaining repo-local compatibility tooling is migrated
+
+Rollback:
+
+- keep the explicit surface classification and docs links, but relax the retirement sequencing if a hidden repo-local consumer of the deprecated bridge is discovered
+
+### repo-local bridge retirement prep: migrate internal compatibility tooling off the deprecated gateway ops read model
+
+Do this only after `deliberate migration release planning` has frozen the cutover and retirement sequence.
+
+Implemented in this slice:
+
+- removed direct deprecated bridge validation from `packages/memory-os-gateway/test/validate-fixtures.js` and `nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js` so repo-local fixture coverage no longer depends on calling `getOpsSnapshot` / `inspectOps`
+- kept the supported release-boundary assertions intact by continuing to validate that `ops-snapshot` is absent from the CLI surface and that shipped package exports do not expose the deprecated bridge
+- updated [docs/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/deliberate-migration-release-plan.md), [docs/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/memory-os-roadmap.md), and [AGENTS.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/AGENTS.md) so the repository now treats retirement prep as complete and points the next slice at full root-package bridge removal
+- re-ran targeted gateway fixture validation in both root and shipped mirrors plus the required contract and integration baselines
+
+Acceptance criteria:
+
+- no repo-local production or positive fixture/tooling paths still need `getOpsSnapshot`, `inspectOps`, `inspect_ops`, or `memory-os-gateway/ops`
+- supported-surface coverage still proves that the CLI hides `ops-snapshot` and the shipped plugin mirror keeps package-level bridge exports unavailable
+- the next slice can remove the root package bridge without first untangling additional internal tooling
+- the required regression baseline remains green
+
+Main risk:
+
+- accidentally dropping the negative release-boundary assertions at the same time as the positive bridge coverage, which would reduce confidence before the actual retirement slice
+
+Rollback:
+
+- restore the direct bridge fixture validation temporarily while keeping the release-planning docs if an undiscovered repo-local consumer still needs the compatibility read model during the next slice
+
+### repo-local bridge retirement: remove the deprecated gateway ops read model from the root package
+
+Do this only after `repo-local bridge retirement prep` has removed positive fixture/tooling dependence on the deprecated bridge.
+
+Implemented in this slice:
+
+- deleted `packages/memory-os-gateway/lib/ops.js` so the deprecated root compatibility read model no longer exists as package-local implementation
+- removed `./ops` from `packages/memory-os-gateway/package.json` and dropped `./lib/ops` from `packages/memory-os-gateway/index.js` so the root package no longer exposes the bridge through either `require('memory-os-gateway')` or `require('memory-os-gateway/ops')`
+- updated `packages/memory-os-gateway/test/validate-fixtures.js` to probe the root package through a temporary `node_modules` install shape and assert that the deprecated bridge is absent from both the main export and subpath export while the CLI still rejects `ops-snapshot`
+- updated root gateway docs plus release-planning/session docs so the repository now records the root bridge as retired and limits remaining ambiguity to the hidden shipped-mirror implementation
+- re-ran targeted root and shipped gateway fixture validation plus the required contract and integration baselines
+
+Acceptance criteria:
+
+- the root `packages/memory-os-gateway` package no longer exports `getOpsSnapshot`, `inspectOps`, or `inspect_ops` from its main package entrypoint
+- the root package no longer exports `memory-os-gateway/ops`
+- the CLI still does not expose `ops-snapshot`, and the shipped plugin mirror/operator contract remain unchanged
+- the required regression baseline remains green
+
+Main risk:
+
+- accidentally changing supported root gateway surfaces beyond the deprecated bridge removal or unintentionally drifting the shipped mirror while retiring the root package
+
+Rollback:
+
+- restore the root `lib/ops.js` implementation and root package exports temporarily if a hidden repo-local consumer is discovered, while leaving the shipped mirror and control-plane operator contract unchanged
+
+### shipped-mirror bridge cleanup decision: retire the hidden compatibility implementation
+
+Do this only after `repo-local bridge retirement` has retired the bridge from the root package surface.
+
+Implemented in this slice:
+
+- deleted `nmc-memory-plugin/packages/memory-os-gateway/lib/ops.js` so no hidden shipped-mirror implementation of the deprecated gateway ops bridge remains
+- updated shipped operator docs in `nmc-memory-plugin/README.md`, `nmc-memory-plugin/packages/memory-os-gateway/README.md`, and both `control-plane` package READMEs to say the bridge is retired rather than merely deprecated
+- updated `packages/control-plane/lib/release-qualification.js` and `nmc-memory-plugin/packages/control-plane/lib/release-qualification.js` so machine-readable operator metadata now reports `gatewayOpsSnapshot: retired`
+- extended both control-plane fixture suites to assert the new retired bridge status while keeping the supported operator contract unchanged
+- re-ran targeted gateway and control-plane fixture validation plus the required contract and integration baselines
+
+Acceptance criteria:
+
+- neither the root package nor the shipped mirror contains an active implementation of the deprecated gateway ops bridge
+- machine-readable control-plane release qualification reports the gateway ops bridge as retired
+- installed-artifact behavior and shipped package exports remain unchanged from the already-frozen supported surface
+- the required regression baseline remains green
+
+Main risk:
+
+- conflating bridge cleanup with retirement of the broader OpenClaw compatibility shell and accidentally widening a non-breaking cleanup slice into a packaging cutover
+
+Rollback:
+
+- restore the hidden shipped-mirror implementation temporarily if an unexpected internal packaged-artifact dependency appears, while leaving the root package retired
+
+### compatibility-shell cutover decision: retain `nmc-memory-plugin` as the production install shell
+
+Do this only after `shipped-mirror bridge cleanup decision` has retired the deprecated gateway bridge everywhere and narrowed the remaining release ambiguity to the compatibility shell itself.
+
+Implemented in this slice:
+
+- updated [docs/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/deliberate-migration-release-plan.md) to make the cutover decision explicit: the current migration release retains `nmc-memory-plugin` as the only supported production OpenClaw install/setup shell and defers any direct-install adapter cutover into a later deliberate breaking slice
+- updated `packages/control-plane/lib/release-qualification.js` and `nmc-memory-plugin/packages/control-plane/lib/release-qualification.js` so machine-readable release metadata now records both `productionStatus: current-production-install-shell` and `directAdapterInstall: not-supported` for the compatibility shell
+- extended both control-plane fixture suites to assert the retained production-shell decision in root and shipped mirrors
+- clarified repository, implementation, plugin, adapter, and control-plane docs so installed-artifact guidance still points users to `nmc-memory-plugin` for install/setup while keeping `packages/control-plane` and `packages/memory-os-gateway` as the supported operator and programmatic surfaces
+
+Acceptance criteria:
+
+- the repository explicitly records that `nmc-memory-plugin` remains the current production install/setup shell for the migration release
+- machine-readable control-plane release qualification exposes that retained production-shell decision and that direct installation of `adapter-openclaw` is not yet supported
+- installed-artifact guidance continues to preserve `openclaw nmc-memory setup`, auto-bootstrap, `openclaw.plugin.json`, managed `openclaw.json` writes, and the existing `system/` workspace layout without introducing a packaging break
+- the required regression baseline remains green
+
+Main risk:
+
+- accidentally blurring the line between “compatibility shell retained for now” and “legacy shell retained forever,” which could stall the eventual direct-install cutover or encourage unsupported installs against `adapter-openclaw`
+
+Rollback:
+
+- relax the new release-qualification metadata and docs language if a direct-install cutover must start sooner than expected, while keeping the current packaging behavior unchanged until a dedicated breaking slice is designed and verified
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -1766,10 +1899,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should plan the deliberate migration release now that the shipped surface is frozen:
+The next implementation step should turn the retained-shell decision into explicit future-cutover gates:
 
-- define the post-freeze cutover from the compatibility shell to fully supported Memory OS surfaces
-- decide when the remaining repo-local deprecated gateway ops read model can be retired without breaking internal tooling
-- keep scope pinned to release planning and deprecation sequencing rather than adding new operator capabilities
+- identify what must change before `nmc-memory-plugin` can stop being the production install/setup shell
+- define the direct-install prerequisites for `adapter-openclaw` or any thinner packaging surface without breaking current setup/bootstrap behavior, workspace layout, or shipped operator contracts
+- keep scope on packaging retirement gates and release-surface ownership rather than adding new runtime or operator capabilities
 
-release-surface freeze is now complete, so the next risk is drifting back into ambiguous migration boundaries while the repository still carries repo-local deprecated compatibility reads. The next slice should focus on deliberate migration-release planning and eventual bridge retirement sequencing, not new operator capabilities.
+The production-shell decision is now explicit, so the next risk is leaving the eventual cutover undefined. The next slice should focus on retirement prerequisites for the compatibility shell, not on resurrecting deprecated bridge paths or widening the current release surface.

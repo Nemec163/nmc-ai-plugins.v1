@@ -14,8 +14,10 @@ The package is shipped in the current OpenClaw plugin format:
 Release-boundary note:
 
 - `nmc-memory-plugin` is the compatibility shell for setup, auto-bootstrap, bundled skills, and the stable OpenClaw packaging surface.
-- the supported Memory OS operator surface is bundled inside the shipped plugin at `packages/control-plane`; the temporary `memory-os-gateway ops-snapshot` bridge is deprecated compatibility-only output.
+- `nmc-memory-plugin` remains the current production install/setup shell for the migration release; `packages/adapter-openclaw` is not a supported direct install target yet.
+- the supported Memory OS operator surface is bundled inside the shipped plugin at `packages/control-plane`; the deprecated `memory-os-gateway ops-snapshot` bridge is retired.
 - the shipped plugin mirror does not export the deprecated gateway ops SDK from `packages/memory-os-gateway` at the package level; installed-artifact automation should bind only to `packages/control-plane`.
+- the post-freeze cutover and repo-local bridge retirement sequence are tracked in [../docs/deliberate-migration-release-plan.md](../docs/deliberate-migration-release-plan.md).
 
 Supported operator commands from an installed plugin artifact:
 

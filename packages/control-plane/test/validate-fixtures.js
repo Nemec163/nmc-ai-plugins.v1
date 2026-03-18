@@ -284,6 +284,15 @@ function main() {
       'nmc-memory-plugin'
     );
     assert.equal(
+      snapshot.releaseQualification.compatibilityShell.productionStatus,
+      'current-production-install-shell'
+    );
+    assert.equal(
+      snapshot.releaseQualification.compatibilityShell.directAdapterInstall,
+      'not-supported'
+    );
+    assert.equal(snapshot.releaseQualification.bridgeStatus.gatewayOpsSnapshot, 'retired');
+    assert.equal(
       snapshot.queues.conflicts.items.some((conflict) => conflict.code === 'orphan-job'),
       true
     );

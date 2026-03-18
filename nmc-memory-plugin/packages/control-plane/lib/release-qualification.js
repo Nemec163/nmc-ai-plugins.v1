@@ -79,10 +79,12 @@ function getControlPlaneReleaseQualification(snapshot) {
     compatibilityShell: {
       package: 'nmc-memory-plugin',
       status: 'compatibility-only-shell',
+      productionStatus: 'current-production-install-shell',
+      directAdapterInstall: 'not-supported',
       preservedContracts: COMPATIBILITY_SHELL_CONTRACTS,
     },
     bridgeStatus: {
-      gatewayOpsSnapshot: 'compatibility-only-bridge',
+      gatewayOpsSnapshot: 'retired',
       supportedReplacement: 'control-plane',
       replacementCommands: [
         'snapshot',

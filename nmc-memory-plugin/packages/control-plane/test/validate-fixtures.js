@@ -21,11 +21,11 @@ const { captureRuntime, completeJob, feedback, propose } = require('../../memory
 
 const MEMORY_FIXTURE = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/tests/fixtures/workspace'
+  '../../../tests/fixtures/workspace'
 );
 const SYSTEM_TEMPLATE = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/templates/workspace-system'
+  '../../../templates/workspace-system'
 );
 const CLI_PATH = path.resolve(__dirname, '../bin/memory-control-plane.js');
 
@@ -283,6 +283,15 @@ function main() {
       snapshot.releaseQualification.compatibilityShell.package,
       'nmc-memory-plugin'
     );
+    assert.equal(
+      snapshot.releaseQualification.compatibilityShell.productionStatus,
+      'current-production-install-shell'
+    );
+    assert.equal(
+      snapshot.releaseQualification.compatibilityShell.directAdapterInstall,
+      'not-supported'
+    );
+    assert.equal(snapshot.releaseQualification.bridgeStatus.gatewayOpsSnapshot, 'retired');
     assert.equal(
       snapshot.queues.conflicts.items.some((conflict) => conflict.code === 'orphan-job'),
       true

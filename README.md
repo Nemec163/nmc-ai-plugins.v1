@@ -2,9 +2,9 @@
 
 Monorepo for the current NMC OpenClaw memory plugin and its bundled workspace scaffolding.
 
-The repository currently ships one production plugin: `nmc-memory-plugin`. It bootstraps a managed multi-agent OpenClaw workspace, provisions a shared `system/` layer, and bundles the memory, kanban, and maintenance skills that operate on that workspace.
+The repository currently ships one production plugin: `nmc-memory-plugin`. It remains the production OpenClaw install/setup shell for the current migration release, bootstraps a managed multi-agent OpenClaw workspace, provisions a shared `system/` layer, and bundles the memory, kanban, and maintenance skills that operate on that workspace.
 
-Use this document as the entry point. Use [plugin README](./nmc-memory-plugin/README.md) for package-level details and [implementation guide](./docs/implementation-guide.md) for day-2 operations.
+Use this document as the entry point. Use [plugin README](./nmc-memory-plugin/README.md) for package-level details, [implementation guide](./docs/implementation-guide.md) for day-2 operations, and [deliberate migration release plan](./docs/deliberate-migration-release-plan.md) for the current post-freeze cutover boundary.
 
 ## What It Provides
 
@@ -182,6 +182,7 @@ For an already scaffolded workspace, the fastest operational verification is:
 |---|---|
 | [nmc-memory-plugin/README.md](./nmc-memory-plugin/README.md) | Package-level install, setup, structure, and skill reference. |
 | [docs/implementation-guide.md](./docs/implementation-guide.md) | Current implementation and day-2 operations guide. |
+| [docs/deliberate-migration-release-plan.md](./docs/deliberate-migration-release-plan.md) | Current migration-release surface classification and repo-local bridge retirement sequence. |
 | [docs/memory-os-roadmap.md](./docs/memory-os-roadmap.md) | Repo-specific migration roadmap from the current plugin to a modular Memory OS. |
 | [docs/memory-design-v2.md](./docs/memory-design-v2.md) | Conceptual v2 design reference. |
 | [docs/human-memory.md](./docs/human-memory.md) | High-level memory model note. |

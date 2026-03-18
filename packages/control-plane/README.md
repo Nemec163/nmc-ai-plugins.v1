@@ -58,6 +58,7 @@ Control-plane v3 stays intentionally careful:
 - analytics and audit surfaces summarize queue, intervention, lock, and runtime history without becoming source-of-truth
 - runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
 - `snapshot` and `health` now emit release-qualification metadata that marks `control-plane` as the supported migration-release operator surface and `nmc-memory-plugin` as the compatibility shell
+- that release qualification also records that `nmc-memory-plugin` remains the current production install/setup shell and that direct installation of `adapter-openclaw` is not supported in this slice
 
 Packaging note:
 
@@ -66,7 +67,8 @@ Packaging note:
 
 Compatibility note:
 
-- `memory-os-gateway` retains only a deprecated compatibility SDK entrypoint for the old ops snapshot read model
+- the deprecated `memory-os-gateway` ops snapshot bridge is retired from package surfaces
 - the supported operator queue, audit, analytics, and runtime inspection contract now lives in `control-plane`
+- the current post-freeze cutover and repo-local bridge retirement sequence are tracked in [../../docs/deliberate-migration-release-plan.md](../../docs/deliberate-migration-release-plan.md)
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.

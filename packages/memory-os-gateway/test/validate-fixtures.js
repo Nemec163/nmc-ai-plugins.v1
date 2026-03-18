@@ -13,7 +13,6 @@ const {
   feedback,
   getCanonicalCurrent,
   getHealth,
-  getOpsSnapshot,
   getProjection,
   getRecallBundle,
   getRuntimeDelta,
@@ -65,6 +64,32 @@ function hashCanonTree(memoryRoot) {
 }
 
 function main() {
+  const packageProbeRoot = makeTempRoot();
+  try {
+    const packageLinkRoot = path.join(packageProbeRoot, 'node_modules');
+    fs.mkdirSync(packageLinkRoot, { recursive: true });
+    fs.symlinkSync(
+      path.resolve(__dirname, '..'),
+      path.join(packageLinkRoot, 'memory-os-gateway'),
+      'dir'
+    );
+
+    const packageExportProbe = spawnSync(
+      process.execPath,
+      [
+        '-e',
+        'const assert = require("node:assert/strict"); const gateway = require("memory-os-gateway"); assert.equal(typeof gateway.getOpsSnapshot, "undefined"); assert.equal(typeof gateway.inspectOps, "undefined"); assert.equal(typeof gateway.inspect_ops, "undefined"); try { require("memory-os-gateway/ops"); console.error("expected memory-os-gateway/ops to stay unexported"); process.exit(1); } catch (error) { if (error && error.code === "ERR_PACKAGE_PATH_NOT_EXPORTED") { process.exit(0); } console.error(error && error.stack ? error.stack : String(error)); process.exit(2); }',
+      ],
+      {
+        cwd: packageProbeRoot,
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(packageExportProbe.status, 0, packageExportProbe.stderr);
+  } finally {
+    fs.rmSync(packageProbeRoot, { recursive: true, force: true });
+  }
+
   const record = readRecord({
     memoryRoot: FIXTURE_MEMORY_ROOT,
     recordId: 'fct-2026-03-05-001',
@@ -431,25 +456,6 @@ function main() {
       'utf8'
     );
 
-    const opsSnapshot = getOpsSnapshot({
-      memoryRoot: orchestrationWorkspaceRoot,
-      updatedAt: '2026-03-18T15:00:00Z',
-      today: '2026-03-18',
-    });
-    assert.equal(opsSnapshot.temporary, true);
-    assert.equal(opsSnapshot.proposals.count, 1);
-    assert.equal(opsSnapshot.jobs.count, 2);
-    assert.equal(opsSnapshot.lock.exists, true);
-    assert.equal(opsSnapshot.degradedMode.active, true);
-    assert.equal(opsSnapshot.deprecated, true);
-    assert.equal(opsSnapshot.releaseBoundary.supported, false);
-    assert.equal(opsSnapshot.releaseBoundary.replacementPackage, 'control-plane');
-    assert.equal(opsSnapshot.releaseBoundary.replacementCli, 'memory-control-plane');
-    assert.equal(
-      opsSnapshot.conflicts.some((conflict) => conflict.code === 'orphan-job'),
-      true
-    );
-    assert.equal(opsSnapshot.current.projections.state.records[0].recordId, 'st-2026-03-05-001');
   } finally {
     fs.rmSync(orchestrationRoot, { recursive: true, force: true });
   }

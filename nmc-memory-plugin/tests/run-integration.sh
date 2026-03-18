@@ -463,10 +463,12 @@ test_packaged_artifact_install_smoke() {
   fi
 
   if [ "$(json_query "$LAST_STDOUT" "kind")" = "control-plane-snapshot" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.qualified")" = "true" ]; then
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.qualified")" = "true" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.productionStatus")" = "current-production-install-shell" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.directAdapterInstall")" = "not-supported" ]; then
     pass "packed artifact control-plane CLI runs after extract"
   else
-    fail "packed artifact control-plane CLI runs after extract" "Expected control-plane snapshot with qualified release boundary"
+    fail "packed artifact control-plane CLI runs after extract" "Expected control-plane snapshot with qualified release boundary and retained production-shell metadata"
     return
   fi
 
@@ -477,9 +479,9 @@ test_packaged_artifact_install_smoke() {
   run_and_capture_in_dir "$packaged_probe_root" env PATH="$tool_dir:$PATH" "$node_bin" -e 'const assert = require("node:assert/strict"); const gateway = require("memory-os-gateway"); assert.equal(typeof gateway.getOpsSnapshot, "undefined"); assert.equal(typeof gateway.inspectOps, "undefined"); assert.equal(typeof gateway.inspect_ops, "undefined"); try { require("memory-os-gateway/ops"); console.error("expected memory-os-gateway/ops to stay unexported in the shipped mirror"); process.exit(1); } catch (error) { if (error && error.code === "ERR_PACKAGE_PATH_NOT_EXPORTED") { process.exit(0); } console.error(error && error.stack ? error.stack : String(error)); process.exit(2); }'
 
   if [ "$LAST_EXIT_CODE" -eq 0 ]; then
-    pass "packed artifact shipped gateway mirror keeps deprecated ops bridge unexported"
+    pass "packed artifact shipped gateway mirror keeps retired ops bridge unexported"
   else
-    fail "packed artifact shipped gateway mirror keeps deprecated ops bridge unexported" "Expected installed artifact to hide package-level ops exports"
+    fail "packed artifact shipped gateway mirror keeps retired ops bridge unexported" "Expected installed artifact to hide package-level ops exports"
     printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
     return
   fi
