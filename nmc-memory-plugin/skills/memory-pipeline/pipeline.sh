@@ -11,4 +11,12 @@ if [ ! -x "$PIPELINE_BIN" ]; then
 fi
 
 export PIPELINE_VERIFY_CMD="${PIPELINE_VERIFY_CMD:-$PLUGIN_ROOT/skills/memory-verify/verify.sh}"
+if [ -z "${PIPELINE_ADAPTER_MODULE:-}" ]; then
+  ADAPTER_OPENCLAW_MODULE="$SCRIPT_DIR/../../../packages/adapter-openclaw"
+  if [ -d "$ADAPTER_OPENCLAW_MODULE" ]; then
+    export PIPELINE_ADAPTER_MODULE="$ADAPTER_OPENCLAW_MODULE"
+  else
+    export PIPELINE_ADAPTER_MODULE="adapter-openclaw"
+  fi
+fi
 exec "$PIPELINE_BIN" "$@"

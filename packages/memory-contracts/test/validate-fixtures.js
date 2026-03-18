@@ -7,7 +7,10 @@ const path = require('node:path');
 const {
   CURRENT_SCHEMA_VERSION,
   EXIT_CODES,
+  formatPipelineInvocation,
+  getPipelineInvocation,
   isSupportedSchemaVersion,
+  validatePipelineAdapter,
   validateRecordBlock,
 } = require('..');
 
@@ -206,6 +209,36 @@ function main() {
     CURRENT_SCHEMA_VERSION,
     '1.0',
     'Unexpected shared contract schema version'
+  );
+  const adapter = {
+    runExtract(options) {
+      return {
+        command: options.command || 'openclaw',
+        args: ['skill', 'run', 'memory-extract', '--date', options.date],
+      };
+    },
+    runCurate(options) {
+      return {
+        command: options.command || 'openclaw',
+        args: ['skill', 'run', 'memory-curate', '--date', options.date],
+      };
+    },
+    runApply(options) {
+      return {
+        command: options.command || 'openclaw',
+        args: ['skill', 'run', 'memory-apply', '--date', options.date],
+      };
+    },
+  };
+  assert.equal(validatePipelineAdapter(adapter).valid, true);
+  assert.equal(
+    formatPipelineInvocation(
+      getPipelineInvocation(adapter, 'extract', {
+        command: 'openclaw',
+        date: '2026-03-05',
+      })
+    ),
+    'openclaw skill run memory-extract --date 2026-03-05'
   );
   assert.equal(validatedCount, 6, 'Expected six canonical record fixtures');
 

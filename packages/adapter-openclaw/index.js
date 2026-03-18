@@ -1,0 +1,8 @@
+"use strict";
+
+module.exports = {
+  ...require("./lib/pipeline-adapter"),
+  ...require("./lib/openclaw-setup"),
+  ...require("./lib/setup-cli"),
+  ...require("./lib/register"),
+};

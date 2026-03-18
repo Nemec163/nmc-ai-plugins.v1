@@ -7,6 +7,7 @@ const { spawnSync } = require('node:child_process');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const BIN_PATH = path.join(ROOT_DIR, 'bin', 'run-pipeline.sh');
+const LLM_RUNNER_BIN_PATH = path.join(ROOT_DIR, 'bin', 'run-llm-phase.js');
 const WRAPPER_PATH = path.resolve(
   ROOT_DIR,
   '../../nmc-memory-plugin/skills/memory-pipeline/pipeline.sh'
@@ -16,9 +17,11 @@ const {
   LLM_PHASES,
   PHASES,
   PHASE_TITLES,
+  describeAdapterInvocation,
   needsLlmRunner,
   phaseTitle,
   resolvePhases,
+  runAdapterInvocation,
   scripts,
 } = require('..');
 
@@ -58,10 +61,12 @@ function main() {
   assert.equal(phaseTitle('custom'), 'custom');
 
   assert.equal(path.resolve(scripts.pipeline || ''), BIN_PATH);
+  assert.equal(path.resolve(scripts.llmPhaseRunner || ''), LLM_RUNNER_BIN_PATH);
 
   ensureFile(BIN_PATH);
   ensureExecutable(BIN_PATH);
   ensureBashSyntax(BIN_PATH);
+  ensureFile(LLM_RUNNER_BIN_PATH);
 
   ensureFile(WRAPPER_PATH);
   ensureExecutable(WRAPPER_PATH);
@@ -79,7 +84,48 @@ function main() {
     }
   }
 
-  console.log('Validated 15 pipeline contract assertions through @nmc/memory-pipeline.');
+  assert.equal(
+    describeAdapterInvocation({
+      adapterModule: path.resolve(ROOT_DIR, '../adapter-openclaw'),
+      phase: 'extract',
+      date: '2026-03-05',
+      llmRunner: 'openclaw',
+      memoryRoot: '/tmp/workspace/system/memory',
+    }),
+    'openclaw skill run memory-extract --date 2026-03-05'
+  );
+
+  const dryRunCli = spawnSync(
+    process.execPath,
+    [
+      LLM_RUNNER_BIN_PATH,
+      'describe',
+      '--adapter-module',
+      path.resolve(ROOT_DIR, '../adapter-openclaw'),
+      '--phase',
+      'curate',
+      '--date',
+      '2026-03-05',
+      '--memory-root',
+      '/tmp/workspace/system/memory',
+      '--llm-runner',
+      'openclaw',
+    ],
+    { encoding: 'utf8' }
+  );
+  assert.equal(dryRunCli.status, 0, dryRunCli.stderr);
+  assert.equal(dryRunCli.stdout.trim(), 'openclaw skill run memory-curate --date 2026-03-05');
+
+  const runResult = runAdapterInvocation({
+    adapterModule: path.resolve(ROOT_DIR, '../adapter-openclaw'),
+    phase: 'apply',
+    date: '2026-03-05',
+    llmRunner: 'true',
+    memoryRoot: '/tmp/workspace/system/memory',
+  });
+  assert.equal(runResult.status, 0);
+
+  console.log('Validated pipeline contract assertions through @nmc/memory-pipeline.');
 }
 
 main();

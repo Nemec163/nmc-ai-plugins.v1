@@ -112,8 +112,12 @@ print_summary() {
 run_llm_phase() {
   local phase="$1"
   local llm_runner="$2"
-
-  "$llm_runner" skill run "memory-$phase" --date "$pipeline_date"
+  "$node_bin" "$llm_phase_runner" run \
+    --adapter-module "$pipeline_adapter_module" \
+    --phase "$phase" \
+    --date "$pipeline_date" \
+    --memory-root "$memory_root" \
+    --llm-runner "$llm_runner"
 }
 
 run_verify_phase() {
@@ -186,6 +190,9 @@ repo_root="$(cd -- "$script_dir/../../.." && pwd)"
 verify_script="${PIPELINE_VERIFY_CMD:-$repo_root/nmc-memory-plugin/skills/memory-verify/verify.sh}"
 memory_root="$(resolve_memory_root)"
 llm_runner="${PIPELINE_LLM_CMD:-${OPENCLAW_BIN:-openclaw}}"
+node_bin="${PIPELINE_NODE_CMD:-node}"
+llm_phase_runner="$repo_root/packages/memory-pipeline/bin/run-llm-phase.js"
+pipeline_adapter_module="${PIPELINE_ADAPTER_MODULE:-}"
 pipeline_date="$date_arg"
 pipeline_start_epoch="$(epoch_now)"
 failed_phase=''
@@ -212,6 +219,18 @@ if [ ! -x "$verify_script" ]; then
   exit 2
 fi
 
+if ! command -v "$node_bin" >/dev/null 2>&1; then
+  echo "error: node executable not found: $node_bin" >&2
+  print_summary
+  exit 2
+fi
+
+if [ ! -f "$llm_phase_runner" ]; then
+  echo "error: pipeline phase runner not found: $llm_phase_runner" >&2
+  print_summary
+  exit 2
+fi
+
 need_llm_runner=0
 for phase in "${requested_phases[@]}"; do
   set_phase_status "$phase" 'pending'
@@ -222,12 +241,18 @@ for phase in "${requested_phases[@]}"; do
   esac
 done
 
+if [ "$need_llm_runner" -eq 1 ] && [ -z "$pipeline_adapter_module" ]; then
+  echo "error: PIPELINE_ADAPTER_MODULE is required for LLM phases" >&2
+  print_summary
+  exit 2
+fi
+
 if [ "$need_llm_runner" -eq 1 ] && ! command -v "$llm_runner" >/dev/null 2>&1; then
   log "INFO OpenClaw CLI not found; printing the commands that would be run."
   for phase in "${requested_phases[@]}"; do
     case "$phase" in
       extract|curate|apply)
-        printf 'would run: %s skill run memory-%s --date %s\n' "$llm_runner" "$phase" "$pipeline_date"
+        printf 'would run: %s\n' "$("$node_bin" "$llm_phase_runner" describe --adapter-module "$pipeline_adapter_module" --phase "$phase" --date "$pipeline_date" --memory-root "$memory_root" --llm-runner "$llm_runner")"
         ;;
       verify)
         printf 'would run: %s %s\n' "$verify_script" "$memory_root"

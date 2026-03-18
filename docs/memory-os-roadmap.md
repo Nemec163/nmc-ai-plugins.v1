@@ -5,10 +5,12 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 3 / PR 3.1 — Move OpenClaw Registration and Config Logic`
-- next: `Phase 3 / PR 3.2 — Introduce a Narrow Pipeline Adapter Interface`
+- completed: `Phase 3 / PR 3.2 — Introduce a Narrow Pipeline Adapter Interface`
+- next: `Phase 3 / PR 3.2b — Introduce a Deterministic Core Promoter`
 - last verified on: `2026-03-18`
 - verified in this slice:
+  - `node packages/memory-contracts/test/validate-fixtures.js`
+  - `node packages/memory-pipeline/test/validate-fixtures.js`
   - `node packages/adapter-openclaw/test/validate-fixtures.js`
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -1035,6 +1037,20 @@ Rollback:
 
 #### PR 3.2: Introduce a Narrow Pipeline Adapter Interface
 
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- added a minimal LLM-phase invocation contract to `@nmc/memory-contracts` for `extract`, `curate`, and transitional `apply` without extending adapter authority into canon writes
+- implemented the OpenClaw-backed phase invocation descriptor in `packages/adapter-openclaw/lib/pipeline-adapter.js`
+- switched `@nmc/memory-pipeline` from direct `openclaw skill run` execution to a node helper that consumes an injected adapter module through the shared contract while preserving the existing shell summary, dry-run text, and failure behavior
+- kept adapter injection in the compatibility wrapper so the shared pipeline package no longer hardcodes `adapter-openclaw` as a direct runtime dependency
+- verified with `node packages/memory-contracts/test/validate-fixtures.js`
+- verified with `node packages/memory-pipeline/test/validate-fixtures.js`
+- verified with `node packages/adapter-openclaw/test/validate-fixtures.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
+
 `@nmc/memory-pipeline` should consume a small adapter interface defined in `@nmc/memory-contracts` for the LLM phases. The concrete API can evolve, but it should be equivalent to:
 
 - `runExtract(date, memoryRoot)`
@@ -1515,10 +1531,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 3, PR 3.2:
+The next implementation step should be Phase 3, PR 3.2b:
 
-- introduce a narrow adapter interface for `extract`, `curate`, and transitional `apply` invocation inside `@nmc/memory-pipeline`
-- keep `pipeline.sh` behavior, dry-run semantics, and failure handling unchanged while routing LLM phase execution through `adapter-openclaw`
-- preserve the current compatibility shell while reducing direct `openclaw skill run` ownership inside shared pipeline code
+- move canonical `apply` ownership into the deterministic promoter in `@nmc/memory-canon`
+- keep current pipeline UX and on-disk canon format unchanged while reducing adapter-owned apply logic to a compatibility shim
+- verify promoter output against legacy `apply` on frozen fixtures before any adapter write authority changes
 
-PR 3.1 is now complete, so the next risk is over-abstracting pipeline execution before a second adapter exists. Keep PR 3.2 focused on a minimal invocation boundary that preserves current shell behavior and regression coverage.
+PR 3.2 is now complete, so the next risk is semantic drift between legacy `apply` and proposal-driven promotion. Keep PR 3.2b focused on the deterministic core write path rather than widening adapter authority.

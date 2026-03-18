@@ -9,6 +9,7 @@
     ".": "./index.js",
     "./compatibility": "./lib/compatibility.js",
     "./constants": "./lib/constants.js",
+    "./pipeline-adapter": "./lib/pipeline-adapter.js",
     "./records": "./lib/records.js"
   },
   "files": [

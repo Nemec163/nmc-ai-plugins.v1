@@ -7,6 +7,7 @@ const path = require("node:path");
 
 const {
   PLUGIN_ID,
+  createOpenClawPipelineAdapter,
   createOpenClawPlugin,
   maybeAutoSetup,
   runSetupCli,
@@ -81,6 +82,15 @@ function main() {
   const cliHelp = runSetupCli(["--help"], PLUGIN_ROOT);
   assert.equal(cliHelp.exitCode, 0);
   assert.match(cliHelp.stdout, /Usage: node scripts\/setup-openclaw\.js/);
+
+  const pipelineAdapter = createOpenClawPipelineAdapter();
+  assert.deepEqual(pipelineAdapter.runExtract({
+    date: "2026-03-18",
+    llmRunner: "openclaw",
+  }), {
+    command: "openclaw",
+    args: ["skill", "run", "memory-extract", "--date", "2026-03-18"],
+  });
 
   console.log(
     "Validated adapter-openclaw setup, auto-bootstrap, and CLI compatibility fixtures.",

@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `Phase 2.5 — Temporary Ops Harness / Eval Surface`
-- next roadmap slice: `Phase 3 / PR 3.1 — Move OpenClaw Registration and Config Logic`
+- completed roadmap slice: `Phase 3 / PR 3.2 — Introduce a Narrow Pipeline Adapter Interface`
+- next roadmap slice: `Phase 3 / PR 3.2b — Introduce a Deterministic Core Promoter`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -70,7 +70,9 @@ Phase 0 is complete:
 - `PR 2.1` introduced `memory-os-gateway` as the in-process SDK for read, bootstrap, query, status, verify, and health operations while keeping OpenClaw-specific config mutation in the adapter layer
 - `PR 2.2` added safe gateway-mediated proposal, feedback, pending-batch materialization, job receipts, and lock scaffolding surfaces without granting direct canon write access
 - `Phase 2.5` added a temporary read-only gateway ops harness for jobs, proposals, conflicts, locks, verify, status, degraded-mode inspection, and current projections without widening into control-plane ownership
-- the next slice is `Phase 3 / PR 3.1`, which should move OpenClaw registration and config mutation into a thinner adapter facade while preserving existing setup and bootstrap behavior
+- `PR 3.1` moved OpenClaw-specific registration, setup CLI parsing, auto-bootstrap lifecycle wiring, and config mutation behind `packages/adapter-openclaw` while preserving existing setup and bootstrap behavior
+- `PR 3.2` introduced a narrow contract-validated adapter boundary for `extract`, `curate`, and transitional `apply` invocation while preserving current `pipeline.sh` behavior, dry-run output, and failure handling
+- the next slice is `Phase 3 / PR 3.2b`, which should move canonical apply ownership into the deterministic promoter without changing current canon format or pipeline UX
 
 ## Commit Convention
 

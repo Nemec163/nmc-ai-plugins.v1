@@ -7,6 +7,7 @@
   "main": "./index.js",
   "exports": {
     ".": "./index.js",
+    "./pipeline-adapter": "./lib/pipeline-adapter.js",
     "./register": "./lib/register.js",
     "./setup": "./lib/openclaw-setup.js",
     "./setup-cli": "./lib/setup-cli.js"
@@ -20,6 +21,7 @@
     "test": "node ./test/validate-fixtures.js"
   },
   "dependencies": {
+    "@nmc/memory-contracts": "0.0.0",
     "@nmc/memory-agents": "0.0.0",
     "@nmc/memory-workspace": "0.0.0",
     "memory-os-gateway": "0.0.0"
