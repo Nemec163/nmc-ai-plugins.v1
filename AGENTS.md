@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `deliberate migration release prep — package the supported operator surface and remove remaining ambiguity from the compatibility shell`
-- next roadmap slice: `bridge retirement — remove the temporary ops harness from shipped compatibility surfaces`
+- completed roadmap slice: `bridge retirement — remove the temporary ops harness from shipped compatibility surfaces`
+- next roadmap slice: `release-surface freeze — decide whether the deprecated gateway ops SDK remains exported in shipped mirrors`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -84,7 +84,8 @@ Phase 0 is complete:
 - `control-plane v3` added analytics, audit, and runtime-inspector read models under `packages/control-plane`, extended snapshot/health to cover the richer operator surface, and kept runtime explicitly non-authoritative while preserving scheduler, queue-policy, and promotion ownership outside the control-plane
 - `release hardening` narrowed `memory-os-gateway ops-snapshot` into a deprecated compatibility bridge, added machine-readable release qualification to the supported `packages/control-plane` operator surface, and clarified `nmc-memory-plugin` as the compatibility shell without expanding control-plane authority
 - `deliberate migration release prep` bundled the supported `packages/control-plane` operator surface and its shipped dependency closure into `nmc-memory-plugin`, extended extracted-artifact smoke coverage, and clarified installed-artifact operator docs without expanding control-plane authority
-- the next slice is `bridge retirement`, which should remove the remaining temporary ops harness from shipped compatibility surfaces without expanding control-plane authority
+- `bridge retirement` removed `ops-snapshot` from the gateway CLI surface in both root and shipped mirrors, left the old ops read model only as deprecated compatibility SDK output, and kept the bundled `control-plane` CLI as the sole documented operator command surface
+- the next slice is `release-surface freeze`, which should decide whether deprecated gateway ops SDK exports remain in shipped mirrors without expanding control-plane authority
 
 ## Commit Convention
 

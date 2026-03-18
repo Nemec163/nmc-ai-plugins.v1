@@ -20,7 +20,6 @@ const {
   readRecord,
 } = require('./read');
 const { getRecallBundle } = require('./recall');
-const { getOpsSnapshot } = require('./ops');
 const { getStatus } = require('./status');
 const { verify } = require('./verify');
 const { completeJob, feedback, propose } = require('./write');
@@ -88,8 +87,6 @@ function printUsage() {
   console.error('  propose --memory-root <path> --batch-date <date> --claims-file <path> [--proposal-id <id>] [--source <label>]');
   console.error('  feedback --memory-root <path> --proposal-id <id> --feedback-file <path>');
   console.error('  complete-job --memory-root <path> --proposal-id <id> [--job-id <id>] [--holder <id>] [--operation <name>]');
-  console.error('Compatibility-only bridge:');
-  console.error('  ops-snapshot --memory-root <path> [--skip-verify] [--updated-at <ts>] [--today <date>]  # use memory-control-plane');
 }
 
 function readJsonFile(filePath) {
@@ -219,14 +216,6 @@ function runCli(argv) {
     case 'health':
       result = getHealth({
         memoryRoot: requireFlag(flags, 'memory-root'),
-      });
-      break;
-    case 'ops-snapshot':
-      result = getOpsSnapshot({
-        memoryRoot: requireFlag(flags, 'memory-root'),
-        skipVerify: flags['skip-verify'] === true,
-        updatedAt: flags['updated-at'],
-        today: flags.today,
       });
       break;
     case 'propose':

@@ -66,7 +66,7 @@ Packaging note:
 
 Compatibility note:
 
-- `memory-os-gateway ops-snapshot` remains available only as a deprecated compatibility bridge
+- `memory-os-gateway` retains only a deprecated compatibility SDK entrypoint for the old ops snapshot read model
 - the supported operator queue, audit, analytics, and runtime inspection contract now lives in `control-plane`
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.

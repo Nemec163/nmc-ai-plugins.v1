@@ -5,12 +5,11 @@
 
 ## Progress Snapshot
 
-- completed: `deliberate migration release prep — package the supported operator surface and remove remaining ambiguity from the compatibility shell`
-- next: `bridge retirement — remove the temporary ops harness from shipped compatibility surfaces`
+- completed: `bridge retirement — remove the temporary ops harness from shipped compatibility surfaces`
+- next: `release-surface freeze — decide whether the deprecated gateway ops SDK remains exported in shipped mirrors`
 - last verified on: `2026-03-19`
 - verified in this slice:
-  - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" npm pack ./nmc-memory-plugin --silent --pack-destination "$artifact_root"`
+  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
@@ -1452,6 +1451,32 @@ Rollback:
 
 - keep the documentation boundary updates, but stop presenting the bundled control-plane CLI as shipped-ready until the compatibility artifact can carry the full dependency closure again
 
+### bridge retirement: remove the temporary ops harness from shipped compatibility surfaces
+
+Do this only after `deliberate migration release prep` has made the bundled `control-plane` CLI deliverable from the installed plugin artifact.
+
+Implemented in this slice:
+
+- removed `ops-snapshot` from the `memory-os-gateway` CLI command surface in both the root package and the shipped `nmc-memory-plugin` mirror so the deprecated bridge no longer appears as an operator CLI path
+- kept `getOpsSnapshot` / `inspectOps` as compatibility-only SDK/read-model entrypoints while updating gateway and control-plane docs to treat them as deprecated internal compatibility paths rather than supported operator commands
+- updated gateway fixture coverage in both root and shipped mirrors so CLI help no longer lists `ops-snapshot`, direct `ops-snapshot` invocation fails as an unknown command, and direct SDK compatibility reads remain covered
+- re-ran the required regression baseline with the bundled `control-plane` CLI still green from the extracted plugin artifact
+
+Acceptance criteria:
+
+- `memory-os-gateway` CLI no longer exposes `ops-snapshot` as a command in either the root package or the shipped plugin mirror
+- the only documented operator CLI path remains `memory-control-plane`, including the installed plugin artifact path
+- the old ops snapshot read model remains available only as deprecated compatibility SDK output and can no longer be mistaken for the supported operator contract
+- setup/bootstrap behavior, workspace layout, canon format, and control-plane authority remain unchanged
+
+Main risk:
+
+- leaving the deprecated gateway ops read model exported widely enough that downstream tooling keeps binding to it as if it were still part of the supported shipped surface
+
+Rollback:
+
+- restore the deprecated gateway CLI command while retaining the control-plane packaging/docs improvements if downstream automation still depends on the bridge at the command layer
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -1713,10 +1738,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be bridge retirement around the now-shipped operator surface:
+The next implementation step should be release-surface freeze around the now-retired CLI bridge:
 
-- remove the remaining temporary `memory-os-gateway ops-snapshot` harness from shipped compatibility surfaces, or narrow it further until it can no longer be mistaken for a supported operator contract
-- freeze and document the deliberate migration-release surface now that the bundled control-plane CLI is deliverable from the installed plugin artifact
-- keep scope pinned to bridge retirement and release-surface cleanup rather than adding new operator capabilities
+- decide whether shipped mirrors should keep exporting the deprecated gateway ops read model at the SDK/package level now that the CLI bridge has been removed
+- freeze and document the final migration-release surface for the compatibility shell versus repo-local internal tooling
+- keep scope pinned to release-surface cleanup rather than adding new operator capabilities
 
-deliberate migration release prep is now complete, so the next risk is continuing to ship deprecated gateway bridge surfaces alongside the now-deliverable bundled control-plane CLI. The next slice should focus on bridge retirement and release-surface cleanup, not new operator capabilities.
+bridge retirement is now complete, so the next risk is keeping deprecated gateway ops SDK exports available widely enough that downstream automation still binds to them as if they were part of the supported shipped surface. The next slice should focus on release-surface freeze and export cleanup, not new operator capabilities.

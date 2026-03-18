@@ -483,6 +483,12 @@ function main() {
   assert.equal(cliResult.status, 0, cliResult.stderr);
   assert.equal(JSON.parse(cliResult.stdout).manifest.recordCounts.events, 2);
 
+  const cliHelp = spawnSync(process.execPath, [CLI_PATH, 'help'], {
+    encoding: 'utf8',
+  });
+  assert.equal(cliHelp.status, 1, cliHelp.stderr);
+  assert.equal(cliHelp.stderr.includes('ops-snapshot'), false);
+
   const cliOpsResult = spawnSync(
     process.execPath,
     [CLI_PATH, 'ops-snapshot', '--memory-root', FIXTURE_MEMORY_ROOT, '--skip-verify'],
@@ -490,12 +496,8 @@ function main() {
       encoding: 'utf8',
     }
   );
-  assert.equal(cliOpsResult.status, 0, cliOpsResult.stderr);
-  assert.equal(JSON.parse(cliOpsResult.stdout).temporary, true);
-  assert.equal(
-    JSON.parse(cliOpsResult.stdout).releaseBoundary.status,
-    'compatibility-only-bridge'
-  );
+  assert.equal(cliOpsResult.status, 1);
+  assert.equal(cliOpsResult.stderr.includes('Unknown command: ops-snapshot'), true);
 
   const cliWriteRoot = makeTempRoot();
   try {
