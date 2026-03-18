@@ -13,6 +13,7 @@ const CODEX_ADAPTER_CAPABILITIES = Object.freeze({
   projectionRead: true,
   status: true,
   verify: true,
+  writeOrchestration: true,
   cliStatus: true,
 });
 
@@ -64,6 +65,22 @@ function relativeWorkspacePath(baseDir, targetPath) {
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
   return dirPath;
+}
+
+function hasReviewedClaims(claims) {
+  return Array.isArray(claims) && claims.every((claim) => {
+    const decision = claim && typeof claim === 'object' ? claim.curator_decision : null;
+    return typeof decision === 'string' && decision.trim().length > 0;
+  });
+}
+
+function getCodexRunClaims(options = {}) {
+  const claims = options.claims || options.results;
+  if (!Array.isArray(claims) || claims.length === 0) {
+    throw new Error('claims or results must be a non-empty array');
+  }
+
+  return claims;
 }
 
 function resolveRoleContext(options = {}) {
@@ -146,6 +163,66 @@ function attachCodexRole(options = {}) {
   };
 }
 
+function getCodexRoleBundleIntake(options = {}) {
+  const gateway = loadMemoryGateway();
+  const context = resolveRoleContext(options);
+  const memoryPath =
+    options.memoryPath ||
+    relativeWorkspacePath(context.workspaceDir, context.memoryRoot);
+  const systemPath =
+    options.systemPath ||
+    relativeWorkspacePath(context.workspaceDir, context.systemRoot);
+  const bundle = gateway.getRoleBundle({
+    roleId: context.roleId,
+    installDate: context.installDate,
+    memoryPath,
+    systemPath,
+  });
+
+  return {
+    kind: 'role-bundle',
+    role: bundle.manifest,
+    files: Object.keys(bundle.files).sort(),
+    memoryPath,
+    systemPath,
+  };
+}
+
+function proposeCodexResults(options = {}) {
+  const gateway = loadMemoryGateway();
+  return gateway.propose({
+    memoryRoot: path.resolve(requireOption(options, 'memoryRoot')),
+    proposalId: options.proposalId,
+    batchDate: requireOption(options, 'batchDate'),
+    claims: getCodexRunClaims(options),
+    source: options.source || 'adapter-codex',
+    generatedBy: options.generatedBy || 'adapter-codex/single-run',
+    createdAt: options.createdAt,
+  });
+}
+
+function recordCodexFeedback(options = {}) {
+  const gateway = loadMemoryGateway();
+  return gateway.feedback({
+    memoryRoot: path.resolve(requireOption(options, 'memoryRoot')),
+    proposalId: requireOption(options, 'proposalId'),
+    feedback: options.feedback || options.entries,
+    updatedAt: options.updatedAt,
+  });
+}
+
+function completeCodexHandoff(options = {}) {
+  const gateway = loadMemoryGateway();
+  return gateway.completeJob({
+    memoryRoot: path.resolve(requireOption(options, 'memoryRoot')),
+    proposalId: requireOption(options, 'proposalId'),
+    jobId: options.jobId,
+    holder: options.holder,
+    operation: options.operation,
+    completedAt: options.completedAt,
+  });
+}
+
 function runCodexSingleThread(options = {}) {
   const gateway = loadMemoryGateway();
   const operation = requireOption(options, 'operation');
@@ -200,6 +277,57 @@ function runCodexSingleThread(options = {}) {
   };
 }
 
+function runCodexSingleThreadHandoff(options = {}) {
+  const bootstrap = bootstrapCodexRole(options);
+  const intake = getCodexRoleBundleIntake(options);
+  const memoryRoot = path.resolve(requireOption(options, 'memoryRoot'));
+  const submission = proposeCodexResults({
+    ...options,
+    memoryRoot,
+  });
+
+  let review = null;
+  let reviewedClaims = submission.proposal.claims || [];
+  if (Array.isArray(options.feedback) && options.feedback.length > 0) {
+    review = recordCodexFeedback({
+      memoryRoot,
+      proposalId: submission.proposalId,
+      feedback: options.feedback,
+      updatedAt: options.updatedAt,
+    });
+    reviewedClaims = review.proposal.claims || [];
+  }
+
+  if (!hasReviewedClaims(reviewedClaims)) {
+    throw new Error(
+      'Codex single-run handoff requires reviewed claims or explicit feedback before completion'
+    );
+  }
+
+  const completion = completeCodexHandoff({
+    memoryRoot,
+    proposalId: submission.proposalId,
+    jobId: options.jobId,
+    holder: options.holder || `adapter-codex:${intake.role.id}`,
+    operation: options.operation,
+    completedAt: options.completedAt,
+  });
+
+  return {
+    kind: 'single-thread-handoff',
+    adapter: 'adapter-codex',
+    executionMode: 'single-thread',
+    readOnly: false,
+    intake,
+    role: bootstrap.role,
+    workspace: bootstrap.workspace,
+    submission,
+    review,
+    completion,
+    status: completion.status,
+  };
+}
+
 function createCodexConformanceAdapter(options = {}) {
   const gateway = loadMemoryGateway();
   const gatewayCliPath =
@@ -230,6 +358,15 @@ function createCodexConformanceAdapter(options = {}) {
     verify(params) {
       return gateway.verify(params);
     },
+    propose(params) {
+      return proposeCodexResults(params);
+    },
+    feedback(params) {
+      return recordCodexFeedback(params);
+    },
+    completeJob(params) {
+      return completeCodexHandoff(params);
+    },
     invokeCli(args) {
       return spawnSync(process.execPath, [gatewayCliPath, ...args], {
         encoding: 'utf8',
@@ -243,6 +380,11 @@ module.exports = {
   READ_ONLY_EXECUTION_OPERATIONS,
   attachCodexRole,
   bootstrapCodexRole,
+  completeCodexHandoff,
   createCodexConformanceAdapter,
+  getCodexRoleBundleIntake,
+  proposeCodexResults,
+  recordCodexFeedback,
   runCodexSingleThread,
+  runCodexSingleThreadHandoff,
 };

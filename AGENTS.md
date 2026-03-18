@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `Phase 4 / PR 4.1 — Introduce adapter-codex`
-- next roadmap slice: `Phase 4 / PR 4.2 — Expand Codex to Full Single-Run Contract`
+- completed roadmap slice: `Phase 4 / PR 4.2 — Expand Codex to Full Single-Run Contract`
+- next roadmap slice: `Phase 5 / PR 5.1 — Add memory-os-runtime in Shadow Mode`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -76,7 +76,8 @@ Phase 0 is complete:
 - `PR 3.3` moved bundled OpenClaw skill assets under `packages/adapter-openclaw`, kept `nmc-memory-plugin/skills` as the compatibility discovery surface, and preserved stable skill names plus live setup/bootstrap behavior
 - `PR 3.4` added the shared adapter conformance suite in `packages/adapter-conformance`, proved `adapter-openclaw` against capability-scoped bootstrap/read/status/verify/write-orchestration checks, and kept the protocol boundary narrow by validating only explicitly claimed capabilities
 - `PR 4.1` introduced `adapter-codex` as the first non-OpenClaw adapter with role-aware bootstrap, canon-safe read-only execution, a package-local single-thread runner, and shared conformance coverage while keeping write orchestration out of scope
-- the next slice is `Phase 4 / PR 4.2`, which should expand `adapter-codex` into the full single-run contract for bounded intake, upload, and explicit completion without granting direct canon writes
+- `PR 4.2` expanded `adapter-codex` into the bounded single-run contract with role-bundle intake, gateway-mediated proposal upload, explicit feedback/completion handoff, and shared conformance coverage while keeping canon writes behind the core promoter
+- the next slice is `Phase 5 / PR 5.1`, which should add `memory-os-runtime` in shadow mode so runtime artifacts stay separate from canon, disposable, and inspectable without widening into canonical writes
 
 ## Commit Convention
 

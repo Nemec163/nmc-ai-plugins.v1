@@ -5,14 +5,11 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 4 / PR 4.1 — Introduce adapter-codex`
-- next: `Phase 4 / PR 4.2 — Expand Codex to Full Single-Run Contract`
+- completed: `Phase 4 / PR 4.2 — Expand Codex to Full Single-Run Contract`
+- next: `Phase 5 / PR 5.1 — Add memory-os-runtime in Shadow Mode`
 - last verified on: `2026-03-18`
 - verified in this slice:
   - `/usr/local/bin/node packages/adapter-codex/test/validate-fixtures.js`
-  - `/usr/local/bin/node packages/memory-agents/test/validate-fixtures.js`
-  - `/usr/local/bin/node packages/memory-pipeline/test/validate-fixtures.js`
-  - `/usr/local/bin/node packages/adapter-openclaw/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
@@ -1217,6 +1214,18 @@ Rollback:
 
 #### PR 4.2: Expand Codex to Full Single-Run Contract
 
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- expanded `adapter-codex` capability claims to include gateway-backed write orchestration while keeping Codex outside direct canon writes
+- added explicit role-bundle intake plus a package-local `single-thread-handoff` helper that uploads bounded claims, records explicit review feedback, and completes at the promoter handoff boundary
+- kept the existing read-only single-thread runner intact so PR 4.2 widens only the explicit handoff path rather than general Codex orchestration
+- proved the widened Codex adapter against the shared conformance suite and an adapter-local handoff fixture that confirms proposal, pending batch, and job receipt materialization without canon file mutation
+- verified with `/usr/local/bin/node packages/adapter-codex/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-integration.sh`
+
 Add:
 
 - task fetch or role bundle intake
@@ -1577,10 +1586,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 4, PR 4.2:
+The next implementation step should be Phase 5, PR 5.1:
 
-- expand `adapter-codex` from read-only bootstrap into the full single-run contract with task or role-bundle intake, proposal or result upload, and an explicit completion path
-- prove a stateless Codex runner can complete one bounded end-to-end run through gateway write orchestration and the core promoter without direct canon writes
-- keep adapter scope narrow by reusing existing gateway and promoter surfaces rather than letting Codex own maintainer or scheduler semantics
+- add `memory-os-runtime` in shadow mode so episodic memory, semantic cache, and procedural feedback can be stored outside canon without becoming authoritative
+- surface canonical current and runtime delta separately so runtime state stays inspectable, disposable, and rebuildable from canon plus captured runtime inputs
+- keep PR 5.1 pinned to non-canonical storage and observability rather than letting runtime components mutate canon or widen into orchestration ownership
 
-PR 4.1 is now complete, so the next risk is widening Codex execution into write and completion flows before the task-intake and job-handoff contract is explicit enough. Keep PR 4.2 focused on one bounded single-run path rather than general orchestration.
+PR 4.2 is now complete, so the next risk is letting runtime artifacts leak into canonical workflows before the shadow/runtime boundary is explicit enough. Keep PR 5.1 focused on isolated non-canonical storage plus clear separation between canonical current and runtime delta.
