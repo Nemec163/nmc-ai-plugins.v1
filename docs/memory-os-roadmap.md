@@ -5,13 +5,13 @@
 
 ## Progress Snapshot
 
-- completed: `Phase 3 / PR 3.2 — Introduce a Narrow Pipeline Adapter Interface`
-- next: `Phase 3 / PR 3.2b — Introduce a Deterministic Core Promoter`
+- completed: `Phase 3 / PR 3.4 — Add Shared Adapter Conformance Suite`
+- next: `Phase 4 / PR 4.1 — Introduce adapter-codex`
 - last verified on: `2026-03-18`
 - verified in this slice:
-  - `node packages/memory-contracts/test/validate-fixtures.js`
-  - `node packages/memory-pipeline/test/validate-fixtures.js`
+  - `node packages/adapter-conformance/test/validate-fixtures.js`
   - `node packages/adapter-openclaw/test/validate-fixtures.js`
+  - `node packages/memory-os-gateway/test/validate-fixtures.js`
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
 - verification baseline:
@@ -1074,6 +1074,21 @@ Rollback:
 
 #### PR 3.2b: Introduce a Deterministic Core Promoter
 
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- implemented the active deterministic writer in `packages/memory-canon/lib/core-promoter.js` and wired `packages/memory-canon/lib/promoter.js` to own the lock-guarded canon promotion path
+- routed runtime pipeline `apply` execution through the core promoter in `packages/memory-pipeline/lib/adapter-runner.js` while preserving the existing `memory-apply` compatibility description and dry-run text
+- kept pipeline UX stable by preserving the `apply` phase name and OpenClaw-facing invocation descriptor while removing adapter ownership of canon serialization from the active write path
+- updated gateway handoff receipts to advertise `core-promoter` as the canonical write implementation instead of `legacy-apply`
+- added a normalized fixture harness that compares promoted canon output against the frozen legacy fixture on record ids, anchors, evidence, status semantics, and graph edge derivation
+- verified with `node packages/memory-canon/test/validate-fixtures.js`
+- verified with `node packages/memory-pipeline/test/validate-fixtures.js`
+- verified with `node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
+
 Move canonical apply ownership into core code:
 
 - curated decisions are compiled into canon by the promoter in `@nmc/memory-canon`
@@ -1118,6 +1133,20 @@ Rollback:
 - restore local skill packaging inside `nmc-memory-plugin`
 
 #### PR 3.4: Add Shared Adapter Conformance Suite
+
+Status: done on `2026-03-18`
+
+Implementation note:
+
+- introduced the shared test-only conformance runner in `packages/adapter-conformance` with capability-scoped checks for role bundles, bootstrap, canonical reads, projection reads, `status`, `verify`, and gateway-mediated write orchestration
+- added an explicit OpenClaw conformance facade over `memory-os-gateway` in `packages/adapter-openclaw/lib/conformance-adapter.js` so capability claims stay narrow and reusable for a future Codex adapter
+- proved `adapter-openclaw` against the shared suite inside its fixture validation without extending `@nmc/memory-contracts` or freezing broader protocol semantics
+- added `packages/adapter-conformance/test/validate-fixtures.js` to `./nmc-memory-plugin/tests/run-contract-tests.sh` so the shared suite stays on the contract baseline path
+- verified with `node packages/adapter-conformance/test/validate-fixtures.js`
+- verified with `node packages/adapter-openclaw/test/validate-fixtures.js`
+- verified with `node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `./nmc-memory-plugin/tests/run-contract-tests.sh`
+- verified with `./nmc-memory-plugin/tests/run-integration.sh`
 
 Introduce the shared conformance suite once gateway and adapter contracts are stable enough to serve as a real protocol boundary.
 
@@ -1531,10 +1560,10 @@ Rules:
 
 ## Immediate Next Step
 
-The next implementation step should be Phase 3, PR 3.2b:
+The next implementation step should be Phase 4, PR 4.1:
 
-- move canonical `apply` ownership into the deterministic promoter in `@nmc/memory-canon`
-- keep current pipeline UX and on-disk canon format unchanged while reducing adapter-owned apply logic to a compatibility shim
-- verify promoter output against legacy `apply` on frozen fixtures before any adapter write authority changes
+- introduce `packages/adapter-codex` as the first non-OpenClaw adapter with role-aware bootstrap, read-only operations, and a single-thread execution path
+- prove Codex can attach to the same Memory OS core without OpenClaw-specific config mutation or skill packaging assumptions
+- keep the initial Codex slice canon-safe by limiting it to read-only and bootstrap behavior
 
-PR 3.2 is now complete, so the next risk is semantic drift between legacy `apply` and proposal-driven promotion. Keep PR 3.2b focused on the deterministic core write path rather than widening adapter authority.
+PR 3.4 is now complete, so the next risk is hidden OpenClaw coupling in core bootstrap and read flows. Keep PR 4.1 focused on adapter decoupling and canon-safe Codex execution rather than expanding write authority.

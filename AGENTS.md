@@ -4,8 +4,8 @@ This repository is migrating from the current `nmc-memory-plugin` implementation
 
 ## Current State
 
-- completed roadmap slice: `Phase 3 / PR 3.2 — Introduce a Narrow Pipeline Adapter Interface`
-- next roadmap slice: `Phase 3 / PR 3.2b — Introduce a Deterministic Core Promoter`
+- completed roadmap slice: `Phase 3 / PR 3.4 — Add Shared Adapter Conformance Suite`
+- next roadmap slice: `Phase 4 / PR 4.1 — Introduce adapter-codex`
 - regression baseline:
   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
   - `./nmc-memory-plugin/tests/run-integration.sh`
@@ -72,7 +72,10 @@ Phase 0 is complete:
 - `Phase 2.5` added a temporary read-only gateway ops harness for jobs, proposals, conflicts, locks, verify, status, degraded-mode inspection, and current projections without widening into control-plane ownership
 - `PR 3.1` moved OpenClaw-specific registration, setup CLI parsing, auto-bootstrap lifecycle wiring, and config mutation behind `packages/adapter-openclaw` while preserving existing setup and bootstrap behavior
 - `PR 3.2` introduced a narrow contract-validated adapter boundary for `extract`, `curate`, and transitional `apply` invocation while preserving current `pipeline.sh` behavior, dry-run output, and failure handling
-- the next slice is `Phase 3 / PR 3.2b`, which should move canonical apply ownership into the deterministic promoter without changing current canon format or pipeline UX
+- `PR 3.2b` moved active canon serialization into the deterministic promoter in `packages/memory-canon`, kept `apply` as a compatibility shim at the pipeline boundary, and updated gateway handoff metadata to advertise `core-promoter` as the single write path
+- `PR 3.3` moved bundled OpenClaw skill assets under `packages/adapter-openclaw`, kept `nmc-memory-plugin/skills` as the compatibility discovery surface, and preserved stable skill names plus live setup/bootstrap behavior
+- `PR 3.4` added the shared adapter conformance suite in `packages/adapter-conformance`, proved `adapter-openclaw` against capability-scoped bootstrap/read/status/verify/write-orchestration checks, and kept the protocol boundary narrow by validating only explicitly claimed capabilities
+- the next slice is `Phase 4 / PR 4.1`, which should introduce `adapter-codex` for role-aware bootstrap and canon-safe read-only execution without reintroducing OpenClaw coupling into core packages
 
 ## Commit Convention
 

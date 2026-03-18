@@ -20,6 +20,7 @@ WORKSPACE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-workspace/test/validate-
 AGENTS_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-agents/test/validate-fixtures.js"
 PIPELINE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-pipeline/test/validate-fixtures.js"
 GATEWAY_FIXTURE_TEST="$PLUGIN_ROOT/../packages/memory-os-gateway/test/validate-fixtures.js"
+ADAPTER_CONFORMANCE_FIXTURE_TEST="$PLUGIN_ROOT/../packages/adapter-conformance/test/validate-fixtures.js"
 ADAPTER_OPENCLAW_FIXTURE_TEST="$PLUGIN_ROOT/../packages/adapter-openclaw/test/validate-fixtures.js"
 
 PASS_COUNT=0
@@ -493,6 +494,29 @@ test_shared_gateway_package_fixture_validation() {
   fi
 }
 
+test_shared_adapter_conformance_package_fixture_validation() {
+  print_case "TEST" "adapter-conformance validates shared adapter capability fixtures"
+
+  if ! require_file "$ADAPTER_CONFORMANCE_FIXTURE_TEST" "adapter-conformance package fixture test"; then
+    return
+  fi
+
+  cleanup
+  TEST_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/nmc-adapter-conformance-test.XXXXXX")"
+  run_and_capture node "$ADAPTER_CONFORMANCE_FIXTURE_TEST"
+  if [ "$LAST_EXIT_CODE" -ne 0 ]; then
+    fail "adapter-conformance fixture validation" "Expected 0, got $LAST_EXIT_CODE"
+    printf '  stderr: %s\n' "$(cat "$LAST_STDERR")"
+    return
+  fi
+
+  if grep -q "adapter conformance" "$LAST_STDOUT"; then
+    pass "adapter-conformance fixture validation"
+  else
+    fail "adapter-conformance fixture validation" "Fixture validation output did not confirm adapter conformance execution"
+  fi
+}
+
 test_adapter_openclaw_package_fixture_validation() {
   print_case "TEST" "adapter-openclaw validates setup, runtime bootstrap, and CLI fixtures"
 
@@ -917,6 +941,7 @@ main() {
   test_shared_agents_package_fixture_validation
   test_shared_pipeline_package_fixture_validation
   test_shared_gateway_package_fixture_validation
+  test_shared_adapter_conformance_package_fixture_validation
   test_adapter_openclaw_package_fixture_validation
   test_verify_contracts
   test_status_output_contract
