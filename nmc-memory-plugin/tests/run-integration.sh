@@ -284,7 +284,7 @@ test_packaging_files() {
   if [ "$(json_query "$MANIFEST_FILE" 'id')" = "nmc-memory-plugin" ] && \
      [ "$(json_query "$MANIFEST_FILE" 'configSchema.type')" = "object" ] && \
      [ "$(json_query "$MANIFEST_FILE" 'configSchema.properties.autoSetup.default')" = "true" ] && \
-     [ "$(json_query "$MANIFEST_FILE" 'skills.0')" = "skills" ]; then
+     [ "$(json_query "$MANIFEST_FILE" 'skills.0')" = "packages/adapter-openclaw/skills" ]; then
     pass "openclaw.plugin.json required fields"
   else
     fail "openclaw.plugin.json required fields" "Unexpected manifest contents: $(cat "$MANIFEST_FILE")"
@@ -378,7 +378,8 @@ test_packaged_artifact_install_smoke() {
   local node_bin npm_bin tool_dir artifact_root extract_root state_dir workspace_root
   local config_path package_name packaged_root packaged_setup packaged_onboard
   local packaged_pipeline packaged_memory_root packaged_control_plane_cli
-  local packaged_gateway_root packaged_probe_root
+  local packaged_gateway_root packaged_probe_root packaged_manifest
+  local packaged_discovery_root
 
   print_case "TEST" "packed nmc-memory-plugin artifact stays self-contained after extract"
 
@@ -413,15 +414,18 @@ test_packaged_artifact_install_smoke() {
 
   tar -xzf "$artifact_root/$package_name" -C "$extract_root"
   packaged_root="$extract_root/package"
+  packaged_manifest="$packaged_root/openclaw.plugin.json"
   packaged_setup="$packaged_root/scripts/setup-openclaw.js"
   packaged_onboard="$packaged_root/skills/memory-onboard-agent/onboard.sh"
   packaged_pipeline="$packaged_root/skills/memory-pipeline/pipeline.sh"
   packaged_control_plane_cli="$packaged_root/packages/control-plane/bin/memory-control-plane.js"
   packaged_adapter_root="$packaged_root/packages/adapter-openclaw"
+  packaged_discovery_root="$packaged_adapter_root/skills"
   packaged_gateway_root="$packaged_root/packages/memory-os-gateway"
   packaged_memory_root="$workspace_root/system/memory"
 
   if [ -d "$packaged_root/packages/adapter-openclaw" ] && \
+     [ -d "$packaged_discovery_root" ] && \
      [ -d "$packaged_root/packages/memory-os-gateway" ] && \
      [ -d "$packaged_root/packages/control-plane" ] && \
      [ -d "$packaged_root/packages/memory-maintainer" ] && \
@@ -431,6 +435,13 @@ test_packaged_artifact_install_smoke() {
     pass "packed artifact bundles local runtime packages"
   else
     fail "packed artifact bundles local runtime packages" "Expected bundled packages under $packaged_root/packages"
+    return
+  fi
+
+  if [ "$(json_query "$packaged_manifest" 'skills.0')" = "packages/adapter-openclaw/skills" ]; then
+    pass "packed artifact manifest points skill discovery at adapter-owned assets"
+  else
+    fail "packed artifact manifest points skill discovery at adapter-owned assets" "Unexpected packaged manifest contents: $(cat "$packaged_manifest")"
     return
   fi
 
@@ -469,9 +480,11 @@ test_packaged_artifact_install_smoke() {
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.productionStatus")" = "current-production-install-shell" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.compatibilityShell.directAdapterInstall")" = "not-supported" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.cutoverReady")" = "false" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.pendingGateCount")" = "4" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.pendingGateCount")" = "3" ] && \
      [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.id")" = "wrapper-convergence" ] && \
-     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.status")" = "cleared" ]; then
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.1.status")" = "cleared" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.2.id")" = "skill-discovery-surface" ] && \
+     [ "$(json_query "$LAST_STDOUT" "releaseQualification.retirementPrerequisites.gates.2.status")" = "cleared" ]; then
     pass "packed artifact control-plane CLI runs after extract"
   else
     fail "packed artifact control-plane CLI runs after extract" "Expected control-plane snapshot with retained production-shell metadata and updated retirement prerequisites"

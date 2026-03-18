@@ -9,6 +9,7 @@ const { runAdapterConformanceSuite } = require('..');
 
 const ROOT = path.resolve(__dirname, '../../..');
 const PLUGIN_ROOT = path.join(ROOT, 'nmc-memory-plugin');
+const ADAPTER_SKILLS_ROOT = path.join(PLUGIN_ROOT, 'packages', 'adapter-openclaw', 'skills');
 const CLI_PATH = path.join(ROOT, 'packages', 'memory-os-gateway', 'bin', 'memory-os-gateway.js');
 
 function invokeCli(args) {
@@ -50,8 +51,8 @@ function main() {
       workspaceFixture: path.join(PLUGIN_ROOT, 'tests', 'fixtures', 'workspace'),
       systemTemplateRoot: path.join(PLUGIN_ROOT, 'templates', 'workspace-system'),
       memoryTemplateRoot: path.join(PLUGIN_ROOT, 'templates', 'workspace-memory'),
-      skillsSourceRoot: path.join(PLUGIN_ROOT, 'skills'),
-      sharedSkillsRoot: path.join(PLUGIN_ROOT, 'skills'),
+      skillsSourceRoot: ADAPTER_SKILLS_ROOT,
+      sharedSkillsRoot: ADAPTER_SKILLS_ROOT,
       roleId: 'mnemo',
       recordId: 'fct-2026-03-05-001',
       projectionRecordId: 'st-2026-03-05-001',

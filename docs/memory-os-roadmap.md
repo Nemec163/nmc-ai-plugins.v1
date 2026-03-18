@@ -5,10 +5,14 @@
 
 ## Progress Snapshot
 
-- completed: `compatibility-shell wrapper convergence — collapse duplicated OpenClaw shell entrypoints`
-- next: `compatibility-shell skill discovery convergence — move live installs off plugin-owned skill discovery`
+- completed: `compatibility-shell skill discovery convergence — move live installs off plugin-owned skill discovery`
+- next: `compatibility-shell shipped artifact layout convergence — reduce installed path dependence on ~/.openclaw/extensions/nmc-memory-plugin/`
 - last verified on: `2026-03-19`
 - verified in this slice:
+  - `PATH="/usr/local/bin:$PATH" node packages/adapter-conformance/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node nmc-memory-plugin/packages/control-plane/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./nmc-memory-plugin/tests/run-contract-tests.sh`
@@ -1690,6 +1694,33 @@ Rollback:
 
 - restore the plugin-local shell implementations temporarily if an installed-artifact or runtime bootstrap regression appears, while keeping the explicit retirement-gate model intact
 
+### compatibility-shell skill discovery convergence: move live installs off plugin-owned skill discovery
+
+Do this only after `compatibility-shell wrapper convergence` has removed entrypoint drift and the next direct-install blocker is isolated to the manifest discovery root.
+
+Implemented in this slice:
+
+- repointed [nmc-memory-plugin/openclaw.plugin.json](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/openclaw.plugin.json) so live installs discover bundled skills through `packages/adapter-openclaw/skills` instead of `nmc-memory-plugin/skills`
+- extended [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) so repo-local and packed-artifact checks assert the new manifest discovery root and the packaged adapter-owned skill directory
+- updated bootstrap fixtures in [packages/memory-os-gateway/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/memory-os-gateway/test/validate-fixtures.js), [nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js), and [packages/adapter-conformance/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-conformance/test/validate-fixtures.js) to freeze adapter-owned bundled skills as the bootstrap source
+- updated `packages/control-plane` release qualification in both root and shipped mirrors so `skill-discovery-surface` is now cleared while the remaining retirement gates stay pending
+- kept `nmc-memory-plugin/skills` packaged as compatibility wrappers so direct script paths and existing wrapper-based regression coverage remain intact
+
+Acceptance criteria:
+
+- live OpenClaw skill discovery resolves through `packages/adapter-openclaw/skills`
+- packaged artifacts still include compatibility wrappers under `nmc-memory-plugin/skills` for stable direct script paths
+- machine-readable release qualification reports `skill-discovery-surface` as cleared while the direct-install cutover remains not ready overall
+- the required regression baseline remains green
+
+Main risk:
+
+- changing manifest discovery without freezing the shipped artifact shape, which could leave repo-local bootstrap green while a packed install still points at the wrong skill root
+
+Rollback:
+
+- point `openclaw.plugin.json` back at `skills` temporarily if an installed OpenClaw runtime cannot resolve nested manifest-relative skill roots, while keeping the adapter-owned bootstrap source and explicit release gate model intact
+
 ## Backward Compatibility Matrix
 
 The following must remain stable until a deliberate migration release:
@@ -1953,8 +1984,8 @@ Rules:
 
 The next implementation step should clear the next remaining retirement gate:
 
-- move live skill discovery off `nmc-memory-plugin/skills` and onto an adapter-owned or otherwise cutover-safe discovery surface without breaking installed skill availability
-- preserve `openclaw nmc-memory setup`, auto-bootstrap behavior, `openclaw.plugin.json`, workspace layout, and shipped operator paths while reducing dependence on the compatibility shell directory layout
-- keep scope pinned to `skill-discovery-surface` rather than changing install ownership, plugin ids, or operator/runtime capabilities
+- reduce installed control-plane and programmatic path dependence on `~/.openclaw/extensions/nmc-memory-plugin/` while preserving the current compatibility shell ownership
+- keep `openclaw nmc-memory setup`, auto-bootstrap behavior, `openclaw.plugin.json`, workspace layout, and current wrapper paths intact while narrowing the shipped artifact layout assumptions
+- keep scope pinned to `shipped-artifact-layout` rather than changing install ownership, plugin ids, or operator/runtime capabilities
 
-The wrapper drift gate is now cleared. The next direct-install blocker is the live skill discovery surface that still assumes `nmc-memory-plugin/skills`.
+The skill discovery gate is now cleared. The next direct-install blocker is the shipped artifact layout that still assumes the compatibility shell install path.

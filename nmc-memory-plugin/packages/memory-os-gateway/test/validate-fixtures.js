@@ -32,6 +32,7 @@ const WORKSPACE_FIXTURE = path.resolve(
 );
 const FIXTURE_MEMORY_ROOT = WORKSPACE_FIXTURE;
 const PLUGIN_ROOT = path.resolve(__dirname, '../../..');
+const ADAPTER_SKILLS_ROOT = path.join(PLUGIN_ROOT, 'packages', 'adapter-openclaw', 'skills');
 const CLI_PATH = path.resolve(__dirname, '../bin/memory-os-gateway.js');
 
 function makeTempRoot() {
@@ -448,7 +449,7 @@ function main() {
       memoryRoot: path.join(bootstrapRoot, 'workspace', 'system', 'memory'),
       systemTemplateRoot: path.join(PLUGIN_ROOT, 'templates', 'workspace-system'),
       memoryTemplateRoot: path.join(PLUGIN_ROOT, 'templates', 'workspace-memory'),
-      skillsSourceRoot: path.join(PLUGIN_ROOT, 'skills'),
+      skillsSourceRoot: ADAPTER_SKILLS_ROOT,
       installDate: '2026-03-18',
     });
 

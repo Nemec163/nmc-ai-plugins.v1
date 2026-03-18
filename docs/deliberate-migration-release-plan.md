@@ -135,6 +135,19 @@ Exit gate:
 Status:
 - complete on `2026-03-19` by collapsing the three plugin shell entrypoints into thin wrappers over `packages/adapter-openclaw`, extending adapter/package tests to guard the wrapper shape, and marking `wrapper-convergence` as cleared while leaving the other direct-install retirement gates pending
 
+### 7. Compatibility-Shell Skill Discovery Convergence
+
+Goal:
+- move live OpenClaw skill discovery off `nmc-memory-plugin/skills` and onto the adapter-owned bundled skill surface without changing install ownership or compatibility wrapper paths
+
+Exit gate:
+- `openclaw.plugin.json` points live skill discovery at `packages/adapter-openclaw/skills`
+- packed plugin artifacts include that adapter-owned skill root and release qualification no longer treats `skill-discovery-surface` as pending
+- `nmc-memory-plugin/skills` stays packaged as a compatibility wrapper surface for stable direct script paths and docs
+
+Status:
+- complete on `2026-03-19` by repointing the plugin manifest at `packages/adapter-openclaw/skills`, updating shipped-artifact assertions and bootstrap fixtures to freeze the adapter-owned discovery root, and marking `skill-discovery-surface` as cleared while leaving install-manifest, shipped-layout, and regression-cutover gates pending
+
 ## Non-Goals For This Slice
 
 The deliberate migration release planning slice should not:

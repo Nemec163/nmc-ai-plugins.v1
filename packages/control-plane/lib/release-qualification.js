@@ -87,8 +87,8 @@ function getControlPlaneReleaseQualification(snapshot) {
     ),
     buildRetirementGate(
       'skill-discovery-surface',
-      'pending',
-      'live installs still discover bundled skills through nmc-memory-plugin/skills'
+      'cleared',
+      'live installs now discover bundled skills through packages/adapter-openclaw/skills'
     ),
     buildRetirementGate(
       'shipped-artifact-layout',

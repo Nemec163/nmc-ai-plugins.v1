@@ -62,5 +62,5 @@
       }
     }
   },
-  "skills": ["skills"]
+  "skills": ["packages/adapter-openclaw/skills"]
 }

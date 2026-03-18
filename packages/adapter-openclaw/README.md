@@ -29,8 +29,10 @@ The orchestration context stays explicitly non-authoritative:
 The compatibility shell remains in `nmc-memory-plugin/`, which also stays the
 current production install/setup surface for OpenClaw during the migration
 release. This package stays internal/private for now: OpenClaw-specific logic
-and bundled skill assets should live here, while `nmc-memory-plugin/skills/`
-remains the compatibility discovery surface for live installs.
+and bundled skill assets should live here, and live installs now discover those
+skills through `packages/adapter-openclaw/skills` in the compatibility shell.
+The legacy `nmc-memory-plugin/skills/` tree remains packaged only as a
+compatibility wrapper surface for stable direct script paths.
 
 The shell entrypoints in `nmc-memory-plugin/` now collapse to thin wrappers over
 this package; remaining cutover work is about install ownership, skill
