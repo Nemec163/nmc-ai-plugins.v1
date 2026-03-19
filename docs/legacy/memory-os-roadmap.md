@@ -5,10 +5,12 @@
 
 ## Progress Snapshot
 
-- completed: `procedure evidence linkage surfaces — expose read-only links from canonical current procedures back to supporting runtime procedural feedback and observations without widening write authority`
-- next: `namespace / tenant / actor model foundations — introduce explicit namespace contract surfaces across gateway, runtime shadow, and derived read paths while preserving the current single-tenant default`
+- completed: `namespace / tenant / actor model foundations — introduce explicit namespace contract surfaces across gateway, runtime shadow, and derived read paths while preserving the current single-tenant default`
+- next: `verify hardening and content-addressed reconciliation — tighten verify/rebuild semantics around content-derived freshness and reconciliation evidence without widening authority`
 - last verified on: `2026-03-19`
 - verified in this slice:
+  - `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-runtime/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
@@ -2198,12 +2200,29 @@ Implementation note:
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 
+## Namespace / Tenant / Actor Model Foundations
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- added a shared namespace contract in `@nmc/memory-contracts` with explicit `tenantId`, `spaceId`, `userId`, `agentId`, and `roleId` dimensions plus pathing metadata that preserves the current default workspace shape while defining scoped path foundations
+- threaded namespace metadata through gateway read/query/recall/status surfaces, runtime shadow persistence, and derived read-index artifacts so read-only consumers can see explicit scope boundaries instead of inferring them from `memoryRoot` alone
+- kept backward compatibility for existing default-scope runtime and read-index artifacts by backfilling namespace metadata on read, while allowing scoped runtime shadow and scoped derived read-index paths without adding a new writer path into canon
+- updated procedure runtime path resolution so read-only evidence linkage can still resolve runtime refs when runtime shadow paths become namespace-aware
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-runtime/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
 ## Immediate Next Step
 
-The next implementation step should introduce explicit namespace / tenant / actor model foundations across the supported read and runtime surfaces without breaking the current single-tenant install and authority boundaries:
+The next implementation step should harden verify/rebuild semantics around content-addressed reconciliation without widening authority:
 
-- define a stable namespace contract that can flow through gateway read/query APIs, runtime shadow storage, and derived read-index metadata while defaulting cleanly to the existing single-tenant workspace shape
-- keep scope pinned to contract visibility, pathing, and read/runtime isolation; do not widen into multi-tenant orchestration, scheduler ownership, or new canon writers
-- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while namespace semantics become explicit
+- move freshness and drift detection further away from implicit file mtimes and toward content-derived snapshot/reconciliation evidence
+- keep projections, read-index data, and runtime summaries rebuildable and non-authoritative while making stale-versus-fresh reasoning more explicit and auditable
+- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while verification evidence becomes stricter
 
-Canonical procedure lineage now keeps a read-only evidence trail back to runtime feedback and procedural observations. The next risk is leaving namespace semantics implicit across gateway, runtime, and derived read surfaces even though the repository is still operating in a single-tenant mode today.
+Namespace semantics are now explicit across gateway, runtime shadow, and derived read paths. The next risk is leaving verify/reconcile freshness logic comparatively shallow even as scoped read/runtime artifacts become more explicit.

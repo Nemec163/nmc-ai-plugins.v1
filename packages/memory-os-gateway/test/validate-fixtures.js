@@ -135,6 +135,7 @@ function main() {
     recordId: 'fct-2026-03-05-001',
   });
   assert.equal(record.relativePath, 'core/user/knowledge/work.md');
+  assert.equal(record.namespace.namespaceKey, 'default/default/default');
   assert.equal(record.record.type, 'fact');
   assert.match(record.record.body, /high-volatility conditions/);
 
@@ -143,6 +144,7 @@ function main() {
     projectionPath: 'core/user/state/current.md',
   });
   assert.equal(projection.frontmatter.layer, 'L5');
+  assert.equal(projection.namespace.mode, 'single-tenant-default');
   assert.equal(projection.records.length, 1);
   assert.equal(projection.records[0].recordId, 'st-2026-03-05-001');
 
@@ -150,6 +152,7 @@ function main() {
     memoryRoot: FIXTURE_MEMORY_ROOT,
   });
   assert.equal(current.manifest.record_counts.events, 2);
+  assert.equal(current.namespace.namespaceKey, 'default/default/default');
   assert.equal(current.manifest.record_counts.procedures, 1);
   assert.equal(current.projections.identity.records.length, 0);
   assert.equal(current.projections.state.records[0].recordId, 'st-2026-03-05-001');
@@ -213,12 +216,15 @@ function main() {
     memoryRoot: FIXTURE_MEMORY_ROOT,
     text: 'What is the current approach on volatile mornings?',
   });
+  assert.equal(search.namespace.namespaceKey, 'default/default/default');
   assert.equal(search.contract.rankingVersion, '1');
   assert.equal(search.readIndex.status, 'rebuilt-ephemeral');
+  assert.equal(search.readIndex.namespace.namespaceKey, 'default/default/default');
   assert.equal(search.readIndex.persisted, false);
   assert.equal(search.freshnessBoundary.runtimeDeltaIncluded, true);
   assert.equal(search.canonicalHits[0].recordId, 'st-2026-03-05-001');
   assert.equal(search.canonicalHits[0].authoritative, true);
+  assert.equal(search.canonicalHits[0].namespace.namespaceKey, 'default/default/default');
   assert.equal(
     search.canonicalHits[0].ranking.reasons.some((reason) => reason.code === 'current-projection'),
     true
@@ -231,13 +237,16 @@ function main() {
   const status = getStatus({
     memoryRoot: FIXTURE_MEMORY_ROOT,
   });
+  assert.equal(status.namespace.namespaceKey, 'default/default/default');
   assert.equal(status.manifest.recordCounts.events, 2);
   assert.equal(status.manifest.recordCounts.procedures, 1);
   assert.equal(status.intake.pendingFiles, 1);
   assert.equal(status.intake.backlogAlert, false);
   assert.equal(status.runtime.shadowExists, false);
+  assert.equal(status.runtime.namespace.namespaceKey, 'default/default/default');
   assert.equal(status.runtime.runCount, 0);
   assert.equal(status.readIndex.status, 'missing');
+  assert.equal(status.readIndex.namespace.namespaceKey, 'default/default/default');
 
   const health = getHealth({
     memoryRoot: FIXTURE_MEMORY_ROOT,
@@ -350,6 +359,8 @@ function main() {
       artifacts: JSON.parse(fs.readFileSync(artifactsFile, 'utf8')),
     });
     assert.equal(capture.record.authoritative, false);
+    assert.equal(capture.record.namespace.actor.agentId, null);
+    assert.equal(capture.record.namespace.actor.roleId, null);
     assert.equal(fs.existsSync(capture.runPath), true);
 
     const runtimeDelta = getRuntimeDelta({
@@ -357,10 +368,12 @@ function main() {
       limit: 5,
     });
     assert.equal(runtimeDelta.exists, true);
+    assert.equal(runtimeDelta.namespace.namespaceKey, 'default/default/default');
     assert.equal(runtimeDelta.runCount, 1);
     assert.equal(runtimeDelta.totalArtifacts, 7);
     assert.equal(runtimeDelta.buckets.episodic.count, 1);
     assert.equal(runtimeDelta.buckets.procedureFeedback.entries[0].id, 'pf-001');
+    assert.equal(runtimeDelta.runs[0].namespace.actor.roleId, null);
 
     const runtimeInspection = inspectProcedure({
       memoryRoot: runtimeWorkspaceRoot,
@@ -387,11 +400,14 @@ function main() {
     });
     assert.equal(recallBundle.kind, 'recall-bundle');
     assert.equal(recallBundle.authoritative, false);
+    assert.equal(recallBundle.namespace.namespaceKey, 'default/default/default');
     assert.equal(recallBundle.contract.version, '1');
     assert.equal(recallBundle.freshnessBoundary.runtimeAuthoritative, false);
     assert.equal(recallBundle.roleBundle.manifest.id, 'mnemo');
     assert.equal(recallBundle.canonicalRecall.authoritative, true);
+    assert.equal(recallBundle.canonicalRecall.namespace.namespaceKey, 'default/default/default');
     assert.equal(recallBundle.pendingRecall.authoritative, false);
+    assert.equal(recallBundle.pendingRecall.namespace.namespaceKey, 'default/default/default');
     assert.equal(recallBundle.procedureRecall.kind, 'procedure-aware-recall');
     assert.equal(recallBundle.procedureRecall.canonicalCurrent.authoritative, true);
     assert.equal(recallBundle.procedureRecall.runtimeArtifacts.authoritative, false);
@@ -421,6 +437,7 @@ function main() {
       ['canonical', 'pending-runtime-delta', 'runtime-shadow'].includes(recallBundle.topHits[0].sourceKind),
       true
     );
+    assert.equal(recallBundle.topHits[0].namespace.namespaceKey, 'default/default/default');
     assert.equal(
       recallBundle.topHits.some(
         (hit) =>
@@ -442,6 +459,7 @@ function main() {
       memoryRoot: runtimeWorkspaceRoot,
     });
     assert.equal(runtimeStatus.runtime.shadowExists, true);
+    assert.equal(runtimeStatus.runtime.namespace.namespaceKey, 'default/default/default');
     assert.equal(runtimeStatus.runtime.runCount, 1);
     assert.equal(runtimeStatus.runtime.totalArtifacts, 7);
     assert.deepEqual(hashCanonTree(runtimeWorkspaceRoot), canonSnapshot);
@@ -521,14 +539,41 @@ function main() {
       builtAt: '2026-03-18T15:00:00Z',
     });
     assert.equal(fs.existsSync(builtIndex.path), true);
+    assert.equal(builtIndex.namespace.namespaceKey, 'default/default/default');
     assert.equal(builtIndex.stats.recordCount, 7);
     assert.equal(readReadIndex({ memoryRoot: readIndexWorkspaceRoot }).builtAt, '2026-03-18T15:00:00Z');
+    assert.equal(
+      readReadIndex({ memoryRoot: readIndexWorkspaceRoot }).namespace.namespaceKey,
+      'default/default/default'
+    );
 
     const verifiedIndex = verifyReadIndex({
       memoryRoot: readIndexWorkspaceRoot,
     });
     assert.equal(verifiedIndex.status, 'ok');
+    assert.equal(verifiedIndex.namespace.namespaceKey, 'default/default/default');
     assert.equal(verifiedIndex.stats.recordCount, 7);
+
+    const scopedIndex = buildReadIndex({
+      memoryRoot: readIndexWorkspaceRoot,
+      tenantId: 'acme',
+      spaceId: 'research',
+      userId: 'nina',
+      builtAt: '2026-03-18T15:30:00Z',
+    });
+    assert.equal(scopedIndex.namespace.namespaceKey, 'acme/research/nina');
+    assert.match(scopedIndex.path, /core\/meta\/namespaces\/acme\/spaces\/research\/users\/nina\/read-index\.json$/);
+
+    const scopedQuery = query({
+      memoryRoot: readIndexWorkspaceRoot,
+      tenantId: 'acme',
+      spaceId: 'research',
+      userId: 'nina',
+      text: 'volatile mornings current approach',
+    });
+    assert.equal(scopedQuery.namespace.namespaceKey, 'acme/research/nina');
+    assert.equal(scopedQuery.readIndex.namespace.namespaceKey, 'acme/research/nina');
+    assert.equal(scopedQuery.canonicalHits[0].recordId, 'st-2026-03-05-001');
 
     const indexedQuery = query({
       memoryRoot: readIndexWorkspaceRoot,

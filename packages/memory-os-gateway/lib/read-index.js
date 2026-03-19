@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { loadMemoryCanon } = require('./load-deps');
+const { buildNamespaceContext } = require('./namespace');
 const { readManifestSnapshot } = require('./read');
 const { parseProjectionRecords, toPosixRelative, tokenizeText } = require('./records');
 
@@ -19,9 +20,44 @@ function normalizeMemoryRoot(memoryRoot) {
   return path.resolve(memoryRoot);
 }
 
-function resolveReadIndexPath(memoryRoot) {
-  const canon = loadMemoryCanon();
-  return path.join(canon.resolveMetaDir(memoryRoot), READ_INDEX_FILENAME);
+function resolveReadIndexPath(memoryRoot, options = {}) {
+  const resolvedMemoryRoot = normalizeMemoryRoot(memoryRoot);
+  return path.join(
+    resolvedMemoryRoot,
+    getReadIndexNamespace({
+      ...options,
+      memoryRoot: resolvedMemoryRoot,
+    }).pathing.derivedReadIndexPath
+  );
+}
+
+function getReadIndexNamespace(options = {}) {
+  return buildNamespaceContext({
+    memoryRoot: options.memoryRoot,
+    tenantId: options.tenantId,
+    tenant_id: options.tenant_id,
+    spaceId: options.spaceId,
+    space_id: options.space_id,
+    userId: options.userId,
+    user_id: options.user_id,
+    surface: 'derived-read-index',
+  });
+}
+
+function normalizeStoredNamespace(index, memoryRoot) {
+  const declared = index && index.namespace && typeof index.namespace === 'object'
+    ? index.namespace
+    : {};
+
+  return getReadIndexNamespace({
+    memoryRoot,
+    tenantId: declared.tenantId,
+    tenant_id: declared.tenant_id,
+    spaceId: declared.spaceId,
+    space_id: declared.space_id,
+    userId: declared.userId,
+    user_id: declared.user_id,
+  });
 }
 
 function checksumContent(content) {
@@ -36,7 +72,7 @@ function pickSnippet(record) {
   return record.body.split('\n')[0] || '';
 }
 
-function buildSourceSnapshot(memoryRoot) {
+function buildSourceSnapshot(memoryRoot, namespace) {
   const canon = loadMemoryCanon();
   const manifest = readManifestSnapshot(memoryRoot);
   const recordFiles = {};
@@ -51,6 +87,7 @@ function buildSourceSnapshot(memoryRoot) {
   }
 
   return {
+    namespaceKey: namespace.namespaceKey,
     manifestLastUpdated: manifest ? manifest.last_updated : null,
     manifestPath: toPosixRelative(memoryRoot, canon.resolveManifestPath(memoryRoot)),
     recordFiles,
@@ -63,13 +100,26 @@ function serializeReadIndex(index) {
 
 function readReadIndex(options = {}) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
-  const indexPath = resolveReadIndexPath(memoryRoot);
+  const namespace = getReadIndexNamespace(options);
+  const indexPath = path.join(memoryRoot, namespace.pathing.derivedReadIndexPath);
 
   if (!fs.existsSync(indexPath)) {
     return null;
   }
 
   const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+  const storedNamespace = normalizeStoredNamespace(index, memoryRoot);
+  index.namespace = storedNamespace;
+  index.source = {
+    ...(index.source || {}),
+    namespaceKey: storedNamespace.namespaceKey,
+  };
+  index.records = Array.isArray(index.records)
+    ? index.records.map((record) => ({
+        ...record,
+        namespace: record.namespace || storedNamespace,
+      }))
+    : [];
   index.path = indexPath;
   index.relativePath = toPosixRelative(memoryRoot, indexPath);
   return index;
@@ -77,10 +127,11 @@ function readReadIndex(options = {}) {
 
 function buildReadIndex(options = {}) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
+  const namespace = getReadIndexNamespace(options);
   const builtAt = options.builtAt || new Date().toISOString();
   const persist = options.persist !== false;
   const canon = loadMemoryCanon();
-  const source = buildSourceSnapshot(memoryRoot);
+  const source = buildSourceSnapshot(memoryRoot, namespace);
   const postings = new Map();
   const records = [];
 
@@ -119,6 +170,7 @@ function buildReadIndex(options = {}) {
         relativePath,
         snippet: pickSnippet(record),
         tokens,
+        namespace,
       };
 
       records.push(entry);
@@ -138,6 +190,7 @@ function buildReadIndex(options = {}) {
   const index = {
     kind: 'read-index',
     authoritative: false,
+    namespace,
     schemaVersion: READ_INDEX_SCHEMA_VERSION,
     builtAt,
     source,
@@ -154,7 +207,7 @@ function buildReadIndex(options = {}) {
     ),
   };
 
-  const indexPath = resolveReadIndexPath(memoryRoot);
+  const indexPath = path.join(memoryRoot, namespace.pathing.derivedReadIndexPath);
   const relativePath = toPosixRelative(memoryRoot, indexPath);
 
   if (persist) {
@@ -208,18 +261,28 @@ function diffSourceSnapshot(index, currentSource) {
     }
   }
 
+  if (currentSource.namespaceKey !== (index.source && index.source.namespaceKey)) {
+    reasons.push({
+      code: 'namespace-mismatch',
+      path: 'namespace',
+      message: `Read index namespace drifted: expected ${currentSource.namespaceKey}, found ${index.source && index.source.namespaceKey ? index.source.namespaceKey : 'missing'}`,
+    });
+  }
+
   return reasons;
 }
 
 function verifyReadIndex(options = {}) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
-  const indexPath = resolveReadIndexPath(memoryRoot);
-  const index = readReadIndex({ memoryRoot });
+  const namespace = getReadIndexNamespace(options);
+  const indexPath = path.join(memoryRoot, namespace.pathing.derivedReadIndexPath);
+  const index = readReadIndex(options);
 
   if (!index) {
     return {
       kind: 'read-index-verification',
       authoritative: false,
+      namespace,
       memoryRoot,
       path: indexPath,
       relativePath: toPosixRelative(memoryRoot, indexPath),
@@ -240,17 +303,18 @@ function verifyReadIndex(options = {}) {
         fileCount: 0,
         tokenCount: 0,
       },
-      source: buildSourceSnapshot(memoryRoot),
+      source: buildSourceSnapshot(memoryRoot, namespace),
     };
   }
 
-  const currentSource = buildSourceSnapshot(memoryRoot);
+  const currentSource = buildSourceSnapshot(memoryRoot, namespace);
   const reasons = diffSourceSnapshot(index, currentSource);
   const ok = reasons.length === 0;
 
   return {
     kind: 'read-index-verification',
     authoritative: false,
+    namespace,
     memoryRoot,
     path: index.path || indexPath,
     relativePath: index.relativePath || toPosixRelative(memoryRoot, indexPath),
@@ -271,11 +335,11 @@ function verifyReadIndex(options = {}) {
 
 function getQueryableReadIndex(options = {}) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
-  const verification = verifyReadIndex({ memoryRoot });
+  const verification = verifyReadIndex(options);
 
   if (verification.ok) {
     return {
-      index: readReadIndex({ memoryRoot }),
+      index: readReadIndex(options),
       verification,
       source: 'persisted',
     };
@@ -291,6 +355,7 @@ function getQueryableReadIndex(options = {}) {
 
   const persisted = options.persist === true;
   const rebuilt = buildReadIndex({
+    ...options,
     memoryRoot,
     builtAt: options.builtAt,
     persist: persisted,

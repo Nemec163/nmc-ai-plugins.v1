@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { buildNamespaceContext } = require('./namespace');
 const { loadMemoryCanon } = require('./load-deps');
 const {
   ensurePathInsideRoot,
@@ -37,6 +38,15 @@ function readManifestSnapshot(memoryRoot) {
 
 function getProjection(options) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
+  const namespace = buildNamespaceContext({
+    memoryRoot,
+    surface: 'canonical-projection',
+    tenantId: options.tenantId,
+    spaceId: options.spaceId,
+    userId: options.userId,
+    agentId: options.agentId,
+    roleId: options.roleId,
+  });
   const projectionPath = options.projectionPath;
 
   if (!projectionPath) {
@@ -53,6 +63,7 @@ function getProjection(options) {
   return {
     kind: 'projection',
     canonical: true,
+    namespace,
     memoryRoot,
     projectionPath: toPosixRelative(memoryRoot, filePath),
     filePath,
@@ -70,6 +81,15 @@ function getProjection(options) {
 
 function readRecord(options) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
+  const namespace = buildNamespaceContext({
+    memoryRoot,
+    surface: 'canonical-record',
+    tenantId: options.tenantId,
+    spaceId: options.spaceId,
+    userId: options.userId,
+    agentId: options.agentId,
+    roleId: options.roleId,
+  });
   const recordId = String(options.recordId || '').trim();
 
   if (!recordId) {
@@ -90,6 +110,7 @@ function readRecord(options) {
     return {
       kind: 'record',
       canonical: true,
+      namespace,
       memoryRoot,
       recordId,
       filePath,
@@ -111,12 +132,29 @@ function readRecord(options) {
 
 function getCanonicalCurrent(options) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
+  const namespace = buildNamespaceContext({
+    memoryRoot,
+    surface: 'canonical-current',
+    tenantId: options.tenantId,
+    spaceId: options.spaceId,
+    userId: options.userId,
+    agentId: options.agentId,
+    roleId: options.roleId,
+  });
   const projections = {};
 
   for (const [key, projectionPath] of Object.entries(CURRENT_PROJECTION_PATHS)) {
     const filePath = path.join(memoryRoot, projectionPath);
     projections[key] = fs.existsSync(filePath)
-      ? getProjection({ memoryRoot, projectionPath })
+      ? getProjection({
+          memoryRoot,
+          projectionPath,
+          tenantId: options.tenantId,
+          spaceId: options.spaceId,
+          userId: options.userId,
+          agentId: options.agentId,
+          roleId: options.roleId,
+        })
       : null;
   }
 
@@ -125,6 +163,7 @@ function getCanonicalCurrent(options) {
   return {
     kind: 'canonical-current',
     canonical: true,
+    namespace,
     memoryRoot,
     manifest,
     freshnessBoundary: {

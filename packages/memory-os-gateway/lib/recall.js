@@ -3,14 +3,22 @@
 const path = require('node:path');
 
 const { getRoleBundle } = require('./bootstrap');
+const { buildNamespaceContext } = require('./namespace');
 const { listProcedures } = require('./procedures');
 const { getStatus } = require('./status');
 const { getCanonicalCurrent } = require('./read');
 const { query } = require('./query');
 const { getRuntimeRecallBundle } = require('./runtime');
 
-function buildProcedureLookup(memoryRoot) {
-  const catalog = listProcedures({ memoryRoot });
+function buildProcedureLookup(memoryRoot, namespace) {
+  const catalog = listProcedures({
+    memoryRoot,
+    tenantId: namespace.tenantId,
+    spaceId: namespace.spaceId,
+    userId: namespace.userId,
+    agentId: namespace.scope.agentId,
+    roleId: namespace.scope.roleId,
+  });
   const byRecordId = new Map();
 
   for (const lineage of catalog.procedures || []) {
@@ -64,6 +72,7 @@ function normalizeCanonicalHit(hit, procedureLookup) {
   return {
     sourceKind: 'canonical',
     authoritative: true,
+    namespace: hit.namespace || null,
     score: hit.score,
     recordId: hit.recordId,
     type: hit.type,
@@ -80,6 +89,7 @@ function normalizePendingHit(hit) {
   return {
     sourceKind: 'pending-runtime-delta',
     authoritative: false,
+    namespace: hit.namespace || null,
     score: hit.score,
     claimId: hit.claimId,
     snippet: hit.snippet,
@@ -94,6 +104,7 @@ function normalizeRuntimeHit(hit) {
   return {
     sourceKind: 'runtime-shadow',
     authoritative: false,
+    namespace: hit.namespace || null,
     score: hit.score,
     bucket: hit.bucket,
     id: hit.id,
@@ -128,13 +139,34 @@ function requireMemoryRoot(options) {
 
 function getRecallBundle(options = {}) {
   const memoryRoot = requireMemoryRoot(options);
+  const namespace = buildNamespaceContext({
+    memoryRoot,
+    surface: 'recall-bundle',
+    tenantId: options.tenantId,
+    spaceId: options.spaceId,
+    userId: options.userId,
+    agentId: options.agentId,
+    roleId: options.roleId,
+  });
   const text = String(options.text || '').trim();
   const roleId = String(options.roleId || '').trim();
 
-  const canonicalCurrent = getCanonicalCurrent({ memoryRoot });
+  const canonicalCurrent = getCanonicalCurrent({
+    memoryRoot,
+    tenantId: namespace.tenantId,
+    spaceId: namespace.spaceId,
+    userId: namespace.userId,
+    agentId: namespace.scope.agentId,
+    roleId: namespace.scope.roleId,
+  });
   const queryResult = text
     ? query({
         memoryRoot,
+        tenantId: namespace.tenantId,
+        spaceId: namespace.spaceId,
+        userId: namespace.userId,
+        agentId: namespace.scope.agentId,
+        roleId: namespace.scope.roleId,
         text,
         limit: options.limit,
         includePending: options.includePending,
@@ -142,6 +174,11 @@ function getRecallBundle(options = {}) {
     : null;
   const runtimeRecall = getRuntimeRecallBundle({
     memoryRoot,
+    tenantId: namespace.tenantId,
+    spaceId: namespace.spaceId,
+    userId: namespace.userId,
+    agentId: namespace.scope.agentId,
+    roleId: namespace.scope.roleId,
     text,
     limit: options.limit,
   });
@@ -153,11 +190,19 @@ function getRecallBundle(options = {}) {
         systemPath: options.systemPath,
       })
     : null;
-  const status = getStatus({ memoryRoot });
-  const procedureLookup = buildProcedureLookup(memoryRoot);
+  const status = getStatus({
+    memoryRoot,
+    tenantId: namespace.tenantId,
+    spaceId: namespace.spaceId,
+    userId: namespace.userId,
+    agentId: namespace.scope.agentId,
+    roleId: namespace.scope.roleId,
+  });
+  const procedureLookup = buildProcedureLookup(memoryRoot, namespace);
   const canonicalRecall = {
     kind: 'canonical-recall',
     authoritative: true,
+    namespace: queryResult ? queryResult.namespace : namespace,
     hits: queryResult ? queryResult.canonicalHits : [],
     readIndex: queryResult ? queryResult.readIndex : null,
     rankingVersion: queryResult ? queryResult.contract.rankingVersion : null,
@@ -165,6 +210,7 @@ function getRecallBundle(options = {}) {
   const pendingRecall = {
     kind: 'pending-runtime-delta',
     authoritative: false,
+    namespace: queryResult ? queryResult.namespace : namespace,
     included: queryResult ? queryResult.freshnessBoundary.runtimeDeltaIncluded : false,
     hits: queryResult ? queryResult.pendingRuntimeDelta : [],
     rankingVersion: queryResult ? queryResult.contract.rankingVersion : null,
@@ -231,6 +277,7 @@ function getRecallBundle(options = {}) {
   return {
     kind: 'recall-bundle',
     authoritative: false,
+    namespace,
     contract: {
       kind: 'recall-bundle',
       version: '1',

@@ -127,6 +127,8 @@ function main() {
     assert.equal(fs.existsSync(resolveRuntimeRunPath(memoryRoot, 'codex-2026-03-18-001')), true);
     assert.equal(fs.existsSync(resolveRuntimeManifestPath(memoryRoot)), true);
     assert.equal(capture.record.authoritative, false);
+    assert.equal(capture.record.namespace.mode, 'single-tenant-default');
+    assert.equal(capture.record.namespace.actor.agentId, null);
     assert.equal(capture.record.runtimeInputs.length, 1);
 
     const runtimeDelta = getRuntimeDelta({
@@ -134,12 +136,15 @@ function main() {
       limit: 5,
     });
     assert.equal(runtimeDelta.exists, true);
+    assert.equal(runtimeDelta.namespace.namespaceKey, 'default/default/default');
     assert.equal(runtimeDelta.runCount, 1);
     assert.equal(runtimeDelta.totalArtifacts, 7);
     assert.equal(runtimeDelta.buckets.episodic.count, 1);
     assert.equal(runtimeDelta.buckets.reflections.entries[0].id, 'rf-001');
     assert.equal(runtimeDelta.runs[0].runId, 'codex-2026-03-18-001');
+    assert.equal(runtimeDelta.runs[0].namespace.namespaceKey, 'default/default/default');
     assert.equal(runtimeDelta.manifest.disposable, true);
+    assert.equal(runtimeDelta.manifest.namespace.mode, 'single-tenant-default');
 
     const runtimeRecall = getRuntimeRecallBundle({
       memoryRoot,
@@ -148,13 +153,50 @@ function main() {
     });
     assert.equal(runtimeRecall.kind, 'runtime-recall-bundle');
     assert.equal(runtimeRecall.authoritative, false);
+    assert.equal(runtimeRecall.namespace.namespaceKey, 'default/default/default');
     assert.equal(runtimeRecall.shadowExists, true);
     assert.equal(runtimeRecall.buckets.retrievalTraces.entries[0].id, 'rt-001');
+    assert.equal(runtimeRecall.hits[0].namespace.namespaceKey, 'default/default/default');
     assert.equal(runtimeRecall.freshnessBoundary.runtimeAuthoritative, false);
 
     const records = listRuntimeRecords({ memoryRoot });
     assert.equal(records.length, 1);
     assert.equal(records[0].counts.semanticCache, 1);
+    assert.equal(records[0].namespace.namespaceKey, 'default/default/default');
+
+    const scopedCapture = captureShadowRuntime({
+      memoryRoot,
+      tenantId: 'acme',
+      spaceId: 'research',
+      userId: 'nina',
+      agentId: 'mnemo',
+      roleId: 'reviewer',
+      runId: 'codex-2026-03-18-002',
+      source: 'memory-os-runtime-test',
+      capturedAt: '2026-03-18T12:30:00Z',
+      artifacts: {
+        episodic: [
+          {
+            id: 'ep-002',
+            summary: 'Scoped runtime capture stays isolated from the default namespace.',
+          },
+        ],
+      },
+    });
+    assert.match(scopedCapture.runPath, /runtime\/shadow\/namespaces\/acme\/spaces\/research\/users\/nina/);
+
+    const scopedRuntimeDelta = getRuntimeDelta({
+      memoryRoot,
+      tenantId: 'acme',
+      spaceId: 'research',
+      userId: 'nina',
+      agentId: 'mnemo',
+      roleId: 'reviewer',
+    });
+    assert.equal(scopedRuntimeDelta.namespace.namespaceKey, 'acme/research/nina');
+    assert.equal(scopedRuntimeDelta.runCount, 1);
+    assert.match(scopedRuntimeDelta.shadowRoot, /runtime\/shadow\/namespaces\/acme\/spaces\/research\/users\/nina/);
+    assert.match(scopedRuntimeDelta.manifestPath, /runtime\/shadow\/namespaces\/acme\/spaces\/research\/users\/nina/);
 
     assert.deepEqual(hashCoreTree(memoryRoot), canonSnapshot);
 

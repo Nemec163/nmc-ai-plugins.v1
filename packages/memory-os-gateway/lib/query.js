@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { buildNamespaceContext } = require('./namespace');
 const { getQueryableReadIndex } = require('./read-index');
 const { readManifestSnapshot } = require('./read');
 const { tokenizeText, toPosixRelative } = require('./records');
@@ -123,6 +124,15 @@ function buildPendingRanking(claim, matchedTokens, includePending) {
 
 function query(options) {
   const memoryRoot = path.resolve(options.memoryRoot);
+  const namespace = buildNamespaceContext({
+    memoryRoot,
+    surface: 'canonical-query',
+    tenantId: options.tenantId,
+    spaceId: options.spaceId,
+    userId: options.userId,
+    agentId: options.agentId,
+    roleId: options.roleId,
+  });
   const text = String(options.text || '').trim();
   if (!text) {
     throw new Error('text is required');
@@ -135,6 +145,12 @@ function query(options) {
     (options.includePending !== false && CURRENT_QUERY_PATTERN.test(text));
   const readIndex = getQueryableReadIndex({
     memoryRoot,
+    tenantId: options.tenantId,
+    tenant_id: options.tenant_id,
+    spaceId: options.spaceId,
+    space_id: options.space_id,
+    userId: options.userId,
+    user_id: options.user_id,
     persist: options.persistReadIndex === true,
     rebuild: options.rebuildReadIndex !== false,
     builtAt: options.builtAt,
@@ -178,6 +194,7 @@ function query(options) {
         relativePath: record.relativePath,
         snippet: record.snippet || '',
         authoritative: true,
+        namespace: record.namespace || namespace,
         ranking,
       });
     }
@@ -219,6 +236,7 @@ function query(options) {
             relativePath: toPosixRelative(memoryRoot, filePath),
             snippet: claim.block.split('\n').find((line) => line.includes('- claim:')) || claim.block,
             authoritative: false,
+            namespace,
             ranking,
           });
         }
@@ -231,6 +249,7 @@ function query(options) {
   return {
     text,
     tokens,
+    namespace,
     contract: {
       kind: 'canonical-query',
       rankingVersion: QUERY_RANKING_VERSION,
@@ -246,6 +265,7 @@ function query(options) {
       builtAt: readIndex.verification.builtAt,
       persisted: readIndex.source === 'persisted' || readIndex.source === 'rebuilt-persisted',
       authoritative: false,
+      namespace: readIndex.index ? readIndex.index.namespace : readIndex.verification.namespace,
     },
     freshnessBoundary: {
       canonicalLastUpdated: readManifestSnapshot(memoryRoot)?.last_updated || null,

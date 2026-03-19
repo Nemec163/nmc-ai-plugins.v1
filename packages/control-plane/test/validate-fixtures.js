@@ -292,6 +292,7 @@ function main() {
     assert.equal(snapshot.analytics.kind, 'control-plane-analytics');
     assert.equal(snapshot.audits.kind, 'control-plane-audits');
     assert.equal(snapshot.runtime.inspector.kind, 'control-plane-runtime-inspector');
+    assert.equal(snapshot.runtime.inspector.namespace.namespaceKey, 'default/default/default');
     assert.equal(snapshot.runtime.inspector.authoritative, false);
     assert.equal(snapshot.runtime.inspector.procedures.canonicalCurrent.authoritative, true);
     assert.equal(snapshot.runtime.inspector.procedures.canonicalCurrent.lineageCount, 1);
@@ -401,6 +402,7 @@ function main() {
       updatedAt: '2026-03-18T23:00:00Z',
     });
     assert.equal(runtimeInspector.kind, 'control-plane-runtime-inspector');
+    assert.equal(runtimeInspector.namespace.namespaceKey, 'default/default/default');
     assert.equal(runtimeInspector.summary.runCount, 1);
     assert.equal(runtimeInspector.summary.totalArtifacts, 4);
     assert.equal(runtimeInspector.freshness.ageDays, 0);

@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { loadMemoryCanon } = require('./load-deps');
+const { buildNamespaceContext } = require('./namespace');
 const { verifyReadIndex } = require('./read-index');
 const { readManifestSnapshot } = require('./read');
 const { getRuntimeDelta } = require('./runtime');
@@ -43,6 +44,20 @@ function listMarkdownFiles(rootDir) {
 
 function getStatus(options) {
   const memoryRoot = path.resolve(options.memoryRoot);
+  const namespace = buildNamespaceContext({
+    memoryRoot,
+    surface: 'status',
+    tenantId: options.tenantId,
+    tenant_id: options.tenant_id,
+    spaceId: options.spaceId,
+    space_id: options.space_id,
+    userId: options.userId,
+    user_id: options.user_id,
+    agentId: options.agentId,
+    agent_id: options.agent_id,
+    roleId: options.roleId,
+    role_id: options.role_id,
+  });
   if (!fs.existsSync(memoryRoot)) {
     throw new Error(`memory directory not found: ${memoryRoot}`);
   }
@@ -50,8 +65,21 @@ function getStatus(options) {
   const canon = loadMemoryCanon();
   const manifestPath = canon.resolveManifestPath(memoryRoot);
   const manifest = readManifestSnapshot(memoryRoot);
-  const readIndex = verifyReadIndex({ memoryRoot });
-  const runtimeDelta = getRuntimeDelta({ memoryRoot, limit: 5 });
+  const readIndex = verifyReadIndex({
+    memoryRoot,
+    tenantId: namespace.tenantId,
+    spaceId: namespace.spaceId,
+    userId: namespace.userId,
+  });
+  const runtimeDelta = getRuntimeDelta({
+    memoryRoot,
+    tenantId: namespace.tenantId,
+    spaceId: namespace.spaceId,
+    userId: namespace.userId,
+    agentId: namespace.scope.agentId,
+    roleId: namespace.scope.roleId,
+    limit: 5,
+  });
   const pendingDir = path.join(memoryRoot, 'intake/pending');
   const processedDir = path.join(memoryRoot, 'intake/processed');
   const nowEpoch = Math.floor(Date.now() / 1000);
@@ -93,6 +121,7 @@ function getStatus(options) {
 
   return {
     generatedAt: new Date().toISOString(),
+    namespace,
     memoryRoot,
     manifest: {
       exists: fs.existsSync(manifestPath),
@@ -123,6 +152,7 @@ function getStatus(options) {
       retentionAlert: processedStaleCount > 0,
     },
     runtime: {
+      namespace: runtimeDelta.namespace,
       shadowExists: runtimeDelta.exists,
       runtimeRoot: runtimeDelta.runtimeRoot,
       shadowRoot: runtimeDelta.shadowRoot,
@@ -140,6 +170,7 @@ function getStatus(options) {
       ),
     },
     readIndex: {
+      namespace: readIndex.namespace,
       exists: readIndex.exists,
       path: readIndex.path,
       relativePath: readIndex.relativePath,

@@ -16,5 +16,8 @@
   ],
   "scripts": {
     "test": "node ./test/validate-fixtures.js"
+  },
+  "dependencies": {
+    "@nmc/memory-contracts": "0.0.0"
   }
 }

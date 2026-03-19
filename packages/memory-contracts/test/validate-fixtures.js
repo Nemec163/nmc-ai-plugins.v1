@@ -6,10 +6,12 @@ const path = require('node:path');
 
 const {
   CURRENT_SCHEMA_VERSION,
+  DEFAULT_NAMESPACE_IDS,
   EXIT_CODES,
   formatPipelineInvocation,
   getPipelineInvocation,
   isSupportedSchemaVersion,
+  resolveNamespace,
   validatePipelineAdapter,
   validateRecordBlock,
 } = require('..');
@@ -209,6 +211,35 @@ function main() {
     CURRENT_SCHEMA_VERSION,
     '1.0',
     'Unexpected shared contract schema version'
+  );
+  const namespace = resolveNamespace({
+    tenantId: 'default',
+    spaceId: 'default',
+    userId: 'default',
+    agentId: 'mnemo',
+    roleId: 'mnemo',
+  });
+  assert.equal(namespace.kind, 'memory-namespace');
+  assert.equal(namespace.mode, 'single-tenant-default');
+  assert.equal(namespace.tenantId, DEFAULT_NAMESPACE_IDS.tenantId);
+  assert.equal(namespace.actor.agentId, 'mnemo');
+  assert.equal(namespace.actor.roleId, 'mnemo');
+  const scopedNamespace = resolveNamespace({
+    tenantId: 'acme',
+    spaceId: 'research',
+    userId: 'nina',
+    agentId: 'mnemo',
+    roleId: 'reviewer',
+  });
+  assert.equal(scopedNamespace.mode, 'scoped');
+  assert.equal(scopedNamespace.namespaceKey, 'acme/research/nina');
+  assert.equal(
+    scopedNamespace.pathing.derivedReadIndexPath,
+    'core/meta/namespaces/acme/spaces/research/users/nina/read-index.json'
+  );
+  assert.equal(
+    scopedNamespace.pathing.runtimeRunsRoot,
+    'runtime/shadow/namespaces/acme/spaces/research/users/nina/agents/mnemo/roles/reviewer/runs'
   );
   const adapter = {
     runExtract(options) {

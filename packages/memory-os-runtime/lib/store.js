@@ -19,6 +19,21 @@ const RUNTIME_BUCKETS = Object.freeze([
   'reflections',
 ]);
 
+function loadMemoryContracts() {
+  try {
+    return require('@nmc/memory-contracts');
+  } catch (error) {
+    if (
+      error.code !== 'MODULE_NOT_FOUND' ||
+      !String(error.message || '').includes('@nmc/memory-contracts')
+    ) {
+      throw error;
+    }
+
+    return require('../../memory-contracts');
+  }
+}
+
 function requireMemoryRoot(options) {
   const memoryRoot = options && options.memoryRoot;
   if (!memoryRoot) {
@@ -26,6 +41,73 @@ function requireMemoryRoot(options) {
   }
 
   return path.resolve(memoryRoot);
+}
+
+function normalizeOptionalString(value) {
+  if (value == null) {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  return normalized || null;
+}
+
+function buildRuntimeNamespaceContext(memoryRoot, options = {}) {
+  const contracts = loadMemoryContracts();
+  const namespace = contracts.resolveNamespace({
+    tenantId: options.tenantId,
+    tenant_id: options.tenant_id,
+    spaceId: options.spaceId,
+    space_id: options.space_id,
+    userId: options.userId,
+    user_id: options.user_id,
+    agentId: options.agentId,
+    agent_id: options.agent_id,
+    roleId: options.roleId,
+    role_id: options.role_id,
+  });
+
+  return {
+    ...namespace,
+    memoryRoot: path.resolve(memoryRoot),
+    surface: 'runtime-shadow',
+    authorityBoundary: {
+      runtimeAuthoritative: false,
+      canonicalPromotionPath: 'single-promoter',
+    },
+  };
+}
+
+function buildRuntimeNamespaceFromRecord(memoryRoot, record) {
+  const namespace = record && record.namespace && typeof record.namespace === 'object'
+    ? record.namespace
+    : {};
+  const scope = namespace && namespace.scope && typeof namespace.scope === 'object'
+    ? namespace.scope
+    : {};
+  const actor = namespace && namespace.actor && typeof namespace.actor === 'object'
+    ? namespace.actor
+    : {};
+
+  return buildRuntimeNamespaceContext(memoryRoot, {
+    tenantId: scope.tenantId || namespace.tenantId,
+    spaceId: scope.spaceId || namespace.spaceId,
+    userId: scope.userId || namespace.userId,
+    agentId: scope.agentId || actor.agentId,
+    roleId: scope.roleId || actor.roleId,
+  });
+}
+
+function normalizeManifestNamespace(memoryRoot, manifest) {
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    return manifest;
+  }
+
+  const namespace = buildRuntimeNamespaceFromRecord(memoryRoot, manifest);
+  return {
+    ...manifest,
+    namespace,
+  };
 }
 
 function sanitizeRunId(runId) {
@@ -152,32 +234,43 @@ function resolveRuntimeRoot(memoryRoot) {
   return path.join(path.resolve(memoryRoot), RUNTIME_ROOT_PATH);
 }
 
-function resolveRuntimeShadowRoot(memoryRoot) {
-  return path.join(path.resolve(memoryRoot), RUNTIME_SHADOW_ROOT_PATH);
+function resolveRuntimeShadowRoot(memoryRoot, options = {}) {
+  return path.join(
+    path.resolve(memoryRoot),
+    buildRuntimeNamespaceContext(memoryRoot, options).pathing.runtimeShadowRoot
+  );
 }
 
-function resolveRuntimeRunsRoot(memoryRoot) {
-  return path.join(path.resolve(memoryRoot), RUNTIME_RUNS_ROOT_PATH);
+function resolveRuntimeRunsRoot(memoryRoot, options = {}) {
+  return path.join(
+    path.resolve(memoryRoot),
+    buildRuntimeNamespaceContext(memoryRoot, options).pathing.runtimeRunsRoot
+  );
 }
 
-function resolveRuntimeManifestPath(memoryRoot) {
-  return path.join(path.resolve(memoryRoot), RUNTIME_MANIFEST_PATH);
+function resolveRuntimeManifestPath(memoryRoot, options = {}) {
+  return path.join(
+    path.resolve(memoryRoot),
+    buildRuntimeNamespaceContext(memoryRoot, options).pathing.runtimeManifestPath
+  );
 }
 
-function resolveRuntimeRunPath(memoryRoot, runId) {
-  return path.join(resolveRuntimeRunsRoot(memoryRoot), `${sanitizeRunId(runId)}.json`);
+function resolveRuntimeRunPath(memoryRoot, runId, options = {}) {
+  return path.join(resolveRuntimeRunsRoot(memoryRoot, options), `${sanitizeRunId(runId)}.json`);
 }
 
-function ensureRuntimeShadowStore(memoryRoot) {
+function ensureRuntimeShadowStore(memoryRoot, options = {}) {
+  const namespace = buildRuntimeNamespaceContext(memoryRoot, options);
   ensureDir(resolveRuntimeRoot(memoryRoot));
-  ensureDir(resolveRuntimeShadowRoot(memoryRoot));
-  ensureDir(resolveRuntimeRunsRoot(memoryRoot));
+  ensureDir(resolveRuntimeShadowRoot(memoryRoot, namespace.scope));
+  ensureDir(resolveRuntimeRunsRoot(memoryRoot, namespace.scope));
 
   return {
+    namespace,
     runtimeRoot: resolveRuntimeRoot(memoryRoot),
-    shadowRoot: resolveRuntimeShadowRoot(memoryRoot),
-    runsRoot: resolveRuntimeRunsRoot(memoryRoot),
-    manifestPath: resolveRuntimeManifestPath(memoryRoot),
+    shadowRoot: resolveRuntimeShadowRoot(memoryRoot, namespace.scope),
+    runsRoot: resolveRuntimeRunsRoot(memoryRoot, namespace.scope),
+    manifestPath: resolveRuntimeManifestPath(memoryRoot, namespace.scope),
   };
 }
 
@@ -231,7 +324,8 @@ function countArtifacts(artifacts) {
 
 function listRuntimeRecords(options) {
   const memoryRoot = requireMemoryRoot(options);
-  const runsRoot = resolveRuntimeRunsRoot(memoryRoot);
+  const namespace = buildRuntimeNamespaceContext(memoryRoot, options);
+  const runsRoot = resolveRuntimeRunsRoot(memoryRoot, namespace.scope);
 
   if (!fs.existsSync(runsRoot)) {
     return [];
@@ -240,7 +334,13 @@ function listRuntimeRecords(options) {
   return fs
     .readdirSync(runsRoot, { withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
-    .map((entry) => loadJson(path.join(runsRoot, entry.name)))
+    .map((entry) => {
+      const record = loadJson(path.join(runsRoot, entry.name));
+      return {
+        ...record,
+        namespace: buildRuntimeNamespaceFromRecord(memoryRoot, record),
+      };
+    })
     .sort(sortByNewest);
 }
 
@@ -257,6 +357,7 @@ function summarizeRecords(memoryRoot, records, limit) {
           runId: record.runId,
           source: record.source,
           capturedAt: record.capturedAt,
+          namespace: record.namespace,
           relativePath: path.relative(memoryRoot, record.filePath).split(path.sep).join('/'),
           ...entry,
         });
@@ -275,6 +376,7 @@ function summarizeRecords(memoryRoot, records, limit) {
     runId: record.runId,
     source: record.source,
     capturedAt: record.capturedAt,
+    namespace: record.namespace,
     runtimeInputsCount: Array.isArray(record.runtimeInputs) ? record.runtimeInputs.length : 0,
     artifactCount: countArtifacts(record.artifacts),
     counts: { ...record.counts },
@@ -292,13 +394,17 @@ function summarizeRecords(memoryRoot, records, limit) {
   };
 }
 
-function buildManifest(memoryRoot, records, updatedAt) {
+function buildManifest(memoryRoot, records, updatedAt, namespaceOptions = {}) {
   const summary = summarizeRecords(memoryRoot, records, 25);
+  const namespace = records[0] && records[0].namespace
+    ? buildRuntimeNamespaceFromRecord(memoryRoot, records[0])
+    : buildRuntimeNamespaceContext(memoryRoot, namespaceOptions);
 
   return {
     kind: 'runtime-shadow-manifest',
     schemaVersion: RUNTIME_SCHEMA_VERSION,
     authoritative: false,
+    namespace,
     disposable: true,
     rebuildableFrom: ['canon', 'captured-runtime-inputs'],
     updatedAt,
@@ -312,9 +418,12 @@ function buildManifest(memoryRoot, records, updatedAt) {
   };
 }
 
-function writeManifest(memoryRoot, records, updatedAt) {
-  const manifestPath = resolveRuntimeManifestPath(memoryRoot);
-  const manifest = buildManifest(memoryRoot, records, updatedAt);
+function writeManifest(memoryRoot, records, updatedAt, namespaceOptions = {}) {
+  const namespace = records[0] && records[0].namespace
+    ? buildRuntimeNamespaceFromRecord(memoryRoot, records[0])
+    : buildRuntimeNamespaceContext(memoryRoot, namespaceOptions);
+  const manifestPath = resolveRuntimeManifestPath(memoryRoot, namespace.scope);
+  const manifest = buildManifest(memoryRoot, records, updatedAt, namespace.scope);
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   return manifest;
 }
@@ -325,8 +434,15 @@ function captureShadowRuntime(options) {
   const capturedAt = String(options.capturedAt || new Date().toISOString());
   const artifacts = normalizeRuntimeArtifacts(options.artifacts);
   const runtimeInputs = normalizeRuntimeInputs(options.runtimeInputs || options.inputs);
-  const paths = ensureRuntimeShadowStore(memoryRoot);
-  const runPath = resolveRuntimeRunPath(memoryRoot, runId);
+  const namespace = buildRuntimeNamespaceContext(memoryRoot, {
+    tenantId: options.tenantId,
+    spaceId: options.spaceId,
+    userId: options.userId,
+    agentId: options.agentId,
+    roleId: options.roleId,
+  });
+  const paths = ensureRuntimeShadowStore(memoryRoot, namespace.scope);
+  const runPath = resolveRuntimeRunPath(memoryRoot, runId, namespace.scope);
 
   if (fs.existsSync(runPath) && options.overwrite !== true) {
     throw new Error(`Runtime shadow record already exists for runId ${runId}`);
@@ -336,6 +452,7 @@ function captureShadowRuntime(options) {
     kind: 'runtime-shadow-record',
     schemaVersion: RUNTIME_SCHEMA_VERSION,
     authoritative: false,
+    namespace,
     disposable: true,
     rebuildableFrom: ['canon', 'captured-runtime-inputs'],
     runId,
@@ -350,12 +467,15 @@ function captureShadowRuntime(options) {
 
   fs.writeFileSync(runPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
 
-  const records = listRuntimeRecords({ memoryRoot }).map((runtimeRecord) => ({
+  const records = listRuntimeRecords({
+    memoryRoot,
+    ...namespace.scope,
+  }).map((runtimeRecord) => ({
     ...runtimeRecord,
-    filePath: resolveRuntimeRunPath(memoryRoot, runtimeRecord.runId),
+    filePath: resolveRuntimeRunPath(memoryRoot, runtimeRecord.runId, namespace.scope),
   }));
 
-  const manifest = writeManifest(memoryRoot, records, capturedAt);
+  const manifest = writeManifest(memoryRoot, records, capturedAt, namespace.scope);
 
   return {
     kind: 'runtime-shadow-capture',
@@ -377,24 +497,29 @@ function captureShadowRuntime(options) {
 
 function getRuntimeDelta(options) {
   const memoryRoot = requireMemoryRoot(options);
+  const namespace = buildRuntimeNamespaceContext(memoryRoot, options);
   const limit = Number.isInteger(options.limit) && options.limit > 0 ? options.limit : 10;
-  const shadowRoot = resolveRuntimeShadowRoot(memoryRoot);
+  const shadowRoot = resolveRuntimeShadowRoot(memoryRoot, namespace.scope);
   const runtimeRoot = resolveRuntimeRoot(memoryRoot);
-  const manifestPath = resolveRuntimeManifestPath(memoryRoot);
+  const manifestPath = resolveRuntimeManifestPath(memoryRoot, namespace.scope);
   const exists = fs.existsSync(shadowRoot);
 
-  const records = listRuntimeRecords({ memoryRoot }).map((record) => ({
+  const records = listRuntimeRecords({
+    memoryRoot,
+    ...namespace.scope,
+  }).map((record) => ({
     ...record,
-    filePath: resolveRuntimeRunPath(memoryRoot, record.runId),
+    filePath: resolveRuntimeRunPath(memoryRoot, record.runId, namespace.scope),
   }));
   const summary = summarizeRecords(memoryRoot, records, limit);
   const manifest = fs.existsSync(manifestPath)
-    ? loadJson(manifestPath)
-    : buildManifest(memoryRoot, records, summary.lastCapturedAt || null);
+    ? normalizeManifestNamespace(memoryRoot, loadJson(manifestPath))
+    : buildManifest(memoryRoot, records, summary.lastCapturedAt || null, namespace.scope);
 
   return {
     kind: 'runtime-delta',
     authoritative: false,
+    namespace,
     disposable: true,
     rebuildableFrom: ['canon', 'captured-runtime-inputs'],
     memoryRoot,
@@ -413,17 +538,26 @@ function getRuntimeDelta(options) {
 
 function getRuntimeRecallBundle(options) {
   const memoryRoot = requireMemoryRoot(options);
+  const namespace = buildRuntimeNamespaceContext(memoryRoot, options);
   const text = String(options.text || '').trim();
   const limit = Number.isInteger(options.limit) && options.limit > 0 ? options.limit : 10;
   const tokens = tokenizeText(text);
-  const records = listRuntimeRecords({ memoryRoot }).map((record) => ({
+  const records = listRuntimeRecords({
+    memoryRoot,
+    ...namespace.scope,
+  }).map((record) => ({
     ...record,
-    filePath: resolveRuntimeRunPath(memoryRoot, record.runId),
+    filePath: resolveRuntimeRunPath(memoryRoot, record.runId, namespace.scope),
   }));
-  const manifestPath = resolveRuntimeManifestPath(memoryRoot);
+  const manifestPath = resolveRuntimeManifestPath(memoryRoot, namespace.scope);
   const manifest = fs.existsSync(manifestPath)
-    ? loadJson(manifestPath)
-    : buildManifest(memoryRoot, records, records[0] ? records[0].capturedAt : null);
+    ? normalizeManifestNamespace(memoryRoot, loadJson(manifestPath))
+    : buildManifest(
+        memoryRoot,
+        records,
+        records[0] ? records[0].capturedAt : null,
+        namespace.scope
+      );
   const allHits = [];
 
   for (const record of records) {
@@ -453,6 +587,7 @@ function getRuntimeRecallBundle(options) {
           runId: record.runId,
           source: record.source,
           capturedAt: record.capturedAt,
+          namespace: record.namespace,
           relativePath: path.relative(memoryRoot, record.filePath).split(path.sep).join('/'),
           ...entry,
         });
@@ -484,6 +619,7 @@ function getRuntimeRecallBundle(options) {
   return {
     kind: 'runtime-recall-bundle',
     authoritative: false,
+    namespace,
     disposable: true,
     rebuildableFrom: ['canon', 'captured-runtime-inputs'],
     memoryRoot,

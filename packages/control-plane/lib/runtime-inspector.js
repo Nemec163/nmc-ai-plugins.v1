@@ -167,6 +167,7 @@ function getControlPlaneRuntimeInspector(options = {}) {
     schemaVersion: '1.0',
     generatedAt: new Date().toISOString(),
     memoryRoot,
+    namespace: runtimeDelta.namespace || null,
     authoritative: false,
     inspectable: true,
     shadowExists: runtimeDelta.exists,

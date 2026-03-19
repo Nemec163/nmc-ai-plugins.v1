@@ -23,6 +23,10 @@ function loadMemoryCanon() {
   return loadPackage('@nmc/memory-canon', '../../memory-canon');
 }
 
+function loadMemoryContracts() {
+  return loadPackage('@nmc/memory-contracts', '../../memory-contracts');
+}
+
 function loadMemoryScripts() {
   return loadPackage('@nmc/memory-scripts', '../../memory-scripts');
 }
@@ -38,6 +42,7 @@ function loadMemoryRuntime() {
 module.exports = {
   loadMemoryAgents,
   loadMemoryCanon,
+  loadMemoryContracts,
   loadMemoryRuntime,
   loadMemoryScripts,
   loadMemoryWorkspace,

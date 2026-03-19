@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { buildNamespaceContext } = require('./namespace');
 const { loadMemoryCanon, loadMemoryRuntime } = require('./load-deps');
 const { parseProjectionRecords, toPosixRelative } = require('./records');
 
@@ -50,12 +51,15 @@ function countRuntimeArtifacts(artifacts) {
   }, 0);
 }
 
-function resolveRuntimeRunRelativePath(memoryRoot, runtime, runId) {
+function resolveRuntimeRunRelativePath(memoryRoot, runtime, record) {
   if (runtime && typeof runtime.resolveRuntimeRunPath === 'function') {
-    return toPosixRelative(memoryRoot, runtime.resolveRuntimeRunPath(memoryRoot, runId));
+    const scope = record && record.namespace && record.namespace.scope
+      ? record.namespace.scope
+      : {};
+    return toPosixRelative(memoryRoot, runtime.resolveRuntimeRunPath(memoryRoot, record.runId, scope));
   }
 
-  return `runtime/shadow/runs/${runId}.json`;
+  return `runtime/shadow/runs/${record.runId}.json`;
 }
 
 function createRuntimeRunSummary(memoryRoot, runtime, record) {
@@ -65,7 +69,8 @@ function createRuntimeRunSummary(memoryRoot, runtime, record) {
     runId: record.runId,
     source: normalizeString(record.source),
     capturedAt: normalizeString(record.capturedAt),
-    relativePath: resolveRuntimeRunRelativePath(memoryRoot, runtime, record.runId),
+    namespace: cloneJson(record.namespace || null),
+    relativePath: resolveRuntimeRunRelativePath(memoryRoot, runtime, record),
     runtimeInputsCount: Array.isArray(record.runtimeInputs) ? record.runtimeInputs.length : 0,
     artifactCount:
       record && typeof record.counts === 'object'
@@ -108,14 +113,35 @@ function compareRuntimeRuns(left, right) {
   return compareNullable(right.capturedAt, left.capturedAt) || compareNullable(left.runId, right.runId);
 }
 
-function buildRuntimeEvidenceIndex(memoryRoot) {
+function buildRuntimeEvidenceIndex(memoryRoot, options = {}) {
   const runtime = loadMemoryRuntime();
+  const namespace = buildNamespaceContext({
+    memoryRoot,
+    surface: 'procedure-runtime-evidence',
+    tenantId: options.tenantId,
+    tenant_id: options.tenant_id,
+    spaceId: options.spaceId,
+    space_id: options.space_id,
+    userId: options.userId,
+    user_id: options.user_id,
+    agentId: options.agentId,
+    agent_id: options.agent_id,
+    roleId: options.roleId,
+    role_id: options.role_id,
+  });
   const artifactsByRef = new Map();
   const proceduralByRunId = new Map();
   const runsById = new Map();
   const records =
     runtime && typeof runtime.listRuntimeRecords === 'function'
-      ? runtime.listRuntimeRecords({ memoryRoot })
+      ? runtime.listRuntimeRecords({
+          memoryRoot,
+          tenantId: namespace.tenantId,
+          spaceId: namespace.spaceId,
+          userId: namespace.userId,
+          agentId: namespace.scope.agentId,
+          roleId: namespace.scope.roleId,
+        })
       : [];
 
   for (const record of records) {
@@ -150,7 +176,9 @@ function buildRuntimeEvidenceIndex(memoryRoot) {
 
 function parseRuntimeArtifactRef(ref) {
   const normalized = String(ref || '').trim();
-  const match = normalized.match(/^runtime\/shadow\/runs\/([^/#]+)\.json#([^/]+)\/(.+)$/);
+  const match = normalized.match(
+    /^runtime\/shadow\/(?:(namespaces\/([^/]+)\/spaces\/([^/]+)\/users\/([^/]+)\/agents\/([^/]+)\/roles\/([^/]+)\/))?runs\/([^/#]+)\.json#([^/]+)\/(.+)$/
+  );
   if (!match) {
     return {
       ref: normalized,
@@ -162,10 +190,19 @@ function parseRuntimeArtifactRef(ref) {
   return {
     ref: normalized,
     valid: true,
-    runId: match[1],
-    relativePath: `runtime/shadow/runs/${match[1]}.json`,
-    runtimeBucket: match[2],
-    artifactId: match[3],
+    runId: match[7],
+    relativePath: normalized.split('#')[0],
+    runtimeBucket: match[8],
+    artifactId: match[9],
+    namespace: match[1]
+      ? {
+          tenantId: match[2],
+          spaceId: match[3],
+          userId: match[4],
+          agentId: match[5],
+          roleId: match[6],
+        }
+      : null,
   };
 }
 
@@ -486,7 +523,21 @@ function createCatalogLineage(lineage, runtimeIndex) {
 function listProcedures(options = {}) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
   const roleId = normalizeString(options.roleId);
-  const runtimeIndex = buildRuntimeEvidenceIndex(memoryRoot);
+  const namespace = buildNamespaceContext({
+    memoryRoot,
+    surface: 'procedure-catalog',
+    tenantId: options.tenantId,
+    tenant_id: options.tenant_id,
+    spaceId: options.spaceId,
+    space_id: options.space_id,
+    userId: options.userId,
+    user_id: options.user_id,
+    agentId: options.agentId,
+    agent_id: options.agent_id,
+    roleId: options.role_id == null ? options.roleId : options.role_id,
+    role_id: options.role_id,
+  });
+  const runtimeIndex = buildRuntimeEvidenceIndex(memoryRoot, namespace.scope);
   const lineages = filterLineages(buildProcedureLineages(collectProcedureRecords(memoryRoot)), roleId);
   const allVersions = lineages.flatMap((lineage) => lineage.versions);
 
@@ -494,6 +545,7 @@ function listProcedures(options = {}) {
     kind: 'procedure-catalog',
     canonical: true,
     authoritative: true,
+    namespace,
     memoryRoot,
     roleId,
     summary: {
@@ -509,7 +561,21 @@ function listProcedures(options = {}) {
 
 function inspectProcedure(options = {}) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
-  const runtimeIndex = buildRuntimeEvidenceIndex(memoryRoot);
+  const namespace = buildNamespaceContext({
+    memoryRoot,
+    surface: 'procedure-inspection',
+    tenantId: options.tenantId,
+    tenant_id: options.tenant_id,
+    spaceId: options.spaceId,
+    space_id: options.space_id,
+    userId: options.userId,
+    user_id: options.user_id,
+    agentId: options.agentId,
+    agent_id: options.agent_id,
+    roleId: options.role_id == null ? options.roleId : options.role_id,
+    role_id: options.role_id,
+  });
+  const runtimeIndex = buildRuntimeEvidenceIndex(memoryRoot, namespace.scope);
   const lineages = buildProcedureLineages(collectProcedureRecords(memoryRoot));
   const lineage = findProcedureLineage(lineages, options);
 
@@ -517,6 +583,7 @@ function inspectProcedure(options = {}) {
     kind: 'procedure-inspection',
     canonical: true,
     authoritative: true,
+    namespace,
     memoryRoot,
     roleId: lineage.roleId,
     procedureKey: lineage.procedureKey,
@@ -651,6 +718,7 @@ function compareProcedureVersions(options = {}) {
     kind: 'procedure-comparison',
     canonical: true,
     authoritative: true,
+    namespace: inspection.namespace,
     diffVersion: PROCEDURE_DIFF_VERSION,
     memoryRoot,
     roleId: inspection.roleId,
