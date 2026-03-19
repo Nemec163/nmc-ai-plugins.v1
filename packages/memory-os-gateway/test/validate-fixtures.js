@@ -369,9 +369,33 @@ function main() {
     assert.equal(recallBundle.roleBundle.manifest.id, 'mnemo');
     assert.equal(recallBundle.canonicalRecall.authoritative, true);
     assert.equal(recallBundle.pendingRecall.authoritative, false);
+    assert.equal(recallBundle.procedureRecall.kind, 'procedure-aware-recall');
+    assert.equal(recallBundle.procedureRecall.canonicalCurrent.authoritative, true);
+    assert.equal(recallBundle.procedureRecall.runtimeArtifacts.authoritative, false);
+    assert.equal(recallBundle.procedureRecall.canonicalCurrent.hits[0].recordId, 'prc-2026-03-05-001');
+    assert.equal(
+      recallBundle.procedureRecall.canonicalCurrent.hits[0].procedureSurface.classification,
+      'canonical-current-procedure'
+    );
+    assert.equal(
+      recallBundle.procedureRecall.runtimeArtifacts.buckets.procedural[0].id,
+      'proc-001'
+    );
+    assert.equal(
+      recallBundle.procedureRecall.runtimeArtifacts.buckets.procedureFeedback[0].id,
+      'pf-001'
+    );
     assert.equal(recallBundle.topHits.length > 0, true);
     assert.equal(
       ['canonical', 'pending-runtime-delta', 'runtime-shadow'].includes(recallBundle.topHits[0].sourceKind),
+      true
+    );
+    assert.equal(
+      recallBundle.topHits.some(
+        (hit) =>
+          hit.procedureSurface &&
+          hit.procedureSurface.classification === 'canonical-current-procedure'
+      ),
       true
     );
     assert.equal(recallBundle.runtimeDelta.buckets.retrievalTraces.entries[0].id, 'rt-001');

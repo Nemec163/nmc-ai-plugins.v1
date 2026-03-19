@@ -172,6 +172,20 @@ Confirm the control-plane view does not imply runtime authority.`
           tags: ['control-plane', 'handoff'],
         },
       ],
+      procedural: [
+        {
+          id: 'proc-1',
+          summary: 'Use the confirmation checklist before suggesting volatile-open momentum entries.',
+          tags: ['procedure', 'trader'],
+        },
+      ],
+      procedureFeedback: [
+        {
+          id: 'pf-1',
+          summary: 'Confirmation-first guidance reduced contradictory operator suggestions.',
+          tags: ['procedure-feedback'],
+        },
+      ],
       retrievalTraces: [
         {
           id: 'trace-1',
@@ -279,6 +293,21 @@ function main() {
     assert.equal(snapshot.audits.kind, 'control-plane-audits');
     assert.equal(snapshot.runtime.inspector.kind, 'control-plane-runtime-inspector');
     assert.equal(snapshot.runtime.inspector.authoritative, false);
+    assert.equal(snapshot.runtime.inspector.procedures.canonicalCurrent.authoritative, true);
+    assert.equal(snapshot.runtime.inspector.procedures.canonicalCurrent.lineageCount, 1);
+    assert.equal(
+      snapshot.runtime.inspector.procedures.canonicalCurrent.procedures[0].procedureKey,
+      'volatile-open-confirmation-checklist'
+    );
+    assert.equal(snapshot.runtime.inspector.procedures.runtimeArtifacts.authoritative, false);
+    assert.equal(
+      snapshot.runtime.inspector.procedures.runtimeArtifacts.buckets.procedural.entries[0].id,
+      'proc-1'
+    );
+    assert.equal(
+      snapshot.runtime.inspector.procedures.runtimeArtifacts.buckets.procedureFeedback.entries[0].id,
+      'pf-1'
+    );
     assert.equal(snapshot.releaseQualification.kind, 'control-plane-release-qualification');
     assert.equal(snapshot.releaseQualification.qualified, true);
     assert.equal(
@@ -359,14 +388,26 @@ function main() {
 
     const runtimeInspector = getControlPlaneRuntimeInspector({
       memoryRoot: fixture.memoryRoot,
+      text: 'What is the current procedure for volatile opens?',
       today: '2026-03-18',
       updatedAt: '2026-03-18T23:00:00Z',
     });
     assert.equal(runtimeInspector.kind, 'control-plane-runtime-inspector');
     assert.equal(runtimeInspector.summary.runCount, 1);
-    assert.equal(runtimeInspector.summary.totalArtifacts, 2);
+    assert.equal(runtimeInspector.summary.totalArtifacts, 4);
     assert.equal(runtimeInspector.freshness.ageDays, 0);
     assert.equal(runtimeInspector.freshness.runtimeAuthoritative, false);
+    assert.equal(runtimeInspector.procedures.canonicalCurrent.lineageCount, 1);
+    assert.equal(runtimeInspector.procedures.runtimeArtifacts.totalCount, 2);
+    assert.equal(runtimeInspector.procedures.recall.kind, 'procedure-aware-recall');
+    assert.equal(
+      runtimeInspector.procedures.recall.canonicalCurrent.hits[0].recordId,
+      'prc-2026-03-05-001'
+    );
+    assert.equal(
+      runtimeInspector.procedures.recall.runtimeArtifacts.buckets.procedureFeedback[0].id,
+      'pf-1'
+    );
 
     const degradedHealth = getControlPlaneHealth({
       memoryRoot: fixture.memoryRoot,

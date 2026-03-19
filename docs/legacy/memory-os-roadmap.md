@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `procedure inspection and comparison surfaces — expose canonical procedure lineage, versions, and diff-safe read views without widening write authority`
-- next: `procedure-aware recall surfaces — distinguish canonical current procedures from runtime procedural artifacts in recall and operator views without widening write authority`
+- completed: `procedure-aware recall surfaces — distinguish canonical current procedures from runtime procedural artifacts in recall and operator views without widening write authority`
+- next: `procedure evidence linkage surfaces — expose read-only links from canonical current procedures back to supporting runtime procedural feedback and observations without widening write authority`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
@@ -2170,12 +2170,26 @@ Implementation note:
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 
+### procedure-aware recall surfaces
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- added explicit `procedureRecall` structure to gateway recall bundles so canonical current procedure hits, canonical historical procedure hits, and non-authoritative runtime `procedural`/`procedureFeedback` artifacts are separated instead of blended
+- annotated recall hits with procedure classification metadata so consumers can tell when a hit is current canonical guidance versus runtime-only procedure memory without changing ranking or write authority
+- extended `control-plane` runtime inspection with a dedicated procedures summary covering canonical current procedures, runtime procedural artifact buckets, and query-scoped procedure-aware recall visibility for operator consumers
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
 ## Immediate Next Step
 
-The next implementation step should make recall and operator consumers distinguish canonical current procedures from runtime procedural artifacts without weakening the existing source-of-truth and promotion invariants:
+The next implementation step should expose read-only evidence linkage from canonical current procedures back to the runtime procedural observations and feedback that informed them, without weakening the existing source-of-truth and promotion invariants:
 
-- expose procedure-aware recall summaries that clearly separate canonical current guidance from runtime procedural observations and feedback
-- keep scope pinned to read/query visibility and freshness boundaries; do not widen into automatic promotion, rollback, or runtime authority
-- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while procedure-aware recall surfaces mature
+- expose procedure lineage and recall views that can point from canonical current procedure records to linked `feedback_refs`, supporting runtime runs, and related runtime procedural artifacts as read-only evidence
+- keep scope pinned to read/query visibility, lineage linking, and freshness boundaries; do not widen into automatic promotion, rollback, or runtime authority
+- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while procedure evidence linkage surfaces mature
 
-Procedure lineage is now inspectable and comparable. The next risk is recall and operator consumers blending canonical current procedures with non-authoritative runtime procedural artifacts even though the write boundary remains correct.
+Canonical current procedures and runtime procedural artifacts are now clearly separated in recall and operator views. The next risk is losing the read-only evidence trail between them even though the authority boundary remains correct.

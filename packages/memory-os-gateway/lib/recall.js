@@ -3,12 +3,63 @@
 const path = require('node:path');
 
 const { getRoleBundle } = require('./bootstrap');
+const { listProcedures } = require('./procedures');
 const { getStatus } = require('./status');
 const { getCanonicalCurrent } = require('./read');
 const { query } = require('./query');
 const { getRuntimeRecallBundle } = require('./runtime');
 
-function normalizeCanonicalHit(hit) {
+function buildProcedureLookup(memoryRoot) {
+  const catalog = listProcedures({ memoryRoot });
+  const byRecordId = new Map();
+
+  for (const lineage of catalog.procedures || []) {
+    const currentRecordId = lineage.currentVersion ? lineage.currentVersion.recordId : null;
+    const latestRecordId = lineage.latestVersion ? lineage.latestVersion.recordId : null;
+
+    for (const version of lineage.versions || []) {
+      byRecordId.set(version.recordId, {
+        roleId: lineage.roleId,
+        procedureKey: lineage.procedureKey,
+        version: version.version,
+        status: version.status,
+        relativePath: lineage.relativePath,
+        versionCount: lineage.versionCount,
+        current: version.recordId === currentRecordId,
+        latest: version.recordId === latestRecordId,
+        currentRecordId,
+        latestRecordId,
+        classification:
+          version.recordId === currentRecordId
+            ? 'canonical-current-procedure'
+            : 'canonical-historical-procedure',
+      });
+    }
+  }
+
+  return byRecordId;
+}
+
+function getCanonicalProcedureSurface(hit, procedureLookup) {
+  return procedureLookup.get(hit.recordId) || null;
+}
+
+function getRuntimeProcedureSurface(hit) {
+  if (hit.bucket !== 'procedural' && hit.bucket !== 'procedureFeedback') {
+    return null;
+  }
+
+  return {
+    classification: 'runtime-procedural-artifact',
+    artifactKind: hit.bucket === 'procedureFeedback' ? 'feedback' : 'observation',
+    runtimeBucket: hit.bucket,
+    current: false,
+    latest: false,
+  };
+}
+
+function normalizeCanonicalHit(hit, procedureLookup) {
+  const procedureSurface = getCanonicalProcedureSurface(hit, procedureLookup);
   return {
     sourceKind: 'canonical',
     authoritative: true,
@@ -20,6 +71,7 @@ function normalizeCanonicalHit(hit) {
     snippet: hit.snippet,
     relativePath: hit.relativePath,
     ranking: hit.ranking,
+    procedureSurface,
   };
 }
 
@@ -32,10 +84,12 @@ function normalizePendingHit(hit) {
     snippet: hit.snippet,
     relativePath: hit.relativePath,
     ranking: hit.ranking,
+    procedureSurface: null,
   };
 }
 
 function normalizeRuntimeHit(hit) {
+  const procedureSurface = getRuntimeProcedureSurface(hit);
   return {
     sourceKind: 'runtime-shadow',
     authoritative: false,
@@ -58,6 +112,7 @@ function normalizeRuntimeHit(hit) {
         },
       ],
     },
+    procedureSurface,
   };
 }
 
@@ -98,6 +153,7 @@ function getRecallBundle(options = {}) {
       })
     : null;
   const status = getStatus({ memoryRoot });
+  const procedureLookup = buildProcedureLookup(memoryRoot);
   const canonicalRecall = {
     kind: 'canonical-recall',
     authoritative: true,
@@ -112,10 +168,61 @@ function getRecallBundle(options = {}) {
     hits: queryResult ? queryResult.pendingRuntimeDelta : [],
     rankingVersion: queryResult ? queryResult.contract.rankingVersion : null,
   };
+  const normalizedCanonicalHits = canonicalRecall.hits.map((hit) =>
+    normalizeCanonicalHit(hit, procedureLookup)
+  );
+  const normalizedPendingHits = pendingRecall.hits.map(normalizePendingHit);
+  const normalizedRuntimeHits = (runtimeRecall.hits || []).map(normalizeRuntimeHit);
+  const runtimeProceduralHits = [
+    ...((((runtimeRecall.buckets || {}).procedural || {}).entries || []).map(normalizeRuntimeHit)),
+    ...((((runtimeRecall.buckets || {}).procedureFeedback || {}).entries || []).map(normalizeRuntimeHit)),
+  ].sort((left, right) => right.score - left.score);
+  const canonicalCurrentProcedureHits = normalizedCanonicalHits.filter(
+    (hit) => hit.procedureSurface && hit.procedureSurface.classification === 'canonical-current-procedure'
+  );
+  const canonicalHistoricalProcedureHits = normalizedCanonicalHits.filter(
+    (hit) => hit.procedureSurface && hit.procedureSurface.classification === 'canonical-historical-procedure'
+  );
+  const procedureRecall = {
+    kind: 'procedure-aware-recall',
+    authoritative: false,
+    summary: {
+      canonicalCurrentCount: canonicalCurrentProcedureHits.length,
+      canonicalHistoricalCount: canonicalHistoricalProcedureHits.length,
+      runtimeArtifactCount:
+        ((((runtimeRecall.buckets || {}).procedural || {}).count || 0) +
+          (((runtimeRecall.buckets || {}).procedureFeedback || {}).count || 0)),
+    },
+    canonicalCurrent: {
+      authoritative: true,
+      hits: canonicalCurrentProcedureHits,
+    },
+    canonicalHistorical: {
+      authoritative: true,
+      hits: canonicalHistoricalProcedureHits,
+    },
+    runtimeArtifacts: {
+      authoritative: false,
+      hits: runtimeProceduralHits,
+      buckets: {
+        procedural: runtimeProceduralHits.filter(
+          (hit) => hit.procedureSurface && hit.procedureSurface.runtimeBucket === 'procedural'
+        ),
+        procedureFeedback: runtimeProceduralHits.filter(
+          (hit) => hit.procedureSurface && hit.procedureSurface.runtimeBucket === 'procedureFeedback'
+        ),
+      },
+    },
+    freshnessBoundary: {
+      canonicalLastUpdated: canonicalCurrent.freshnessBoundary.manifestLastUpdated,
+      runtimeShadowLastCapturedAt: runtimeRecall.freshnessBoundary.runtimeLastCapturedAt,
+      runtimeProceduralAuthoritative: false,
+    },
+  };
   const topHits = [
-    ...canonicalRecall.hits.map(normalizeCanonicalHit),
-    ...pendingRecall.hits.map(normalizePendingHit),
-    ...(runtimeRecall.hits || []).map(normalizeRuntimeHit),
+    ...normalizedCanonicalHits,
+    ...normalizedPendingHits,
+    ...normalizedRuntimeHits,
   ]
     .sort((left, right) => right.score - left.score)
     .slice(0, Number.isInteger(options.limit) ? options.limit : 10);
@@ -141,6 +248,7 @@ function getRecallBundle(options = {}) {
     canonicalCurrent,
     canonicalRecall,
     pendingRecall,
+    procedureRecall,
     topHits,
     canonicalHits: queryResult ? queryResult.canonicalHits : [],
     pendingRuntimeDelta: queryResult ? queryResult.pendingRuntimeDelta : [],

@@ -6,8 +6,8 @@ This repository now treats `MemoryOS.v1` as the product boundary and uses the ro
 
 ## Current State
 
-- completed roadmap slice: `procedure inspection and comparison surfaces — expose canonical procedure lineage, versions, and diff-safe read views without widening write authority`
-- next roadmap slice: `procedure-aware recall surfaces — distinguish canonical current procedures from runtime procedural artifacts in recall and operator views without widening write authority`
+- completed roadmap slice: `procedure-aware recall surfaces — distinguish canonical current procedures from runtime procedural artifacts in recall and operator views without widening write authority`
+- next roadmap slice: `procedure evidence linkage surfaces — expose read-only links from canonical current procedures back to supporting runtime procedural feedback and observations without widening write authority`
 - regression baseline:
   - `./tests/run-contract-tests.sh`
   - `./tests/run-integration.sh`
@@ -103,7 +103,8 @@ Phase 0 is complete:
 - `derived read index` added a rebuildable non-authoritative read index over canon inside `memory-os-gateway`, plus build/verify CLI surfaces and status visibility, while preserving canon as the only truth layer
 - `retrieval semantics and recall quality` added explainable ranking, normalized recall sections, and explicit canonical-versus-runtime authority boundaries over the derived read layer without widening runtime authority
 - `procedure inspection and comparison surfaces` added canonical procedure catalog, lineage inspection, and structured version diff views through `memory-os-gateway`, then surfaced that catalog in `control-plane` snapshot output without widening control-plane or runtime write authority
-- the next slice is `procedure-aware recall surfaces`, which should distinguish canonical current procedures from runtime procedural artifacts in recall and operator views while keeping runtime non-authoritative and write authority pinned to the existing promotion path
+- `procedure-aware recall surfaces` added explicit procedure-aware recall summaries and operator views so canonical current procedures remain distinguishable from runtime `procedural` and `procedureFeedback` artifacts without widening runtime authority
+- the next slice is `procedure evidence linkage surfaces`, which should expose read-only links from canonical current procedures back to supporting runtime procedural feedback and observations while keeping runtime non-authoritative and write authority pinned to the existing promotion path
 
 ## Commit Convention
 

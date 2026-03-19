@@ -81,6 +81,54 @@ function getBucketHighlights(buckets) {
     });
 }
 
+function summarizeCurrentProcedures(catalog) {
+  const procedures = (catalog && catalog.procedures ? catalog.procedures : [])
+    .filter((lineage) => lineage.currentVersion)
+    .map((lineage) => ({
+      roleId: lineage.roleId,
+      procedureKey: lineage.procedureKey,
+      relativePath: lineage.relativePath,
+      versionCount: lineage.versionCount,
+      currentVersion: lineage.currentVersion,
+      latestVersion: lineage.latestVersion,
+    }))
+    .sort((left, right) => {
+      if (String(left.roleId || '') !== String(right.roleId || '')) {
+        return String(left.roleId || '').localeCompare(String(right.roleId || ''));
+      }
+
+      return String(left.procedureKey || '').localeCompare(String(right.procedureKey || ''));
+    });
+
+  return {
+    authoritative: true,
+    lineageCount: procedures.length,
+    procedures,
+  };
+}
+
+function summarizeRuntimeProcedureArtifacts(runtimeDelta, limit) {
+  const proceduralBucket = (((runtimeDelta || {}).buckets || {}).procedural || {});
+  const feedbackBucket = (((runtimeDelta || {}).buckets || {}).procedureFeedback || {});
+  const proceduralEntries = proceduralBucket.entries || [];
+  const feedbackEntries = feedbackBucket.entries || [];
+
+  return {
+    authoritative: false,
+    totalCount: (proceduralBucket.count || 0) + (feedbackBucket.count || 0),
+    buckets: {
+      procedural: {
+        count: proceduralBucket.count || 0,
+        entries: proceduralEntries.slice(0, limit),
+      },
+      procedureFeedback: {
+        count: feedbackBucket.count || 0,
+        entries: feedbackEntries.slice(0, limit),
+      },
+    },
+  };
+}
+
 function getControlPlaneRuntimeInspector(options = {}) {
   const memoryRoot = resolveMemoryRoot(options);
   const gateway = loadGateway();
@@ -94,6 +142,16 @@ function getControlPlaneRuntimeInspector(options = {}) {
   const text = String(options.text || '').trim();
   const lastCapturedAgeDays = ageInDays(runtimeDelta.lastCapturedAt, referenceTime);
   const bucketHighlights = getBucketHighlights(runtimeDelta.buckets);
+  const procedureCatalog = gateway.listProcedures({
+    memoryRoot,
+  });
+  const procedureRecall = text
+    ? gateway.getRecallBundle({
+        memoryRoot,
+        text,
+        limit: runtimeLimit,
+      }).procedureRecall
+    : null;
   const recall = text
     ? gateway.getRuntimeRecallBundle({
         memoryRoot,
@@ -132,6 +190,11 @@ function getControlPlaneRuntimeInspector(options = {}) {
       sampledRuns,
       topSources: getTopSources(runtimeDelta.runs),
       busiestBuckets: bucketHighlights.slice(0, 3),
+    },
+    procedures: {
+      canonicalCurrent: summarizeCurrentProcedures(procedureCatalog),
+      runtimeArtifacts: summarizeRuntimeProcedureArtifacts(runtimeDelta, runtimeLimit),
+      recall: procedureRecall,
     },
     buckets: runtimeDelta.buckets,
     runs: runtimeDelta.runs,
