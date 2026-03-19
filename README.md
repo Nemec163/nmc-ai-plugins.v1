@@ -1,19 +1,19 @@
 # MemoryOS.v1
 
-Monorepo for MemoryOS.v1: an autonomous, self-sufficient memory operating system with a standalone app surface and optional connector packages for external LLM and agent runtimes.
+Monorepo for MemoryOS.v1: an autonomous, self-sufficient memory operating system with a standalone app surface and optional adapter packages for external LLM and agent runtimes.
 
-The product boundary is the independent Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `memoryos-app` is the standalone app surface, while `adapter-openclaw`, `adapter-codex`, and `adapter-claude` are peer adapter surfaces over the same core, each adapted to its own host or LLM runtime.
+The product boundary is the independent Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Adapter packages attach that core to specific execution environments. In this repository, `memoryos-app` is the standalone app surface, while `adapter-openclaw`, `adapter-codex`, and `adapter-claude` are peer adapter surfaces over the same core, each adapted to its own host or LLM runtime.
 
 `packages/memoryos-app` is the supported standalone app surface for MemoryOS.v1. `packages/adapter-openclaw`, `packages/adapter-codex`, and `packages/adapter-claude` are supported adapter surfaces.
 
-Use this document as the entry point. Use [standalone app README](./packages/memoryos-app/README.md) for the local runtime surface, [OpenClaw adapter README](./packages/adapter-openclaw/README.md), [Codex adapter README](./packages/adapter-codex/README.md), and [Claude adapter README](./packages/adapter-claude/README.md) for the peer adapter surfaces, [supported surfaces](./docs/supported-surfaces.md) for the package matrix, [implementation guide](./docs/legacy/implementation-guide.md) for day-2 operations, [release readiness](./docs/release-readiness.md) for the current production gate, and [deliberate migration release plan](./docs/legacy/deliberate-migration-release-plan.md) for historical release-cutover context.
+Use this document as the entry point. Start with [standalone app README](./packages/memoryos-app/README.md) for the autonomous local runtime surface. Use [OpenClaw adapter README](./packages/adapter-openclaw/README.md), [Codex adapter README](./packages/adapter-codex/README.md), and [Claude adapter README](./packages/adapter-claude/README.md) only when you need those specific peer adapter surfaces. Use [supported surfaces](./docs/supported-surfaces.md) for the package matrix, [implementation guide](./docs/legacy/implementation-guide.md) for day-2 operations, [release readiness](./docs/release-readiness.md) for the current production gate, and [deliberate migration release plan](./docs/legacy/deliberate-migration-release-plan.md) for historical release-cutover context.
 
 ## What It Provides
 
 - An autonomous Memory OS core with canonical memory, runtime shadow state, operator surfaces, and deterministic promotion boundaries.
 - A shared `system/` layer with memory, skills, tasks, policy, docs, and scripts.
 - A git-backed canonical memory workspace with extract -> curate -> apply -> verify flow.
-- Peer adapter surfaces for OpenClaw, Codex, and Claude, while the core product boundary stays independent of any single connector.
+- Peer adapter surfaces for OpenClaw, Codex, and Claude, while the core product boundary stays independent of any single adapter.
 - Host-specific adapter behavior for plugin bootstrap, adapter-owned runners, and explicit gateway handoff without widening canon authority.
 
 ## Quick Start
@@ -34,7 +34,7 @@ node ./packages/memoryos-app/bin/memoryos.js health
 node ./packages/memoryos-app/bin/memoryos.js pipeline 2026-03-05 --phase verify
 ```
 
-Install the optional OpenClaw adapter from this repository when you want the OpenClaw host/runtime integration:
+Install the optional OpenClaw adapter from this repository only when you want OpenClaw host/runtime integration:
 
 ```bash
 openclaw plugins install ./packages/adapter-openclaw
@@ -83,7 +83,7 @@ These packages define the standalone memory system and its stable operator/progr
   flows, including connector-neutral `extract` and `curate` execution through
   the shared pipeline contract.
 
-### OpenClaw Adapter
+### Optional OpenClaw Adapter
 
 `packages/adapter-openclaw` registers:
 
@@ -178,6 +178,8 @@ The adapter manifest exposes these managed config knobs through `openclaw.plugin
 | `writeConfig` | Disable or enable `openclaw.json` updates during setup. |
 | `bindings` | Seed routing bindings in `agent=channel[:accountId[:peerId]]` form. |
 | `models.*` | Override the default model per predefined agent. |
+
+These settings apply only to the OpenClaw adapter surface. They are not part of the standalone `MemoryOS.v1` product boundary.
 
 Example:
 

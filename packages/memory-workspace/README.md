@@ -1,7 +1,7 @@
 # @nmc/memory-workspace
 
-Shared workspace utilities and scaffold orchestration extracted from OpenClaw
-setup code.
+Shared workspace utilities and scaffold orchestration for the autonomous
+MemoryOS core.
 
 Surface status: `internal` shared core package inside the product boundary. It
 is not a direct install, operator, or adapter surface.
@@ -25,5 +25,6 @@ Example:
 const { copyMemoryTemplate } = require("@nmc/memory-workspace");
 ```
 
+The package may be consumed by standalone and adapter-owned bootstrap flows.
 See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for the
 migration history.

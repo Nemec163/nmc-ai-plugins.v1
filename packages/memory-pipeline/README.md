@@ -28,7 +28,7 @@ Current surfaces:
 - `describeAdapterInvocation(options)`
 - `runAdapterInvocation(options)`
 
-The shared pipeline package treats connectors as optional. LLM phase execution
+The shared pipeline package treats adapters as optional. LLM phase execution
 for `extract` and `curate` is resolved from an injected adapter module path,
 and the invocation shape is validated through `@nmc/memory-contracts`. Phase C
 `apply` remains available in the pipeline UX but executes through the in-process
@@ -36,10 +36,11 @@ core promoter. The package-local verify phase now defaults to
 `@nmc/memory-scripts`.
 
 The shared runner now resolves relative adapter-module paths from the caller's
-current working directory, so peer connectors such as `./packages/adapter-codex`
+current working directory, so peer adapters such as `./packages/adapter-codex`
 can participate in the same pipeline UX without OpenClaw-specific wrapper
 assumptions.
 
-The supported OpenClaw adapter entrypoint lives at
+One adapter-owned entrypoint lives at
 `packages/adapter-openclaw/skills/memory-pipeline/pipeline.sh` as a thin wrapper
-over this package.
+over this package. That wrapper is adapter-specific, not the primary product
+surface.

@@ -8,7 +8,7 @@ product boundary. Use it when deciding which package is production or internal.
 - `production`: supported public surface for the current repository and shipped
   install story
 - `internal`: part of the product boundary, but not a direct install, operator,
-  or public connector surface
+  or public adapter surface
 
 ## Package Matrix
 
@@ -32,5 +32,5 @@ product boundary. Use it when deciding which package is production or internal.
 | `adapter-conformance` | `internal` | test-only package | Capability-scoped adapter conformance harness |
 
 The product boundary remains the independent `MemoryOS.v1` core plus the stable
-gateway and operator surfaces. Connectors attach to that boundary; they do not
-replace it.
+standalone, gateway, and operator surfaces. Adapters attach to that boundary;
+they do not replace it.

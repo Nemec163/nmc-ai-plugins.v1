@@ -7,8 +7,8 @@
 This document is the high-level architecture reference for the current
 `MemoryOS.v1` repository. It is intentionally narrower than the historical
 design notes under [`docs/legacy/`](./legacy/README.md): it describes the live
-package boundary, the current install/setup path, and the current operational
-invariants.
+package boundary, the current standalone-first install/run path, and the
+current operational invariants.
 
 For the authoritative package taxonomy, use
 [supported-surfaces.md](./supported-surfaces.md). For the production go/no-go
@@ -44,8 +44,6 @@ The current boundary is split into two package classes:
 
 These rules are visible in code, tests, and release qualification:
 
-- `openclaw memoryos setup`, plugin auto-bootstrap, and `openclaw.plugin.json`
-  remain intact
 - the shared workspace layout under `system/` remains stable
 - canon is the only source of truth
 - runtime shadow data never writes canon directly
@@ -53,6 +51,10 @@ These rules are visible in code, tests, and release qualification:
 - projections, read-index data, runtime summaries, and receipts remain
   rebuildable and non-authoritative
 - `control-plane` stays read-only
+- adapters preserve their host-specific contracts without redefining the
+  product boundary
+- for the OpenClaw adapter specifically, `openclaw memoryos setup`, plugin
+  auto-bootstrap, and `openclaw.plugin.json` remain intact
 
 ## Package Layers
 
@@ -113,20 +115,20 @@ runtime, and maintainer contracts. The current CLI surface includes:
 Its release-qualification metadata also publishes the current package matrix for
 the live product boundary.
 
-### Connector Surfaces
+### Adapter Surfaces
 
-The repository exposes three connectors:
+The repository exposes three peer adapters:
 
-- `adapter-openclaw`: production OpenClaw connector/install surface with
+- `adapter-openclaw`: production OpenClaw adapter/install surface with
   `openclaw.plugin.json`, `plugin.js`, direct setup, auto-bootstrap, bundled
   skills, and installed wrapper entrypoints for `control-plane` and
   `memory-os-gateway`
-- `adapter-codex`: bounded Codex connector for role-aware bootstrap,
-  connector-neutral `extract` and `curate` execution through the shared
+- `adapter-codex`: bounded Codex adapter for role-aware bootstrap,
+  adapter-neutral `extract` and `curate` execution through the shared
   pipeline contract, bounded single-run execution, and explicit
   gateway-mediated handoff
-- `adapter-claude`: bounded Claude connector over the same bootstrap, read,
-  connector-neutral `extract` and `curate` execution through the shared
+- `adapter-claude`: bounded Claude adapter over the same bootstrap, read,
+  adapter-neutral `extract` and `curate` execution through the shared
   pipeline contract, and handoff contracts
 
 `adapter-conformance` remains an internal test-only package that validates only
@@ -149,7 +151,22 @@ verification receipts.
 
 ## Workspace Model
 
-The managed OpenClaw scaffold creates a shared execution layer under
+The autonomous standalone app owns the default local workspace:
+
+- `~/.memoryos/system/`
+- `~/.memoryos/system/memory/`
+- `~/.memoryos/{nyx,medea,arx,lev,mnemo}/`
+- `~/.memoryos/agents/{nyx,medea,arx,lev,mnemo}/`
+
+The OpenClaw adapter owns its separate host-specific scaffold under
+`~/.openclaw/`:
+
+- `~/.openclaw/workspace/system/`
+- `~/.openclaw/workspace/system/memory/`
+- `~/.openclaw/workspace/{nyx,medea,arx,lev,mnemo}/`
+- `~/.openclaw/agents/{nyx,medea,arx,lev,mnemo}/`
+
+Within that adapter-owned layout, the shared execution layer lives under
 `~/.openclaw/workspace/system/`:
 
 - `memory/` for canon, intake, metadata, and runtime shadow state
@@ -160,7 +177,7 @@ The managed OpenClaw scaffold creates a shared execution layer under
 - `scripts/` for local helper tooling such as `kanban.mjs`
 
 It also creates predefined per-agent workspaces for `nyx`, `medea`, `arx`,
-`lev`, and `mnemo`, plus OpenClaw state directories under
+`lev`, and `mnemo`, plus adapter-managed OpenClaw state directories under
 `~/.openclaw/agents/`.
 
 ## Pipeline
@@ -181,7 +198,16 @@ assumptions, while Phase C remains core-owned.
 
 ## Install And Runtime Paths
 
-For OpenClaw, the supported development install path is:
+The primary local install/run path is the standalone app:
+
+```bash
+node ./packages/memoryos-app/bin/memoryos.js init
+node ./packages/memoryos-app/bin/memoryos.js run --phase verify --once
+node ./packages/memoryos-app/bin/memoryos.js status
+```
+
+OpenClaw is one optional adapter. For that host, the supported development
+install path is:
 
 ```bash
 openclaw plugins install ./packages/adapter-openclaw
@@ -219,7 +245,7 @@ Latest completed slice:
 
 > `connector-neutral extract and curate execution contract`
 
-That slice finished the remaining OpenClaw-first assumption on the LLM-owned
+That slice finished the remaining adapter-biased assumption on the LLM-owned
 pipeline phases by letting peer adapters publish their own extract/curate
 runner contracts while preserving the shared pipeline UX and the core-owned
 promotion boundary.
