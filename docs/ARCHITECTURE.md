@@ -122,10 +122,13 @@ The repository exposes three connectors:
   `openclaw.plugin.json`, `plugin.js`, direct setup, auto-bootstrap, bundled
   skills, and installed wrapper entrypoints for `control-plane` and
   `memory-os-gateway`
-- `adapter-codex`: bounded Codex connector for role-aware bootstrap, bounded
-  single-run execution, and explicit gateway-mediated handoff
-- `adapter-claude`: bounded Claude connector over the same bootstrap, read, and
-  handoff contracts
+- `adapter-codex`: bounded Codex connector for role-aware bootstrap,
+  connector-neutral `extract` and `curate` execution through the shared
+  pipeline contract, bounded single-run execution, and explicit
+  gateway-mediated handoff
+- `adapter-claude`: bounded Claude connector over the same bootstrap, read,
+  connector-neutral `extract` and `curate` execution through the shared
+  pipeline contract, and handoff contracts
 
 `adapter-conformance` remains an internal test-only package that validates only
 the capabilities each adapter explicitly claims.
@@ -173,7 +176,9 @@ The current memory pipeline stays four-phase:
 `@nmc/memory-pipeline` owns sequencing and adapter invocation. The supported
 OpenClaw entrypoint remains
 `packages/adapter-openclaw/skills/memory-pipeline/pipeline.sh`, which delegates
-into the shared pipeline package.
+into the shared pipeline package. Peer adapters can now attach their own
+extract/curate runner contracts without inheriting OpenClaw skill invocation
+assumptions, while Phase C remains core-owned.
 
 ## Install And Runtime Paths
 
@@ -213,15 +218,16 @@ production-readiness gate used for release candidates.
 
 Latest completed slice:
 
-> `documentation drift cleanup and current-state alignment`
+> `connector-neutral extract and curate execution contract`
 
-That slice aligned the root docs, package README files, legacy entry documents,
-roadmap snapshot, and `AGENTS.md` with the current code-defined surfaces and
-demoted the old release-cutover plan to historical-archive status.
+That slice finished the remaining OpenClaw-first assumption on the LLM-owned
+pipeline phases by letting peer adapters publish their own extract/curate
+runner contracts while preserving the shared pipeline UX and the core-owned
+promotion boundary.
 
 Next slice:
 
-> `TBD after documentation-alignment hardening`
+> `adapter-owned source intake and execution receipt hardening`
 
 Use the roadmap `Immediate Next Step` section as the source of truth before
 starting the next bounded implementation change.

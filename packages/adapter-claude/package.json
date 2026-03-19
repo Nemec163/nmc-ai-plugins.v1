@@ -7,7 +7,8 @@
   "main": "./index.js",
   "exports": {
     ".": "./index.js",
-    "./conformance-adapter": "./lib/claude-adapter.js"
+    "./conformance-adapter": "./lib/claude-adapter.js",
+    "./pipeline-adapter": "./lib/pipeline-adapter.js"
   },
   "files": [
     "index.js",
@@ -19,6 +20,7 @@
     "test": "node ./test/validate-fixtures.js"
   },
   "dependencies": {
+    "@nmc/memory-contracts": "0.0.0",
     "adapter-conformance": "0.0.0",
     "memory-os-gateway": "0.0.0"
   }

@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -26,6 +27,7 @@ const {
   CLAUDE_ADAPTER_CAPABILITIES,
   attachClaudeRole,
   createClaudeConformanceAdapter,
+  createClaudePipelineAdapter,
   runClaudeSession,
   runClaudeSessionHandoff,
 } = require('..');
@@ -37,6 +39,40 @@ const WORKSPACE_FIXTURE = path.resolve(
 
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'adapter-claude-validate-'));
+}
+
+function makeFakeClaudeRunner(rootDir) {
+  const runnerPath = path.join(rootDir, 'fake-claude.js');
+  const outputPath = path.join(rootDir, 'fake-claude-output.json');
+
+  fs.writeFileSync(
+    runnerPath,
+    `#!/usr/bin/env node
+'use strict';
+const fs = require('node:fs');
+
+const stdin = fs.readFileSync(0, 'utf8');
+fs.writeFileSync(
+  ${JSON.stringify(outputPath)},
+  JSON.stringify(
+    {
+      args: process.argv.slice(2),
+      prompt: stdin,
+    },
+    null,
+    2
+  ) + '\\n',
+  'utf8'
+);
+`,
+    'utf8'
+  );
+  fs.chmodSync(runnerPath, 0o755);
+
+  return {
+    outputPath,
+    runnerPath,
+  };
 }
 
 function main() {
@@ -112,8 +148,63 @@ function main() {
     assert.equal(attachment.workspace.skillsLinked, true);
     assert.equal(attachment.workspace.systemLinked, true);
     assert.equal(attachment.role.id, 'mnemo');
+
+    const pipelineAdapter = createClaudePipelineAdapter();
+    const extractInvocation = pipelineAdapter.runExtract({
+      date: '2026-03-18',
+      llmRunner: path.join(executionRoot, 'fake-claude.js'),
+      memoryRoot: WORKSPACE_FIXTURE,
+      roleId: 'mnemo',
+      sharedSkillsRoot,
+      systemRoot,
+      workspaceDir,
+    });
+    assert.equal(extractInvocation.command, process.execPath);
+    assert.match(extractInvocation.displayCommand, /^.*fake-claude\.js < adapter-claude:extract:mnemo:2026-03-18$/);
   } finally {
     fs.rmSync(executionRoot, { recursive: true, force: true });
+  }
+
+  const pipelineRoot = makeTempRoot();
+
+  try {
+    const workspaceRoot = path.join(pipelineRoot, 'workspace');
+    const systemRoot = path.join(workspaceRoot, 'system');
+    const memoryRoot = path.join(systemRoot, 'memory');
+    const workspaceDir = path.join(workspaceRoot, 'mnemo');
+    const sharedSkillsRoot = path.join(systemRoot, 'skills');
+    const fakeClaude = makeFakeClaudeRunner(pipelineRoot);
+    fs.mkdirSync(workspaceRoot, { recursive: true });
+    fs.cpSync(WORKSPACE_FIXTURE, memoryRoot, { recursive: true });
+    fs.mkdirSync(sharedSkillsRoot, { recursive: true });
+
+    const pipelineAdapter = createClaudePipelineAdapter();
+    const curateInvocation = pipelineAdapter.runCurate({
+      date: '2026-03-18',
+      llmRunner: fakeClaude.runnerPath,
+      memoryRoot,
+      roleId: 'mnemo',
+      sharedSkillsRoot,
+      systemRoot,
+      workspaceDir,
+    });
+
+    const result = spawnSync(curateInvocation.command, curateInvocation.args, {
+      cwd: pipelineRoot,
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(fs.existsSync(path.join(workspaceDir, 'BOOT.md')), true);
+
+    const fakeOutput = JSON.parse(fs.readFileSync(fakeClaude.outputPath, 'utf8'));
+    assert.equal(fakeOutput.args[0], '--phase');
+    assert.equal(fakeOutput.args[1], 'curate');
+    assert.match(fakeOutput.prompt, /MemoryOS curator running through adapter-claude/);
+    assert.match(fakeOutput.prompt, /intake\/pending\/2026-03-18\.md/);
+    assert.match(fakeOutput.prompt, /exactly one "### curator-annotation" block/);
+    assert.doesNotMatch(fakeOutput.prompt, /OpenClaw session paths/);
+  } finally {
+    fs.rmSync(pipelineRoot, { recursive: true, force: true });
   }
 
   const handoffRoot = makeTempRoot();

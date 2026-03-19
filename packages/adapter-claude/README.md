@@ -9,12 +9,20 @@ surface.
 Supported bounded scope:
 
 - role-aware bootstrap for a bounded Claude workspace
+- connector-neutral pipeline adapter support for `extract` and `curate`
+  through a package-local Claude phase runner
 - role bundle intake for a Claude session
 - canon-safe read and write-orchestration operations through the gateway
 - a bounded session helper for read-only operations plus an explicit handoff helper that uploads reviewed results and completes at the promoter handoff boundary
 - shared adapter conformance coverage for the claimed capabilities
+- `./pipeline-adapter` as the exported pipeline surface for shared
+  `@nmc/memory-pipeline` execution
 - `./conformance-adapter` as the exported test surface for the shared
   capability harness
+
+The Claude phase runner bootstraps the role workspace, follows the MemoryOS
+runbook for Phase A or Phase B, and hands prompt execution to an adapter-owned
+runner command over stdin without widening into direct canon writes.
 
 This package intentionally does not mutate `openclaw.json`, own workspace-wide
 setup, lease maintainer jobs, or write canon directly.

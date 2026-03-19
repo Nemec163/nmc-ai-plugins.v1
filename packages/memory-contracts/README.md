@@ -39,7 +39,8 @@ Primary exports include:
 - `validatePipelineAdapter(adapter)`
 - `validatePipelineInvocation(invocation)`
 - `getPipelineInvocation(adapter, phase, options)`
-- `formatPipelineInvocation(invocation)`
+- `formatPipelineInvocation(invocation)` for dry-run text, using
+  `displayCommand` when an adapter provides one
 - `isSupportedSchemaVersion(value)`
 - `validateSchemaVersion(value[, path])`
 - `isKnownRecordType(value)`

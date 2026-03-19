@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -26,6 +27,7 @@ const {
   CODEX_ADAPTER_CAPABILITIES,
   attachCodexRole,
   createCodexConformanceAdapter,
+  createCodexPipelineAdapter,
   runCodexSingleThread,
   runCodexSingleThreadHandoff,
 } = require('..');
@@ -37,6 +39,40 @@ const WORKSPACE_FIXTURE = path.resolve(
 
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'adapter-codex-validate-'));
+}
+
+function makeFakeCodexRunner(rootDir) {
+  const runnerPath = path.join(rootDir, 'fake-codex.js');
+  const outputPath = path.join(rootDir, 'fake-codex-output.json');
+
+  fs.writeFileSync(
+    runnerPath,
+    `#!/usr/bin/env node
+'use strict';
+const fs = require('node:fs');
+
+const stdin = fs.readFileSync(0, 'utf8');
+fs.writeFileSync(
+  ${JSON.stringify(outputPath)},
+  JSON.stringify(
+    {
+      args: process.argv.slice(2),
+      prompt: stdin,
+    },
+    null,
+    2
+  ) + '\\n',
+  'utf8'
+);
+`,
+    'utf8'
+  );
+  fs.chmodSync(runnerPath, 0o755);
+
+  return {
+    outputPath,
+    runnerPath,
+  };
 }
 
 function main() {
@@ -112,8 +148,63 @@ function main() {
     assert.equal(attachment.workspace.skillsLinked, true);
     assert.equal(attachment.workspace.systemLinked, true);
     assert.equal(attachment.role.id, 'arx');
+
+    const pipelineAdapter = createCodexPipelineAdapter();
+    const extractInvocation = pipelineAdapter.runExtract({
+      date: '2026-03-18',
+      llmRunner: path.join(executionRoot, 'fake-codex.js'),
+      memoryRoot: WORKSPACE_FIXTURE,
+      roleId: 'arx',
+      sharedSkillsRoot,
+      systemRoot,
+      workspaceDir,
+    });
+    assert.equal(extractInvocation.command, process.execPath);
+    assert.match(extractInvocation.displayCommand, /^.*fake-codex\.js exec --skip-git-repo-check /);
   } finally {
     fs.rmSync(executionRoot, { recursive: true, force: true });
+  }
+
+  const pipelineRoot = makeTempRoot();
+
+  try {
+    const workspaceRoot = path.join(pipelineRoot, 'workspace');
+    const systemRoot = path.join(workspaceRoot, 'system');
+    const memoryRoot = path.join(systemRoot, 'memory');
+    const workspaceDir = path.join(workspaceRoot, 'mnemo');
+    const sharedSkillsRoot = path.join(systemRoot, 'skills');
+    const fakeCodex = makeFakeCodexRunner(pipelineRoot);
+    fs.mkdirSync(workspaceRoot, { recursive: true });
+    fs.cpSync(WORKSPACE_FIXTURE, memoryRoot, { recursive: true });
+    fs.mkdirSync(sharedSkillsRoot, { recursive: true });
+
+    const pipelineAdapter = createCodexPipelineAdapter();
+    const curateInvocation = pipelineAdapter.runCurate({
+      date: '2026-03-18',
+      llmRunner: fakeCodex.runnerPath,
+      memoryRoot,
+      roleId: 'mnemo',
+      sharedSkillsRoot,
+      systemRoot,
+      workspaceDir,
+    });
+
+    const result = spawnSync(curateInvocation.command, curateInvocation.args, {
+      cwd: pipelineRoot,
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(fs.existsSync(path.join(workspaceDir, 'BOOT.md')), true);
+
+    const fakeOutput = JSON.parse(fs.readFileSync(fakeCodex.outputPath, 'utf8'));
+    assert.equal(fakeOutput.args[0], 'exec');
+    assert.equal(fakeOutput.args[fakeOutput.args.length - 1], '-');
+    assert.match(fakeOutput.prompt, /MemoryOS curator running through adapter-codex/);
+    assert.match(fakeOutput.prompt, /intake\/pending\/2026-03-18\.md/);
+    assert.match(fakeOutput.prompt, /exactly one "### curator-annotation" block/);
+    assert.doesNotMatch(fakeOutput.prompt, /OpenClaw session paths/);
+  } finally {
+    fs.rmSync(pipelineRoot, { recursive: true, force: true });
   }
 
   const handoffRoot = makeTempRoot();

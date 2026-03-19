@@ -35,6 +35,11 @@ and the invocation shape is validated through `@nmc/memory-contracts`. Phase C
 core promoter. The package-local verify phase now defaults to
 `@nmc/memory-scripts`.
 
+The shared runner now resolves relative adapter-module paths from the caller's
+current working directory, so peer connectors such as `./packages/adapter-codex`
+can participate in the same pipeline UX without OpenClaw-specific wrapper
+assumptions.
+
 The supported OpenClaw adapter entrypoint lives at
 `packages/adapter-openclaw/skills/memory-pipeline/pipeline.sh` as a thin wrapper
 over this package.

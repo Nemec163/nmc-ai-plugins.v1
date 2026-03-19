@@ -21,7 +21,7 @@ internal, or retired.
 | `adapter-openclaw` | `production` | OpenClaw install/setup connector | Supported `openclaw memoryos setup` surface and owner of installed-artifact wrappers for `control-plane` and `memory-os-gateway`; it is a connector over the independent MemoryOS core, not the product boundary itself |
 | `control-plane` | `production` | read-only operator surface | Supported operator SDK/CLI for snapshot, health, queues, analytics, audits, interventions, and runtime inspection |
 | `memory-os-gateway` | `production` | programmatic surface | Supported SDK/CLI for read, bootstrap, query, status, verify, runtime, and safe write orchestration; installed artifacts should prefer adapter-owned wrapper paths |
-| `adapter-codex` | `bounded` | Codex connector | Bounded single-run connector over gateway bootstrap, read, and explicit handoff surfaces |
+| `adapter-codex` | `bounded` | Codex connector | Bounded Codex connector over shared pipeline extract/curate execution, gateway bootstrap/read, and explicit handoff surfaces |
 | `adapter-claude` | `bounded` | Claude connector | Bounded Claude connector over gateway bootstrap, read, and explicit handoff surfaces |
 | `@nmc/memory-contracts` | `internal` | shared core package | Dependency-free contracts and schema helpers |
 | `@nmc/memory-ingest` | `internal` | shared core package | Engine-agnostic source and provenance contracts |

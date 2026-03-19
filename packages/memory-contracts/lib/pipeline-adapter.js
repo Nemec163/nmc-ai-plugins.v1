@@ -110,6 +110,19 @@ function validatePipelineInvocation(invocation) {
     );
   }
 
+  if (
+    invocation.displayCommand != null &&
+    !isNonEmptyString(invocation.displayCommand)
+  ) {
+    issues.push(
+      buildIssue(
+        'invalid-value',
+        'displayCommand must be a non-empty string when provided.',
+        'displayCommand'
+      )
+    );
+  }
+
   return {
     valid: issues.length === 0,
     issues,
@@ -136,6 +149,10 @@ function getPipelineInvocation(adapter, phase, options) {
 }
 
 function formatPipelineInvocation(invocation) {
+  if (isNonEmptyString(invocation && invocation.displayCommand)) {
+    return invocation.displayCommand;
+  }
+
   return [invocation.command, ...(invocation.args || [])].join(' ');
 }
 

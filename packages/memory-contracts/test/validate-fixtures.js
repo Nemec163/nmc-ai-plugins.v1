@@ -265,6 +265,44 @@ function main() {
     ),
     'openclaw skill run memory-extract --date 2026-03-05'
   );
+  const codexInvocation = getPipelineInvocation(
+    {
+      runExtract(options) {
+        return {
+          command: process.execPath,
+          args: [
+            path.resolve(__dirname, '../../adapter-codex/lib/run-phase.js'),
+            '--phase',
+            'extract',
+            '--date',
+            options.date,
+          ],
+          displayCommand: 'codex < adapter-codex:extract:mnemo:2026-03-05',
+        };
+      },
+      runCurate(options) {
+        return {
+          command: process.execPath,
+          args: [
+            path.resolve(__dirname, '../../adapter-codex/lib/run-phase.js'),
+            '--phase',
+            'curate',
+            '--date',
+            options.date,
+          ],
+          displayCommand: 'codex < adapter-codex:curate:mnemo:2026-03-05',
+        };
+      },
+    },
+    'curate',
+    {
+      date: '2026-03-05',
+    }
+  );
+  assert.equal(
+    formatPipelineInvocation(codexInvocation),
+    'codex < adapter-codex:curate:mnemo:2026-03-05'
+  );
   assert.equal(validatedCount, 7, 'Expected seven canonical record fixtures');
 
   if (failures.length > 0) {

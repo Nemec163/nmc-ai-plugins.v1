@@ -64,7 +64,9 @@ These packages define the memory system itself. Connectors are optional and sit 
 ### Optional Connectors
 
 - `packages/adapter-openclaw` attaches MemoryOS.v1 to the OpenClaw plugin/runtime model.
-- `packages/adapter-codex` attaches MemoryOS.v1 to Codex-oriented execution flows.
+- `packages/adapter-codex` attaches MemoryOS.v1 to Codex-oriented execution
+  flows, including connector-neutral `extract` and `curate` execution through
+  the shared pipeline contract.
 - `packages/adapter-claude` is a bounded Claude connector over gateway bootstrap, read, and handoff surfaces.
 
 ### OpenClaw Adapter

@@ -1,6 +1,7 @@
 'use strict';
 
 const { spawnSync } = require('node:child_process');
+const path = require('node:path');
 
 let cachedMemoryContracts = null;
 let cachedMemoryCanon = null;
@@ -51,6 +52,10 @@ function loadPipelineAdapterModule(options = {}) {
   const moduleRef = options.adapterModule || process.env.PIPELINE_ADAPTER_MODULE;
   if (!moduleRef) {
     throw new Error('adapterModule is required for LLM pipeline phases');
+  }
+
+  if (moduleRef.startsWith('.') || moduleRef.startsWith('/')) {
+    return require(path.resolve(process.cwd(), moduleRef));
   }
 
   return require(moduleRef);

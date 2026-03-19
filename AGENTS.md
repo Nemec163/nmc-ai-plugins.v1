@@ -6,8 +6,8 @@ This repository now treats `MemoryOS.v1` as the product boundary and uses the ro
 
 ## Current State
 
-- completed roadmap slice: `adapter-neutral apply contract alignment — remove adapter-owned apply from the shared pipeline contract, keep Phase C as a compatibility phase name over the core promoter, and preserve existing adapter-openclaw wrapper and skill behavior`
-- next roadmap slice: `connector-neutral extract and curate execution contract — define how peer adapters perform extract and curate without OpenClaw-shaped skill assumptions while preserving the shared pipeline UX, role bundle intake, and core-owned promotion boundary`
+- completed roadmap slice: `connector-neutral extract and curate execution contract — define how peer adapters perform extract and curate without OpenClaw-shaped skill assumptions while preserving the shared pipeline UX, role bundle intake, and core-owned promotion boundary`
+- next roadmap slice: `adapter-owned source intake and execution receipt hardening — make peer-adapter Phase A/B inputs and run receipts more machine-readable without widening canon authority or reintroducing OpenClaw-first assumptions`
 - regression baseline:
   - `./tests/run-contract-tests.sh`
   - `./tests/run-integration.sh`
@@ -109,7 +109,7 @@ Phase 0 is complete:
 - `verify hardening and content-addressed reconciliation` replaced mtime-driven canon graph reconciliation with content-addressed evidence, added digest-backed verify/read-index/runtime reconciliation surfaces, and kept projections/runtime explicitly rebuildable and non-authoritative
 - `verify receipts and projection provenance surfaces` added digest-backed non-authoritative receipts for canon verify, read-index build/verify, and runtime-summary reconciliation, then surfaced that provenance through gateway status/verify/health and control-plane snapshot views without widening write authority
 - `adapter-neutral apply contract alignment` removed adapter-owned `apply` from the shared pipeline contract, kept Phase C as a compatibility name over the core promoter, aligned dry-run/test/docs with peer-adapter language, and preserved `adapter-openclaw` wrapper plus skill behavior
-- the next slice is `connector-neutral extract and curate execution contract`, which should define how peer adapters perform the LLM-owned phases without OpenClaw-shaped skill assumptions while preserving the shared pipeline UX and core-owned promotion boundary
+- the next slice is `adapter-owned source intake and execution receipt hardening`, which should make peer-adapter Phase A/B inputs and run receipts more machine-readable while preserving the shared pipeline UX and core-owned promotion boundary
 
 ## Commit Convention
 

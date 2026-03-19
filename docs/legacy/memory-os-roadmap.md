@@ -5,14 +5,14 @@
 
 ## Progress Snapshot
 
-- completed: `adapter-neutral apply contract alignment — remove adapter-owned apply from the shared pipeline contract, keep Phase C as a compatibility phase name over the core promoter, and preserve existing adapter-openclaw wrapper and skill behavior`
-- next: `connector-neutral extract and curate execution contract — define how peer adapters perform extract and curate without OpenClaw-shaped skill assumptions while preserving the shared pipeline UX, role bundle intake, and core-owned promotion boundary`
-- last verified on: `2026-03-19`
+- completed: `connector-neutral extract and curate execution contract — define how peer adapters perform extract and curate without OpenClaw-shaped skill assumptions while preserving the shared pipeline UX, role bundle intake, and core-owned promotion boundary`
+- next: `adapter-owned source intake and execution receipt hardening — make peer-adapter Phase A/B inputs and run receipts more machine-readable without widening canon authority or reintroducing OpenClaw-first assumptions`
+- last verified on: `2026-03-20`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/memory-pipeline/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" ./tests/run-production-readiness.sh`
+  - `PATH="/usr/local/bin:$PATH" node packages/adapter-codex/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/adapter-claude/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 - verification baseline:
@@ -2308,12 +2308,30 @@ Implementation note:
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 
+## Connector-Neutral Extract And Curate Execution Contract
+
+Status: done on `2026-03-20`
+
+Implementation note:
+
+- extended the shared pipeline invocation contract so adapters can publish a connector-owned display command for LLM phases while the shared runner still executes the adapter-owned node entrypoint
+- updated `@nmc/memory-pipeline` dry-run detection to inspect the adapter-described Phase A/B runner instead of assuming only an explicit `OPENCLAW_BIN` override can signal a missing executor
+- added adapter-owned Phase A/B pipeline surfaces for `adapter-codex` and `adapter-claude`, including role-aware workspace bootstrap plus package-local phase runners that feed MemoryOS extract/curate prompts to adapter-provided stdin runners without assuming OpenClaw skill wiring
+- removed the remaining OpenClaw-first transcript-path assumption from the bounded Codex/Claude phase prompts by switching to adapter-provided source hints for the requested date while preserving the existing role bundle intake, pending-batch targets, and core-owned Phase C promotion boundary
+- kept `adapter-openclaw` setup/install ownership, shared pipeline UX, gateway handoff, workspace layout, and the single promotion path intact while proving the peer-adapter Phase A/B surfaces through package tests and the full regression baseline
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-pipeline/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-codex/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-claude/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
 ## Immediate Next Step
 
-The current bounded slice is `connector-neutral extract and curate execution contract`.
+The current bounded slice is `adapter-owned source intake and execution receipt hardening`.
 
-- define a generic execution contract for `extract` and `curate` so peer adapters can perform curator work without inheriting OpenClaw-shaped skill assumptions
+- make Phase A input source hints and Phase A/B run receipts machine-readable for peer adapters instead of prompt-only
 - preserve the current shared pipeline UX, Phase C core-promoter ownership, verify/provenance visibility, and `adapter-openclaw` install/setup and skill behavior
-- keep role bundle intake, gateway handoff, workspace layout, and the single promotion path stable while the connector-neutral execution boundary is specified
+- keep role bundle intake, gateway handoff, workspace layout, and the single promotion path stable while the peer-adapter execution surfaces become easier to automate and audit
 
-This slice should finish the remaining adapter-neutralization work on the LLM-driven phases without widening canon authority or regressing the supported OpenClaw surface.
+This slice should harden the new peer-adapter Phase A/B surfaces for automation and audit without widening canon authority or regressing the supported OpenClaw surface.

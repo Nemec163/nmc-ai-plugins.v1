@@ -309,20 +309,38 @@ if [ "$need_llm_runner" -eq 1 ] && [ -z "$pipeline_adapter_module" ]; then
   exit 2
 fi
 
-if [ "$need_llm_runner" -eq 1 ] && [ -n "$llm_runner" ] && ! runner_exists "$llm_runner"; then
-  log "INFO LLM runner not found; printing the operations that would be run."
+if [ "$need_llm_runner" -eq 1 ]; then
+  llm_runner_missing=0
+
   for phase in "${requested_phases[@]}"; do
     case "$phase" in
-      extract|curate|apply)
-        printf 'would run: %s\n' "$(describe_llm_phase "$phase" "$llm_runner")"
-        ;;
-      verify)
-        printf 'would run: %s %s\n' "$verify_script" "$memory_root"
+      extract|curate)
+        phase_plan="$(describe_llm_phase "$phase" "$llm_runner")"
+        phase_runner="${phase_plan%% *}"
+
+        if ! runner_exists "$phase_runner"; then
+          llm_runner_missing=1
+          break
+        fi
         ;;
     esac
   done
-  print_summary
-  exit 2
+
+  if [ "$llm_runner_missing" -eq 1 ]; then
+    log "INFO LLM runner not found; printing the operations that would be run."
+    for phase in "${requested_phases[@]}"; do
+      case "$phase" in
+        extract|curate|apply)
+          printf 'would run: %s\n' "$(describe_llm_phase "$phase" "$llm_runner")"
+          ;;
+        verify)
+          printf 'would run: %s %s\n' "$verify_script" "$memory_root"
+          ;;
+      esac
+    done
+    print_summary
+    exit 2
+  fi
 fi
 
 for phase in "${requested_phases[@]}"; do

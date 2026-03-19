@@ -63,6 +63,40 @@ function makeTempWorkspace() {
   };
 }
 
+function makeFakeCodexRunner(tempRoot) {
+  const runnerPath = path.join(tempRoot, 'fake-codex.js');
+  const outputPath = path.join(tempRoot, 'fake-codex-output.json');
+
+  fs.writeFileSync(
+    runnerPath,
+    `#!/usr/bin/env node
+'use strict';
+const fs = require('node:fs');
+
+const stdin = fs.readFileSync(0, 'utf8');
+fs.writeFileSync(
+  ${JSON.stringify(outputPath)},
+  JSON.stringify(
+    {
+      args: process.argv.slice(2),
+      prompt: stdin,
+    },
+    null,
+    2
+  ) + '\\n',
+  'utf8'
+);
+`,
+    'utf8'
+  );
+  fs.chmodSync(runnerPath, 0o755);
+
+  return {
+    outputPath,
+    runnerPath,
+  };
+}
+
 function main() {
   assert.deepEqual(PHASES, ['extract', 'curate', 'apply', 'verify']);
   assert.deepEqual(LLM_PHASES, ['extract', 'curate']);
@@ -124,6 +158,36 @@ function main() {
     }),
     'openclaw skill run memory-extract --date 2026-03-05'
   );
+  const codexWorkspace = makeTempWorkspace();
+  try {
+    const fakeCodex = makeFakeCodexRunner(codexWorkspace.tempRoot);
+    const codexDescribe = describeAdapterInvocation({
+      adapterModule: './packages/adapter-codex',
+      phase: 'curate',
+      date: '2026-03-05',
+      llmRunner: fakeCodex.runnerPath,
+      memoryRoot: codexWorkspace.workspaceRoot,
+    });
+    assert.match(codexDescribe, /exec --skip-git-repo-check/);
+
+    const codexRun = runAdapterInvocation({
+      adapterModule: './packages/adapter-codex',
+      phase: 'curate',
+      date: '2026-03-05',
+      llmRunner: fakeCodex.runnerPath,
+      memoryRoot: codexWorkspace.workspaceRoot,
+    });
+    assert.equal(codexRun.status, 0);
+
+    const fakeOutput = JSON.parse(fs.readFileSync(fakeCodex.outputPath, 'utf8'));
+    assert.equal(fakeOutput.args[0], 'exec');
+    assert.equal(fakeOutput.args[fakeOutput.args.length - 1], '-');
+    assert.match(fakeOutput.prompt, /MemoryOS curator running through adapter-codex/);
+    assert.match(fakeOutput.prompt, /intake\/pending\/2026-03-05\.md/);
+    assert.doesNotMatch(fakeOutput.prompt, /OpenClaw session paths/);
+  } finally {
+    fs.rmSync(codexWorkspace.tempRoot, { recursive: true, force: true });
+  }
 
   const dryRunCli = spawnSync(
     process.execPath,
@@ -145,6 +209,36 @@ function main() {
   );
   assert.equal(dryRunCli.status, 0, dryRunCli.stderr);
   assert.equal(dryRunCli.stdout.trim(), 'openclaw skill run memory-curate --date 2026-03-05');
+
+  const codexDryRunWorkspace = makeTempWorkspace();
+  try {
+    const fakeCodex = makeFakeCodexRunner(codexDryRunWorkspace.tempRoot);
+    const codexDryRunCli = spawnSync(
+      process.execPath,
+      [
+        LLM_RUNNER_BIN_PATH,
+        'describe',
+        '--adapter-module',
+        './packages/adapter-codex',
+        '--phase',
+        'extract',
+        '--date',
+        '2026-03-05',
+        '--memory-root',
+        codexDryRunWorkspace.workspaceRoot,
+        '--llm-runner',
+        fakeCodex.runnerPath,
+      ],
+      {
+        cwd: path.resolve(ROOT_DIR, '../..'),
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(codexDryRunCli.status, 0, codexDryRunCli.stderr);
+    assert.match(codexDryRunCli.stdout.trim(), /exec --skip-git-repo-check/);
+  } finally {
+    fs.rmSync(codexDryRunWorkspace.tempRoot, { recursive: true, force: true });
+  }
 
   const applyDryRunCli = spawnSync(
     process.execPath,

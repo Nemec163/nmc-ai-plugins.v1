@@ -29,7 +29,7 @@ rather than the connector itself.
 Connector framing for this repository:
 
 - `packages/adapter-openclaw` is the production OpenClaw install/setup connector surface.
-- `packages/adapter-codex` is a bounded Codex connector surface.
+- `packages/adapter-codex` is a bounded Codex connector surface with shared-pipeline `extract` and `curate` execution plus gateway-mediated handoff.
 - `packages/adapter-claude` is a bounded Claude connector surface over existing gateway and handoff contracts and is not part of the current direct-install production release boundary.
 - `packages/memory-os-gateway` is the supported programmatic surface.
 - `packages/control-plane` is the supported read-only operator surface.
