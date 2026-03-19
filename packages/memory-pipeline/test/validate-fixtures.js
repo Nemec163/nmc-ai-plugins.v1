@@ -65,12 +65,13 @@ function makeTempWorkspace() {
 
 function main() {
   assert.deepEqual(PHASES, ['extract', 'curate', 'apply', 'verify']);
-  assert.deepEqual(LLM_PHASES, ['extract', 'curate', 'apply']);
+  assert.deepEqual(LLM_PHASES, ['extract', 'curate']);
   assert.equal(PHASE_TITLES.extract, 'Phase A — extract');
   assert.equal(PHASE_TITLES.verify, 'Phase D — verify');
   assert.deepEqual(resolvePhases('all'), PHASES);
   assert.deepEqual(resolvePhases('verify'), ['verify']);
   assert.equal(needsLlmRunner(['verify']), false);
+  assert.equal(needsLlmRunner(['apply']), false);
   assert.equal(needsLlmRunner(['extract', 'verify']), true);
   assert.equal(phaseTitle('curate'), 'Phase B — curate');
   assert.equal(phaseTitle('custom'), 'custom');
@@ -144,6 +145,26 @@ function main() {
   );
   assert.equal(dryRunCli.status, 0, dryRunCli.stderr);
   assert.equal(dryRunCli.stdout.trim(), 'openclaw skill run memory-curate --date 2026-03-05');
+
+  const applyDryRunCli = spawnSync(
+    process.execPath,
+    [
+      LLM_RUNNER_BIN_PATH,
+      'describe',
+      '--phase',
+      'apply',
+      '--date',
+      '2026-03-05',
+      '--memory-root',
+      '/tmp/workspace/system/memory',
+    ],
+    { encoding: 'utf8' }
+  );
+  assert.equal(applyDryRunCli.status, 0, applyDryRunCli.stderr);
+  assert.equal(
+    applyDryRunCli.stdout.trim(),
+    'core-promoter (in-process) --memory-root /tmp/workspace/system/memory --batch-date 2026-03-05'
+  );
 
   const tempWorkspace = makeTempWorkspace();
   try {

@@ -254,12 +254,6 @@ function main() {
         args: ['skill', 'run', 'memory-curate', '--date', options.date],
       };
     },
-    runApply(options) {
-      return {
-        command: options.command || 'openclaw',
-        args: ['skill', 'run', 'memory-apply', '--date', options.date],
-      };
-    },
   };
   assert.equal(validatePipelineAdapter(adapter).valid, true);
   assert.equal(

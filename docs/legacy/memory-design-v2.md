@@ -1,6 +1,6 @@
 > **Status: Design Reference**
 > This document captures the v2 conceptual design and data model.
-> For current setup and operations, see [implementation-guide.md](./implementation-guide.md) and [../README.md](../README.md).
+> For current setup and operations, see [implementation-guide.md](./implementation-guide.md) and [../../README.md](../../README.md).
 
 # Memory Design v2
 

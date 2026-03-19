@@ -6,8 +6,8 @@ This repository now treats `MemoryOS.v1` as the product boundary and uses the ro
 
 ## Current State
 
-- completed roadmap slice: `production readiness gate and release checklist — make the independent MemoryOS.v1 release boundary reproducible through one explicit gate, aligned release docs, and CI-backed go/no-go checks`
-- next roadmap slice: `TBD after production-readiness hardening — use the roadmap Immediate Next Step section to lock the next bounded change`
+- completed roadmap slice: `adapter-neutral apply contract alignment — remove adapter-owned apply from the shared pipeline contract, keep Phase C as a compatibility phase name over the core promoter, and preserve existing adapter-openclaw wrapper and skill behavior`
+- next roadmap slice: `connector-neutral extract and curate execution contract — define how peer adapters perform extract and curate without OpenClaw-shaped skill assumptions while preserving the shared pipeline UX, role bundle intake, and core-owned promotion boundary`
 - regression baseline:
   - `./tests/run-contract-tests.sh`
   - `./tests/run-integration.sh`
@@ -77,7 +77,7 @@ Phase 0 is complete:
 - `PR 3.2b` moved active canon serialization into the deterministic promoter in `packages/memory-canon`, kept `apply` as a compatibility shim at the pipeline boundary, and updated gateway handoff metadata to advertise `core-promoter` as the single write path
 - `PR 3.3` moved bundled OpenClaw skill assets under `packages/adapter-openclaw`, kept `nmc-memory-plugin/skills` as the compatibility discovery surface, and preserved stable skill names plus live setup/bootstrap behavior
 - `PR 3.4` added the shared adapter conformance suite in `packages/adapter-conformance`, proved `adapter-openclaw` against capability-scoped bootstrap/read/status/verify/write-orchestration checks, and kept the protocol boundary narrow by validating only explicitly claimed capabilities
-- `PR 4.1` introduced `adapter-codex` as the first non-OpenClaw adapter with role-aware bootstrap, canon-safe read-only execution, a package-local single-thread runner, and shared conformance coverage while keeping write orchestration out of scope
+- `PR 4.1` introduced `adapter-codex` as a peer connector with role-aware bootstrap, canon-safe read-only execution, a package-local single-thread runner, and shared conformance coverage while keeping write orchestration out of scope
 - `PR 4.2` expanded `adapter-codex` into the bounded single-run contract with role-bundle intake, gateway-mediated proposal upload, explicit feedback/completion handoff, and shared conformance coverage while keeping canon writes behind the core promoter
 - `PR 5.1` replaced the `memory-os-runtime` placeholder with a shadow-store package plus gateway runtime surfaces so runtime artifacts live under `runtime/shadow/`, stay separate from canon, remain disposable/rebuildable, and are inspectable without widening into canonical writes
 - `Phase 5.5` integrated OpenClaw as a runtime-backed orchestration adapter over the shadow runtime by adding gateway-backed recall bundles and thin orchestration helpers without reintroducing memory ownership or bypassing the single promotion path into canon
@@ -108,7 +108,8 @@ Phase 0 is complete:
 - `namespace / tenant / actor model foundations` added a shared namespace contract, explicit scoped path metadata for runtime shadow and derived read-index artifacts, gateway/control-plane namespace visibility, and default-scope backward compatibility without widening write authority or changing the current single-tenant install behavior
 - `verify hardening and content-addressed reconciliation` replaced mtime-driven canon graph reconciliation with content-addressed evidence, added digest-backed verify/read-index/runtime reconciliation surfaces, and kept projections/runtime explicitly rebuildable and non-authoritative
 - `verify receipts and projection provenance surfaces` added digest-backed non-authoritative receipts for canon verify, read-index build/verify, and runtime-summary reconciliation, then surfaced that provenance through gateway status/verify/health and control-plane snapshot views without widening write authority
-- the next slice is `product boundary simplification and supported-surface alignment`, which should finish collapsing remaining doc drift between architecture docs, package docs, and the shipped connector/operator surface without widening authority
+- `adapter-neutral apply contract alignment` removed adapter-owned `apply` from the shared pipeline contract, kept Phase C as a compatibility name over the core promoter, aligned dry-run/test/docs with peer-adapter language, and preserved `adapter-openclaw` wrapper plus skill behavior
+- the next slice is `connector-neutral extract and curate execution contract`, which should define how peer adapters perform the LLM-owned phases without OpenClaw-shaped skill assumptions while preserving the shared pipeline UX and core-owned promotion boundary
 
 ## Commit Convention
 

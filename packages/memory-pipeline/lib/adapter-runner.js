@@ -102,6 +102,12 @@ function getAdapterInvocation(options) {
 }
 
 function describeAdapterInvocation(options) {
+  if (options.phase === 'apply') {
+    const memoryRoot = String(options.memoryRoot || '<memory-root>').trim() || '<memory-root>';
+    const batchDate = String(options.date || '<YYYY-MM-DD>').trim() || '<YYYY-MM-DD>';
+    return `core-promoter (in-process) --memory-root ${memoryRoot} --batch-date ${batchDate}`;
+  }
+
   return loadMemoryContracts().formatPipelineInvocation(getAdapterInvocation(options));
 }
 

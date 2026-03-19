@@ -1505,7 +1505,7 @@ test_status_output() {
 }
 
 test_pipeline_dry_run() {
-  print_case "TEST" "pipeline.sh reports OpenClaw setup gaps without mutating the workspace"
+  print_case "TEST" "pipeline.sh reports missing LLM runner context without mutating the workspace"
   run_and_capture_in_dir "$TEST_MEMORY_ROOT" env OPENCLAW_BIN=/definitely/missing "$PIPELINE_SCRIPT" "2026-03-05"
 
   if [ "$LAST_EXIT_CODE" -ne 2 ]; then
@@ -1514,8 +1514,10 @@ test_pipeline_dry_run() {
     return
   fi
 
-  if grep -Fq 'OpenClaw CLI not found; printing the commands that would be run.' "$LAST_STDOUT" && \
+  if grep -Fq 'LLM runner not found; printing the operations that would be run.' "$LAST_STDOUT" && \
      grep -Fq 'would run: /definitely/missing skill run memory-extract --date 2026-03-05' "$LAST_STDOUT" && \
+     grep -Fq 'would run: core-promoter (in-process) --memory-root ' "$LAST_STDOUT" && \
+     grep -Fq ' --batch-date 2026-03-05' "$LAST_STDOUT" && \
      grep -Fq 'Pipeline Summary' "$LAST_STDOUT"; then
     pass "pipeline.sh dry-run output"
   else

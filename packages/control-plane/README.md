@@ -4,7 +4,7 @@ Read-only operator surface for Memory OS over stable gateway, runtime, and maint
 
 Surface status: `production` read-only operator surface.
 
-Current control-plane v3 surface:
+Current surface:
 
 - `getControlPlaneSnapshot` / `snapshot`
 - `getControlPlaneHealth` / `health`
@@ -22,6 +22,18 @@ node packages/control-plane/bin/memory-control-plane.js snapshot \
   --memory-root /path/to/system/memory \
   --system-root /path/to/system
 ```
+
+Current CLI commands:
+
+- `snapshot`
+- `health`
+- `queues`
+- `analytics`
+- `audit`
+- `audits`
+- `interventions`
+- `runtime-inspector`
+- `record-intervention`
 
 Queue and manual intervention entrypoints:
 
@@ -59,8 +71,8 @@ Control-plane v3 stays intentionally careful:
 - manual interventions never mutate canon, proposal receipts, or job receipts directly
 - analytics and audit surfaces summarize queue, intervention, lock, and runtime history without becoming source-of-truth
 - runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
-- `snapshot` and `health` now emit release-qualification metadata that marks `control-plane` as the supported operator surface and `adapter-openclaw` as the supported OpenClaw direct-install surface
-- the same release-qualification metadata now carries a package matrix for the current product boundary so consumers can inspect which packages are `production`, `bounded`, or `internal`
+- `snapshot` and `health` emit release-qualification metadata that marks `control-plane` as the supported operator surface and `adapter-openclaw` as the supported OpenClaw direct-install surface
+- the same release-qualification metadata carries a package matrix for the current product boundary so consumers can inspect which packages are `production`, `bounded`, or `internal`
 - the same release qualification records `nmc-memory-plugin` as a retired legacy shell rather than an active production surface
 - `snapshot.gateway.procedures` now carries the canonical procedure catalog so operators can inspect lineage/version state without implying control-plane ownership of promotion or rollback
 
@@ -74,6 +86,8 @@ Compatibility note:
 
 - the deprecated `memory-os-gateway` ops snapshot bridge is retired from package surfaces
 - the supported operator queue, audit, analytics, and runtime inspection contract now lives in `control-plane`
-- the current post-freeze cutover and repo-local bridge retirement sequence are tracked in [../../docs/deliberate-migration-release-plan.md](../../docs/deliberate-migration-release-plan.md)
+- the historical cutover plan is preserved in [../../docs/legacy/deliberate-migration-release-plan.md](../../docs/legacy/deliberate-migration-release-plan.md)
 
-See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for the extraction plan.
+See [supported surfaces](../../docs/supported-surfaces.md) for the current
+package matrix and [implementation guide](../../docs/legacy/implementation-guide.md)
+for installation and day-2 operations.

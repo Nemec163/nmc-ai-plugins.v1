@@ -1,23 +1,28 @@
 # @nmc/memory-contracts
 
-Dependency-free shared contracts for the Memory OS migration.
+Dependency-free shared contracts for MemoryOS.v1.
 
 Surface status: `internal` shared core package inside the product boundary. It
 is not a direct install, operator, or bounded connector surface.
 
-This package currently centralizes the narrow PR 1.1 boundary:
+This package owns the shared contract layer:
 
 - shared record envelope constants and validators
 - canonical record-type contracts, including versioned `procedure` records
+- namespace-scoping helpers used across gateway, runtime, and control-plane
 - schema-version compatibility helpers
-- shared exit-code semantics used by the existing scripts
-- pipeline adapter protocol helpers for LLM phase invocation boundaries
+- shared exit-code semantics
+- pipeline adapter protocol helpers for the LLM-owned `extract` and `curate`
+  invocation boundaries
 
-The package intentionally stays pure and does not read files or walk canon
-directories. Callers provide parsed objects and receive structured validation
-results.
+Boundaries:
 
-Current exports:
+- no file I/O
+- no canon traversal
+- no runtime or adapter ownership
+- callers provide parsed objects and receive structured validation results
+
+Primary exports include:
 
 - `CURRENT_SCHEMA_VERSION`
 - `SCHEMA_VERSION`
@@ -40,6 +45,3 @@ Current exports:
 - `isKnownRecordType(value)`
 - `validateRecordEnvelope(record)`
 - `validateRecordBlock({ anchorId, headingId, record })`
-
-See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for the remaining
-extractions.

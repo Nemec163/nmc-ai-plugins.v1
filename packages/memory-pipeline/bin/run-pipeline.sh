@@ -310,7 +310,7 @@ if [ "$need_llm_runner" -eq 1 ] && [ -z "$pipeline_adapter_module" ]; then
 fi
 
 if [ "$need_llm_runner" -eq 1 ] && [ -n "$llm_runner" ] && ! runner_exists "$llm_runner"; then
-  log "INFO OpenClaw CLI not found; printing the commands that would be run."
+  log "INFO LLM runner not found; printing the operations that would be run."
   for phase in "${requested_phases[@]}"; do
     case "$phase" in
       extract|curate|apply)

@@ -815,7 +815,7 @@ PY
 }
 
 test_pipeline_dry_run_contract() {
-  print_case "TEST" "pipeline.sh dry-run keeps the legacy missing-OpenClaw contract"
+  print_case "TEST" "pipeline.sh dry-run keeps the adapter-neutral Phase C contract"
 
   run_and_capture_in_dir "$TEST_MEMORY_ROOT" env OPENCLAW_BIN=definitely-missing-openclaw "$PIPELINE_SCRIPT" 2026-03-05
   if [ "$LAST_EXIT_CODE" -ne 2 ]; then
@@ -836,10 +836,10 @@ memory_root = os.path.normpath(sys.argv[3])
 text = output_path.read_text(encoding="utf-8")
 
 required_fragments = [
-    "OpenClaw CLI not found; printing the commands that would be run.",
+    "LLM runner not found; printing the operations that would be run.",
     "would run: definitely-missing-openclaw skill run memory-extract --date 2026-03-05",
     "would run: definitely-missing-openclaw skill run memory-curate --date 2026-03-05",
-    "would run: definitely-missing-openclaw skill run memory-apply --date 2026-03-05",
+    f"would run: core-promoter (in-process) --memory-root {memory_root} --batch-date 2026-03-05",
     f"would run: {verify_script} {memory_root}",
     "Pipeline Summary",
     "Date: 2026-03-05",
@@ -860,7 +860,7 @@ PY
   then
     pass "pipeline dry-run output contract"
   else
-    fail "pipeline dry-run output contract" "pipeline.sh dry-run output drifted from the frozen legacy contract"
+    fail "pipeline dry-run output contract" "pipeline.sh dry-run output drifted from the adapter-neutral Phase C contract"
   fi
 }
 

@@ -5,11 +5,16 @@
 
 ## Progress Snapshot
 
-- completed: `production readiness gate and release checklist — make the independent MemoryOS.v1 release boundary reproducible through one explicit gate, aligned release docs, and CI-backed go/no-go checks`
-- next: `TBD after production-readiness hardening — use Immediate Next Step to choose the next bounded change`
+- completed: `adapter-neutral apply contract alignment — remove adapter-owned apply from the shared pipeline contract, keep Phase C as a compatibility phase name over the core promoter, and preserve existing adapter-openclaw wrapper and skill behavior`
+- next: `connector-neutral extract and curate execution contract — define how peer adapters perform extract and curate without OpenClaw-shaped skill assumptions while preserving the shared pipeline UX, role bundle intake, and core-owned promotion boundary`
 - last verified on: `2026-03-19`
 - verified in this slice:
+  - `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/memory-pipeline/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./tests/run-production-readiness.sh`
+  - `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+  - `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 - verification baseline:
   - `./tests/run-contract-tests.sh`
   - `./tests/run-integration.sh`
@@ -105,8 +110,8 @@ PR 1.2 should define the canonical write boundary, lock semantics, and promoter 
 
 This module is grounded in:
 
-- `docs/memory-design-v2.md`
-- `docs/human-memory.md`
+- `docs/legacy/memory-design-v2.md`
+- `docs/legacy/human-memory.md`
 - `nmc-memory-plugin/templates/workspace-memory/`
 - the current `verify.sh` scanning behavior
 
@@ -279,8 +284,8 @@ It owns role definitions and rendered role content, not workspace placement or m
 
 Current sources:
 
-- `docs/memory-design-v2.md`
-- `docs/human-memory.md`
+- `docs/legacy/memory-design-v2.md`
+- `docs/legacy/human-memory.md`
 - implicit record, pipeline, and setup contracts currently enforced through `verify.sh`, `pipeline.sh`, and setup behavior
 
 Future home:
@@ -1508,7 +1513,7 @@ Do this only after `release-surface freeze` has frozen the shipped package/opera
 
 Implemented in this slice:
 
-- added [docs/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/deliberate-migration-release-plan.md) to make the migration-release cutover explicit instead of leaving it implied by the previous hardening and freeze slices
+- added [docs/legacy/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/deliberate-migration-release-plan.md) to make the migration-release cutover explicit instead of leaving it implied by the previous hardening and freeze slices
 - classified the supported release surfaces as: `nmc-memory-plugin` for OpenClaw install/setup compatibility, `packages/control-plane` for operator workflows, and `packages/memory-os-gateway` for supported programmatic access excluding the deprecated ops bridge
 - recorded the retirement sequencing for the remaining repo-local deprecated gateway ops read model so the next follow-up slice is internal bridge migration and retirement, not new operator capability work
 - documented a repository-wide inventory showing that remaining `getOpsSnapshot` / `inspectOps` references are confined to package-local compatibility code, fixture coverage, and docs rather than live runtime consumers
@@ -1537,7 +1542,7 @@ Implemented in this slice:
 
 - removed direct deprecated bridge validation from `packages/memory-os-gateway/test/validate-fixtures.js` and `nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js` so repo-local fixture coverage no longer depends on calling `getOpsSnapshot` / `inspectOps`
 - kept the supported release-boundary assertions intact by continuing to validate that `ops-snapshot` is absent from the CLI surface and that shipped package exports do not expose the deprecated bridge
-- updated [docs/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/deliberate-migration-release-plan.md), [docs/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/memory-os-roadmap.md), and [AGENTS.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/AGENTS.md) so the repository now treats retirement prep as complete and points the next slice at full root-package bridge removal
+- updated [docs/legacy/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/deliberate-migration-release-plan.md), [docs/legacy/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/memory-os-roadmap.md), and [AGENTS.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/AGENTS.md) so the repository now treats retirement prep as complete and points the next slice at full root-package bridge removal
 - re-ran targeted gateway fixture validation in both root and shipped mirrors plus the required contract and integration baselines
 
 Acceptance criteria:
@@ -1615,7 +1620,7 @@ Do this only after `shipped-mirror bridge cleanup decision` has retired the depr
 
 Implemented in this slice:
 
-- updated [docs/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/deliberate-migration-release-plan.md) to make the cutover decision explicit: the current migration release retains `nmc-memory-plugin` as the only supported production OpenClaw install/setup shell and defers any direct-install adapter cutover into a later deliberate breaking slice
+- updated [docs/legacy/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/deliberate-migration-release-plan.md) to make the cutover decision explicit: the current migration release retains `nmc-memory-plugin` as the only supported production OpenClaw install/setup shell and defers any direct-install adapter cutover into a later deliberate breaking slice
 - updated `packages/control-plane/lib/release-qualification.js` and `nmc-memory-plugin/packages/control-plane/lib/release-qualification.js` so machine-readable release metadata now records both `productionStatus: current-production-install-shell` and `directAdapterInstall: not-supported` for the compatibility shell
 - extended both control-plane fixture suites to assert the retained production-shell decision in root and shipped mirrors
 - clarified repository, implementation, plugin, adapter, and control-plane docs so installed-artifact guidance still points users to `nmc-memory-plugin` for install/setup while keeping `packages/control-plane` and `packages/memory-os-gateway` as the supported operator and programmatic surfaces
@@ -1641,7 +1646,7 @@ Do this only after `compatibility-shell cutover decision` has made the current p
 
 Implemented in this slice:
 
-- updated [docs/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/deliberate-migration-release-plan.md) to enumerate the explicit direct-install cutover gates instead of leaving them implicit in scattered docs and duplicated shell code
+- updated [docs/legacy/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/deliberate-migration-release-plan.md) to enumerate the explicit direct-install cutover gates instead of leaving them implicit in scattered docs and duplicated shell code
 - extended `packages/control-plane/lib/release-qualification.js` and `nmc-memory-plugin/packages/control-plane/lib/release-qualification.js` with machine-readable `retirementPrerequisites` metadata that marks the direct-install cutover as not ready and records the pending gates for `install-manifest-surface`, `wrapper-convergence`, `skill-discovery-surface`, `shipped-artifact-layout`, and `regression-cutover-coverage`
 - extended both control-plane fixture suites plus the packaged-artifact integration check so root and shipped control-plane snapshots now assert the explicit retirement prerequisites alongside the already-retained production-shell decision
 - updated control-plane package docs to point operators at the new machine-readable retirement prerequisites rather than forcing them to infer cutover readiness from repository structure alone
@@ -1667,9 +1672,9 @@ Do this only after `compatibility-shell retirement prerequisites` has made the r
 
 Implemented in this slice:
 
-- reduced [nmc-memory-plugin/index.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/index.js), [nmc-memory-plugin/lib/openclaw-setup.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/lib/openclaw-setup.js), and [nmc-memory-plugin/scripts/setup-openclaw.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/scripts/setup-openclaw.js) to thin wrappers over `packages/adapter-openclaw`
-- extended [packages/adapter-openclaw/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/test/validate-fixtures.js) to assert that the compatibility shell re-exports adapter setup behavior and that the standalone setup script matches the adapter CLI help surface
-- extended [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) so the packaged artifact must include `packages/adapter-openclaw`, the packaged control-plane snapshot reports `wrapper-convergence` as `cleared`, and the synthetic runtime plugin test copies the wrapper dependency shape instead of the old plugin-local implementation shape
+- reduced `nmc-memory-plugin/index.js`, `nmc-memory-plugin/lib/openclaw-setup.js`, and `nmc-memory-plugin/scripts/setup-openclaw.js` to thin wrappers over `packages/adapter-openclaw`
+- extended `packages/adapter-openclaw/test/validate-fixtures.js` to assert that the compatibility shell re-exports adapter setup behavior and that the standalone setup script matches the adapter CLI help surface
+- extended `nmc-memory-plugin/tests/run-integration.sh` so the packaged artifact must include `packages/adapter-openclaw`, the packaged control-plane snapshot reports `wrapper-convergence` as `cleared`, and the synthetic runtime plugin test copies the wrapper dependency shape instead of the old plugin-local implementation shape
 - updated `packages/control-plane` release qualification in both root and shipped mirrors so `wrapper-convergence` is now cleared while the remaining retirement gates stay pending
 
 Acceptance criteria:
@@ -1693,9 +1698,9 @@ Do this only after `compatibility-shell wrapper convergence` has removed entrypo
 
 Implemented in this slice:
 
-- repointed [nmc-memory-plugin/openclaw.plugin.json](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/openclaw.plugin.json) so live installs discover bundled skills through `packages/adapter-openclaw/skills` instead of `nmc-memory-plugin/skills`
-- extended [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) so repo-local and packed-artifact checks assert the new manifest discovery root and the packaged adapter-owned skill directory
-- updated bootstrap fixtures in [packages/memory-os-gateway/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/memory-os-gateway/test/validate-fixtures.js), [nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js), and [packages/adapter-conformance/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-conformance/test/validate-fixtures.js) to freeze adapter-owned bundled skills as the bootstrap source
+- repointed `nmc-memory-plugin/openclaw.plugin.json` so live installs discover bundled skills through `packages/adapter-openclaw/skills` instead of `nmc-memory-plugin/skills`
+- extended `nmc-memory-plugin/tests/run-integration.sh` so repo-local and packed-artifact checks assert the new manifest discovery root and the packaged adapter-owned skill directory
+- updated bootstrap fixtures in `packages/memory-os-gateway/test/validate-fixtures.js`, `nmc-memory-plugin/packages/memory-os-gateway/test/validate-fixtures.js`, and `packages/adapter-conformance/test/validate-fixtures.js` to freeze adapter-owned bundled skills as the bootstrap source
 - updated `packages/control-plane` release qualification in both root and shipped mirrors so `skill-discovery-surface` is now cleared while the remaining retirement gates stay pending
 - kept `nmc-memory-plugin/skills` packaged as compatibility wrappers so direct script paths and existing wrapper-based regression coverage remain intact
 
@@ -1720,10 +1725,10 @@ Do this only after `compatibility-shell skill discovery convergence` has moved l
 
 Implemented in this slice:
 
-- added shell-owned installed-artifact CLI wrappers at [nmc-memory-plugin/bin/memory-control-plane.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/bin/memory-control-plane.js) and [nmc-memory-plugin/bin/memory-os-gateway.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/bin/memory-os-gateway.js) so users no longer need nested `packages/*/bin/` paths after install
-- added shell-owned programmatic wrappers at [nmc-memory-plugin/control-plane/index.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/control-plane/index.js) and [nmc-memory-plugin/memory-os-gateway/index.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/memory-os-gateway/index.js), and bundled them through [nmc-memory-plugin/package.json](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/package.json)
-- extended [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) so packed artifacts must include the shell-owned wrappers, the wrapper CLIs execute after extract, and the wrapper module paths work without reaching into nested `packages/` internals
-- updated installed-artifact docs in [docs/implementation-guide.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/implementation-guide.md), [nmc-memory-plugin/README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/README.md), [packages/control-plane/README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/control-plane/README.md), [nmc-memory-plugin/packages/control-plane/README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/control-plane/README.md), and [nmc-memory-plugin/packages/memory-os-gateway/README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/memory-os-gateway/README.md) to point at shell-owned wrapper paths
+- added shell-owned installed-artifact CLI wrappers at `nmc-memory-plugin/bin/memory-control-plane.js` and `nmc-memory-plugin/bin/memory-os-gateway.js` so users no longer need nested `packages/*/bin/` paths after install
+- added shell-owned programmatic wrappers at `nmc-memory-plugin/control-plane/index.js` and `nmc-memory-plugin/memory-os-gateway/index.js`, and bundled them through `nmc-memory-plugin/package.json`
+- extended `nmc-memory-plugin/tests/run-integration.sh` so packed artifacts must include the shell-owned wrappers, the wrapper CLIs execute after extract, and the wrapper module paths work without reaching into nested `packages/` internals
+- updated installed-artifact docs in `docs/implementation-guide.md`, `nmc-memory-plugin/README.md`, `packages/control-plane/README.md`, `nmc-memory-plugin/packages/control-plane/README.md`, and `nmc-memory-plugin/packages/memory-os-gateway/README.md` to point at shell-owned wrapper paths
 - updated `packages/control-plane` release qualification in both root and shipped mirrors so `shipped-artifact-layout` is now cleared while the remaining retirement gates stay pending
 
 Acceptance criteria:
@@ -1747,9 +1752,9 @@ Do this only after `compatibility-shell shipped artifact layout convergence` has
 
 Implemented in this slice:
 
-- extended [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) with a synthetic direct-surface smoke that bootstraps `packages/adapter-openclaw` against a temp plugin root containing only the managed templates, without routing through `nmc-memory-plugin` shell wrappers
-- updated release qualification in [packages/control-plane/lib/release-qualification.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/control-plane/lib/release-qualification.js) and [nmc-memory-plugin/packages/control-plane/lib/release-qualification.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/control-plane/lib/release-qualification.js) so `regression-cutover-coverage` is now cleared
-- updated [packages/control-plane/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/control-plane/test/validate-fixtures.js), [nmc-memory-plugin/packages/control-plane/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/control-plane/test/validate-fixtures.js), and packed-artifact assertions in [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) so the machine-readable retirement-gate model now reflects that only `install-manifest-surface` remains pending
+- extended `nmc-memory-plugin/tests/run-integration.sh` with a synthetic direct-surface smoke that bootstraps `packages/adapter-openclaw` against a temp plugin root containing only the managed templates, without routing through `nmc-memory-plugin` shell wrappers
+- updated release qualification in `packages/control-plane/lib/release-qualification.js` and `nmc-memory-plugin/packages/control-plane/lib/release-qualification.js` so `regression-cutover-coverage` is now cleared
+- updated `packages/control-plane/test/validate-fixtures.js`, `nmc-memory-plugin/packages/control-plane/test/validate-fixtures.js`, and packed-artifact assertions in `nmc-memory-plugin/tests/run-integration.sh` so the machine-readable retirement-gate model now reflects that only `install-manifest-surface` remains pending
 
 Acceptance criteria:
 
@@ -1772,10 +1777,10 @@ Do this only after `compatibility-shell regression cutover coverage` has proven 
 
 Implemented in this slice:
 
-- added adapter-owned install manifest assets under [packages/adapter-openclaw/openclaw.plugin.json](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/openclaw.plugin.json), [packages/adapter-openclaw/plugin.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/plugin.js), [packages/adapter-openclaw/lib/install-surface.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/lib/install-surface.js), and adapter `package.json#openclaw`, and mirrored that owned surface into the shipped copy under [nmc-memory-plugin/packages/adapter-openclaw/](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/adapter-openclaw)
-- bundled adapter-owned scaffold templates under [packages/adapter-openclaw/templates/](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/templates) and [nmc-memory-plugin/packages/adapter-openclaw/templates/](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/adapter-openclaw/templates) so `pluginRoot` can resolve a self-contained direct adapter install surface without borrowing `nmc-memory-plugin/templates`
-- extended [packages/adapter-openclaw/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/test/validate-fixtures.js), [nmc-memory-plugin/packages/adapter-openclaw/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/adapter-openclaw/test/validate-fixtures.js), and [nmc-memory-plugin/tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/tests/run-integration.sh) so root and shipped mirrors freeze manifest/package metadata alignment, template mirroring, packed-artifact adapter install assets, and a direct bootstrap path that does not copy shell templates into a synthetic root
-- updated release qualification in [packages/control-plane/lib/release-qualification.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/control-plane/lib/release-qualification.js) and [nmc-memory-plugin/packages/control-plane/lib/release-qualification.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/nmc-memory-plugin/packages/control-plane/lib/release-qualification.js) so `install-manifest-surface` is now cleared and the direct-install retirement prerequisites report `cutoverReady: true` while `nmc-memory-plugin` remains the current production install/setup shell
+- added adapter-owned install manifest assets under `packages/adapter-openclaw/openclaw.plugin.json`, `packages/adapter-openclaw/plugin.js`, `packages/adapter-openclaw/lib/install-surface.js`, and adapter `package.json#openclaw`, and mirrored that owned surface into the shipped copy under `nmc-memory-plugin/packages/adapter-openclaw/`
+- bundled adapter-owned scaffold templates under `packages/adapter-openclaw/templates/` and `nmc-memory-plugin/packages/adapter-openclaw/templates/` so `pluginRoot` can resolve a self-contained direct adapter install surface without borrowing `nmc-memory-plugin/templates`
+- extended `packages/adapter-openclaw/test/validate-fixtures.js`, `nmc-memory-plugin/packages/adapter-openclaw/test/validate-fixtures.js`, and `nmc-memory-plugin/tests/run-integration.sh` so root and shipped mirrors freeze manifest/package metadata alignment, template mirroring, packed-artifact adapter install assets, and a direct bootstrap path that does not copy shell templates into a synthetic root
+- updated release qualification in `packages/control-plane/lib/release-qualification.js` and `nmc-memory-plugin/packages/control-plane/lib/release-qualification.js` so `install-manifest-surface` is now cleared and the direct-install retirement prerequisites report `cutoverReady: true` while `nmc-memory-plugin` remains the current production install/setup shell
 
 Acceptance criteria:
 
@@ -1798,9 +1803,9 @@ Do this only after `compatibility-shell install manifest surface convergence` ha
 
 Implemented in this slice:
 
-- moved the active regression harness to [tests/run-contract-tests.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/tests/run-contract-tests.sh), [tests/run-integration.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/tests/run-integration.sh), and the root `tests/fixtures/` plus `tests/golden/` trees so repo verification no longer routes through `nmc-memory-plugin/tests`
-- rewrote direct adapter and shared fixture coverage in [packages/adapter-openclaw/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-openclaw/test/validate-fixtures.js), [packages/memory-os-gateway/test/validate-fixtures.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/memory-os-gateway/test/validate-fixtures.js), [packages/adapter-conformance/lib/suite.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/adapter-conformance/lib/suite.js), and the package fixture suites that still hard-coded shell-era wrapper assumptions
-- retired the compatibility-shell metadata by marking `nmc-memory-plugin` as a removed legacy shell in [packages/control-plane/lib/release-qualification.js](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/packages/control-plane/lib/release-qualification.js) and aligned the supported docs around `packages/adapter-openclaw`
+- moved the active regression harness to `tests/run-contract-tests.sh`, `tests/run-integration.sh`, and the root `tests/fixtures/` plus `tests/golden/` trees so repo verification no longer routes through `nmc-memory-plugin/tests`
+- rewrote direct adapter and shared fixture coverage in `packages/adapter-openclaw/test/validate-fixtures.js`, `packages/memory-os-gateway/test/validate-fixtures.js`, `packages/adapter-conformance/lib/suite.js`, and the package fixture suites that still hard-coded shell-era wrapper assumptions
+- retired the compatibility-shell metadata by marking `nmc-memory-plugin` as a removed legacy shell in `packages/control-plane/lib/release-qualification.js` and aligned the supported docs around `packages/adapter-openclaw`
 - removed the `nmc-memory-plugin/` tree from the repository once fixtures, docs, and packaged-artifact smoke coverage no longer depended on it
 
 Acceptance criteria:
@@ -2272,12 +2277,43 @@ Implementation note:
 - preserved the existing install/setup behavior, workspace layout, authority boundaries, and regression baseline while turning production-readiness from an inference into a reproducible command
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-production-readiness.sh`
 
+## Documentation Drift Cleanup and Current-State Alignment
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- audited root docs, package README files, and legacy entry documents against the current code-defined package surfaces, CLI entrypoints, install wrappers, and regression coverage instead of reusing older phase-by-phase wording
+- corrected live doc links that still pointed at removed or relocated files, including the root references to `memory-design-v2.md` and `human-memory.md` under `docs/legacy/`
+- removed stale phase/PR framing from current package docs where the repository now has stable production, bounded, or internal surfaces rather than in-flight extraction slices
+- demoted [docs/legacy/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/deliberate-migration-release-plan.md) from live guidance to an explicit historical archive now that the compatibility-shell and gateway-bridge cutover work is complete
+- aligned [README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/README.md), [docs/legacy/implementation-guide.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/implementation-guide.md), [docs/ARCHITECTURE.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/ARCHITECTURE.md), and `AGENTS.md` with the same current-state framing so the next session starts from the live boundary rather than earlier release-hardening snapshots
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-production-readiness.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
+## Adapter-Neutral Apply Contract Alignment
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- removed `apply` from the shared pipeline-adapter contract in `@nmc/memory-contracts` so peer adapters are only required to implement the genuinely LLM-owned `extract` and `curate` phases
+- kept `apply` as a stable Phase C pipeline name in `@nmc/memory-pipeline`, but clarified that Phase C now runs through the in-process core promoter rather than an adapter-owned canon write path
+- updated pipeline dry-run output, package README files, and current-state docs so they describe one autonomous MemoryOS core with peer adapters instead of implying privileged adapter-owned promotion or “first adapter” sequencing
+- preserved `adapter-openclaw` install/setup ownership, `memory-apply` skill discovery, workspace layout, and the single promotion path while aligning frozen contract and integration assertions with the new boundary
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-pipeline/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
 ## Immediate Next Step
 
-The production gate now exists, so the next implementation step should lock the first post-readiness slice explicitly before editing code again:
+The current bounded slice is `connector-neutral extract and curate execution contract`.
 
-- choose one bounded follow-up slice and record it in the roadmap `Progress Snapshot` plus `AGENTS.md` before implementation starts
-- prefer a slice that builds on the new production gate instead of bypassing it with one-off release checks or doc-only claims
-- keep `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, verify/provenance visibility, and the single promotion path unchanged while that next slice is defined
+- define a generic execution contract for `extract` and `curate` so peer adapters can perform curator work without inheriting OpenClaw-shaped skill assumptions
+- preserve the current shared pipeline UX, Phase C core-promoter ownership, verify/provenance visibility, and `adapter-openclaw` install/setup and skill behavior
+- keep role bundle intake, gateway handoff, workspace layout, and the single promotion path stable while the connector-neutral execution boundary is specified
 
-The current release boundary is now explicit and reproducible. The next risk is letting future slices drift away from the gate or reintroduce stale release-facing docs that the new command is meant to freeze.
+This slice should finish the remaining adapter-neutralization work on the LLM-driven phases without widening canon authority or regressing the supported OpenClaw surface.

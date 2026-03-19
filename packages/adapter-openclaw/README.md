@@ -4,13 +4,16 @@ Supported OpenClaw adapter package for MemoryOS.v1.
 
 Surface status: `production` direct-install and setup surface for OpenClaw. It
 also owns the installed-artifact wrapper entrypoints for `control-plane` and
-`memory-os-gateway`.
+`memory-os-gateway`. The independent MemoryOS core remains the product
+boundary; this package is the supported OpenClaw connector over that core.
 
 Current responsibilities:
 
+- `openclaw.plugin.json`, `plugin.js`, and `package.json#openclaw` as the owned
+  install surface
 - plugin runtime registration and service bootstrap wiring
 - setup CLI parsing and execution
-- pipeline phase invocation descriptors for `extract`, `curate`, and transitional `apply`
+- pipeline phase invocation descriptors for `extract` and `curate`, plus the compatibility `memory-apply` Phase C wrapper
 - runtime-backed orchestration helpers that consume recall bundles through `memory-os-gateway`
 - bundled OpenClaw skill assets and `SKILL.md` packaging
 - `openclaw.json` mutation and managed bindings
@@ -39,7 +42,18 @@ Packed adapter artifacts also bundle the installed-artifact wrapper paths for
 `bin/memory-os-gateway.js` so operator and gateway entrypoints remain available
 after extract without a monorepo workspace layout.
 
+Published package exports:
+
+- `.` for the adapter entrypoint
+- `./plugin` and `./register` for the OpenClaw plugin/runtime hooks
+- `./setup` and `./setup-cli` for managed setup
+- `./runtime-orchestration` for bounded orchestration helpers
+- `./pipeline-adapter`, `./install-surface`, and `./conformance-adapter` for
+  integration and test surfaces
+
 The legacy `nmc-memory-plugin/` shell is retired. This package is the only
 supported OpenClaw install/setup surface in the repository.
 
-See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for the extraction plan.
+See [supported surfaces](../../docs/supported-surfaces.md) for the current
+package matrix and [implementation guide](../../docs/legacy/implementation-guide.md)
+for installation and day-2 operations.

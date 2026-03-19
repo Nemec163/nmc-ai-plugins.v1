@@ -1,7 +1,7 @@
 'use strict';
 
 const PHASES = Object.freeze(['extract', 'curate', 'apply', 'verify']);
-const LLM_PHASES = Object.freeze(['extract', 'curate', 'apply']);
+const LLM_PHASES = Object.freeze(['extract', 'curate']);
 const PHASE_TITLES = Object.freeze({
   extract: 'Phase A — extract',
   curate: 'Phase B — curate',

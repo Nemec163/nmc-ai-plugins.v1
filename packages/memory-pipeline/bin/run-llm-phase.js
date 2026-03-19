@@ -8,7 +8,10 @@ const {
 
 function usage() {
   console.error(
-    'Usage: run-llm-phase.js <describe|run> --phase <extract|curate|apply> --date <YYYY-MM-DD> [--memory-root <path>] [--llm-runner <cmd>]'
+    'Usage: run-llm-phase.js <describe|run> --phase <extract|curate|apply> --date <YYYY-MM-DD> [--memory-root <path>] [--adapter-module <path>] [--llm-runner <cmd>]'
+  );
+  console.error(
+    '  extract and curate require an adapter module; apply is a compatibility phase name that runs through the in-process core promoter.'
   );
 }
 

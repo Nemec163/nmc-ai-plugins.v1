@@ -13,6 +13,11 @@ Supported bounded scope:
 - canon-safe read and write-orchestration operations through the gateway
 - a bounded session helper for read-only operations plus an explicit handoff helper that uploads reviewed results and completes at the promoter handoff boundary
 - shared adapter conformance coverage for the claimed capabilities
+- `./conformance-adapter` as the exported test surface for the shared
+  capability harness
 
 This package intentionally does not mutate `openclaw.json`, own workspace-wide
 setup, lease maintainer jobs, or write canon directly.
+
+See [supported surfaces](../../docs/supported-surfaces.md) for the current
+package matrix.

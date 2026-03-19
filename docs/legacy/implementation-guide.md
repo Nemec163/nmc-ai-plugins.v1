@@ -4,9 +4,9 @@ Current-state implementation and operations guide for the independent
 `MemoryOS.v1` core plus its currently supported OpenClaw connector/install
 surface.
 
-Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), the package/status matrix lives in [../supported-surfaces.md](../supported-surfaces.md), the release gate lives in [../release-readiness.md](../release-readiness.md), and OpenClaw-adapter details live in [../packages/adapter-openclaw/README.md](../packages/adapter-openclaw/README.md).
+Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), the package/status matrix lives in [../supported-surfaces.md](../supported-surfaces.md), the release gate lives in [../release-readiness.md](../release-readiness.md), and OpenClaw-adapter details live in [../../packages/adapter-openclaw/README.md](../../packages/adapter-openclaw/README.md).
 
-The current post-freeze cutover and repo-local bridge retirement sequence live in [deliberate-migration-release-plan.md](./deliberate-migration-release-plan.md).
+The completed release-cutover and bridge-retirement planning work is preserved in [deliberate-migration-release-plan.md](./deliberate-migration-release-plan.md) as a historical archive rather than the live source of truth.
 
 ## Scope
 
@@ -16,7 +16,7 @@ The current repository is centered on the autonomous, connector-agnostic
 
 - `packages/adapter-openclaw/openclaw.plugin.json` owns the direct install manifest and config schema.
 - `packages/adapter-openclaw/plugin.js` is the direct plugin entrypoint.
-- `packages/adapter-openclaw` registers the `memoryos setup` CLI and the runtime bootstrap service.
+- `packages/adapter-openclaw` registers the `openclaw memoryos setup` CLI and the runtime bootstrap service.
 - `packages/control-plane/` remains the supported read-only operator surface.
 - `packages/adapter-openclaw/templates/workspace-memory/` and `packages/adapter-openclaw/templates/workspace-system/` provide the managed scaffold.
 - `packages/adapter-openclaw/skills/` bundles the memory pipeline, maintenance scripts, and kanban operator.
@@ -345,7 +345,7 @@ For a live workspace, the smallest post-install verification is:
 
 ## Document Roles
 
-- [../README.md](../README.md) is the repository entry point.
+- [../../README.md](../../README.md) is the repository entry point.
 - [memory-design-v2.md](./memory-design-v2.md) captures the conceptual model and storage design.
 - [human-memory.md](./human-memory.md) captures the higher-level memory abstraction.
-- [../packages/adapter-openclaw/README.md](../packages/adapter-openclaw/README.md) is the package-level reference for OpenClaw installation and bundled assets.
+- [../../packages/adapter-openclaw/README.md](../../packages/adapter-openclaw/README.md) is the package-level reference for OpenClaw installation and bundled assets.

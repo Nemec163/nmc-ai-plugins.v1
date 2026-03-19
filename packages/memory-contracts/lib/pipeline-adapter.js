@@ -1,10 +1,9 @@
 'use strict';
 
-const PIPELINE_ADAPTER_PHASES = Object.freeze(['extract', 'curate', 'apply']);
+const PIPELINE_ADAPTER_PHASES = Object.freeze(['extract', 'curate']);
 const PIPELINE_ADAPTER_METHODS = Object.freeze({
   extract: 'runExtract',
   curate: 'runCurate',
-  apply: 'runApply',
 });
 
 function buildIssue(code, message, path) {

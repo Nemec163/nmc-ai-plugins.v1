@@ -6,7 +6,7 @@ The product boundary is the independent Memory OS core: contracts, ingest, canon
 
 `packages/adapter-openclaw` is the supported OpenClaw adapter/plugin surface for MemoryOS.v1. The old `nmc-memory-plugin` mirror has been retired and removed from the repository.
 
-Use this document as the entry point. Use [adapter README](./packages/adapter-openclaw/README.md) for the OpenClaw adapter surface, [supported surfaces](./docs/supported-surfaces.md) for the package matrix, [implementation guide](./docs/legacy/implementation-guide.md) for day-2 operations, [release readiness](./docs/release-readiness.md) for the current production gate, and [deliberate migration release plan](./docs/legacy/deliberate-migration-release-plan.md) for the direct-install boundary.
+Use this document as the entry point. Use [adapter README](./packages/adapter-openclaw/README.md) for the OpenClaw adapter surface, [supported surfaces](./docs/supported-surfaces.md) for the package matrix, [implementation guide](./docs/legacy/implementation-guide.md) for day-2 operations, [release readiness](./docs/release-readiness.md) for the current production gate, and [deliberate migration release plan](./docs/legacy/deliberate-migration-release-plan.md) for historical release-cutover context.
 
 ## What It Provides
 
@@ -104,12 +104,12 @@ Each agent workspace is linked back to shared infrastructure through:
 |---|---|---|
 | `memory-extract` | LLM | Extract atomic claims into `intake/pending/`. |
 | `memory-curate` | LLM | Accept, reject, or defer extracted claims against canon. |
-| `memory-apply` | LLM | Write accepted claims into canon and move intake forward. |
+| `memory-apply` | Compatibility | OpenClaw-facing Phase C shim that preserves the stable apply skill name while the core promoter owns canon writes. |
 | `memory-verify` | Script | Rebuild manifest metadata and graph edges. |
 | `memory-query` | LLM | Answer canon-grounded memory questions. |
 | `memory-status` | Script | Report manifest health, backlog risk, and retention alerts. |
 | `memory-onboard-agent` | Script | Scaffold a new `core/agents/<role>/` slice. |
-| `memory-pipeline` | Script | Run extract -> curate -> apply -> verify in order. |
+| `memory-pipeline` | Script | Run extract -> curate -> apply -> verify in order, with Phase C routed through the core promoter. |
 | `memory-retention` | Script | Archive stale intake and optional long-term maintenance outputs. |
 | `kanban-operator` | LLM | Operate the shared file-first board and resolve task policy before action. |
 
@@ -209,8 +209,8 @@ For an already scaffolded workspace, the fastest operational spot-check is:
 | [docs/supported-surfaces.md](./docs/supported-surfaces.md) | Production, bounded, internal, and retired package matrix for the current product boundary. |
 | [docs/release-readiness.md](./docs/release-readiness.md) | Current production go/no-go gate and release checklist for the independent MemoryOS repository. |
 | [docs/legacy/implementation-guide.md](./docs/legacy/implementation-guide.md) | Current implementation and day-2 operations guide. |
-| [docs/legacy/deliberate-migration-release-plan.md](./docs/legacy/deliberate-migration-release-plan.md) | Current migration-release surface classification and repo-local bridge retirement sequence. |
-| [docs/legacy/memory-os-roadmap.md](./docs/legacy/memory-os-roadmap.md) | Repo-specific migration roadmap from the current plugin to a modular Memory OS. |
-| [docs/memory-design-v2.md](./docs/memory-design-v2.md) | Conceptual v2 design reference. |
-| [docs/human-memory.md](./docs/human-memory.md) | High-level memory model note. |
+| [docs/legacy/deliberate-migration-release-plan.md](./docs/legacy/deliberate-migration-release-plan.md) | Historical archive of the completed release-cutover and bridge-retirement planning work. |
+| [docs/legacy/memory-os-roadmap.md](./docs/legacy/memory-os-roadmap.md) | Repo-specific migration roadmap from the legacy plugin-centric shape to the current modular Memory OS boundary. |
+| [docs/legacy/memory-design-v2.md](./docs/legacy/memory-design-v2.md) | Conceptual v2 design reference. |
+| [docs/legacy/human-memory.md](./docs/legacy/human-memory.md) | High-level memory model note. |
 | [docs/legacy/README.md](./docs/legacy/README.md) | Historical v1 design archive. |
