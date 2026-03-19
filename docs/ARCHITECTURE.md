@@ -23,8 +23,9 @@ use [legacy/memory-os-roadmap.md](./legacy/memory-os-roadmap.md).
   script, pipeline, and runtime behavior
 - a production programmatic surface in `memory-os-gateway`
 - a production read-only operator surface in `control-plane`
-- a production OpenClaw connector/install surface in `adapter-openclaw`
-- bounded non-production connectors in `adapter-codex` and `adapter-claude`
+- a production standalone app surface in `memoryos-app`
+- production peer adapter surfaces in `adapter-openclaw`, `adapter-codex`, and
+  `adapter-claude`
 
 The system stays file-first and git-backed. Canonical state lives in Markdown
 plus derived JSON/JSONL metadata. Runtime state lives in a shadow store and
@@ -32,12 +33,11 @@ remains explicitly non-authoritative.
 
 ## Product Boundary
 
-The current boundary is split into four package classes:
+The current boundary is split into three package classes:
 
 | Class | Packages | Role |
 |---|---|---|
-| `production` | `memory-os-gateway`, `control-plane`, `adapter-openclaw` | Supported public programmatic, operator, and OpenClaw install/setup surfaces |
-| `bounded` | `adapter-codex`, `adapter-claude` | Narrow connector contracts over the live gateway boundary |
+| `production` | `memoryos-app`, `memory-os-gateway`, `control-plane`, `adapter-openclaw`, `adapter-codex`, `adapter-claude` | Supported public standalone, programmatic, operator, and peer adapter surfaces |
 | `internal` | `@nmc/memory-contracts`, `@nmc/memory-ingest`, `@nmc/memory-canon`, `@nmc/memory-maintainer`, `@nmc/memory-workspace`, `@nmc/memory-agents`, `@nmc/memory-pipeline`, `@nmc/memory-scripts`, `memory-os-runtime`, `adapter-conformance` | Shared implementation and test packages inside the product boundary |
 | `retired` | `nmc-memory-plugin`, `memory-os-gateway ops-snapshot` bridge | Historical identifiers only; not live repository surfaces |
 

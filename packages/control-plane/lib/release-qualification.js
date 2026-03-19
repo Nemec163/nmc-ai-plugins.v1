@@ -11,11 +11,25 @@ const SUPPORTED_CONTROL_PLANE_COMMANDS = Object.freeze([
   'record-intervention',
 ]);
 
-const DIRECT_ADAPTER_CONTRACTS = Object.freeze([
+const OPENCLAW_ADAPTER_CONTRACTS = Object.freeze([
   'openclaw memoryos setup',
   'plugin auto-bootstrap',
   'openclaw.plugin.json',
   'system workspace layout',
+]);
+
+const CODEX_ADAPTER_CONTRACTS = Object.freeze([
+  'adapter-owned extract runner',
+  'adapter-owned curate runner',
+  'gateway bootstrap and recall intake',
+  'gateway-mediated promoter handoff',
+]);
+
+const CLAUDE_ADAPTER_CONTRACTS = Object.freeze([
+  'adapter-owned extract runner',
+  'adapter-owned curate runner',
+  'gateway bootstrap and recall intake',
+  'gateway-mediated promoter handoff',
 ]);
 
 const STANDALONE_APP_CONTRACTS = Object.freeze([
@@ -103,19 +117,19 @@ const PACKAGE_MATRIX = Object.freeze([
     package: 'adapter-openclaw',
     layer: 'connector',
     status: 'production',
-    surface: 'supported-direct-install-surface',
+    surface: 'supported-openclaw-adapter-surface',
   },
   {
     package: 'adapter-codex',
     layer: 'connector',
-    status: 'bounded',
-    surface: 'bounded-connector-surface',
+    status: 'production',
+    surface: 'supported-codex-adapter-surface',
   },
   {
     package: 'adapter-claude',
     layer: 'connector',
-    status: 'bounded',
-    surface: 'bounded-connector-surface',
+    status: 'production',
+    surface: 'supported-claude-adapter-surface',
   },
   {
     package: 'adapter-conformance',
@@ -203,9 +217,33 @@ function getControlPlaneReleaseQualification(snapshot) {
       package: 'adapter-openclaw',
       pluginId: 'memoryos-openclaw',
       cli: 'memoryos',
-      status: 'supported-direct-install-surface',
-      preservedContracts: DIRECT_ADAPTER_CONTRACTS,
+      status: 'supported-openclaw-adapter-surface',
+      preservedContracts: OPENCLAW_ADAPTER_CONTRACTS,
     },
+    adapterSurfaces: [
+      {
+        package: 'adapter-openclaw',
+        host: 'openclaw',
+        pluginId: 'memoryos-openclaw',
+        cli: 'memoryos',
+        status: 'supported-openclaw-adapter-surface',
+        preservedContracts: OPENCLAW_ADAPTER_CONTRACTS,
+      },
+      {
+        package: 'adapter-codex',
+        host: 'codex',
+        cli: 'adapter-owned-runner',
+        status: 'supported-codex-adapter-surface',
+        preservedContracts: CODEX_ADAPTER_CONTRACTS,
+      },
+      {
+        package: 'adapter-claude',
+        host: 'claude',
+        cli: 'adapter-owned-runner',
+        status: 'supported-claude-adapter-surface',
+        preservedContracts: CLAUDE_ADAPTER_CONTRACTS,
+      },
+    ],
     legacyShell: {
       package: 'nmc-memory-plugin',
       status: 'retired',

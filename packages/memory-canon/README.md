@@ -4,7 +4,7 @@ Shared canon contract for storage-aware validation, derived manifest and graph
 behavior, and the canonical write boundary.
 
 Surface status: `internal` shared core package inside the product boundary. It
-is not a direct install, operator, or bounded connector surface.
+is not a direct install, operator, or adapter surface.
 
 This package owns:
 

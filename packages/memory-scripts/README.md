@@ -4,7 +4,7 @@ Deterministic helper scripts for MemoryOS.v1 verify, status, onboarding, and
 retention operations.
 
 Surface status: `internal` shared core package inside the product boundary. It
-is not a direct install, operator, or bounded connector surface.
+is not a direct install, operator, or adapter surface.
 
 The canonical implementations live in this package. OpenClaw-facing skill
 entrypoints under `packages/adapter-openclaw/skills/` delegate here so adapter

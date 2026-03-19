@@ -1,12 +1,12 @@
 # adapter-claude
 
-Claude-facing bounded adapter over `memory-os-gateway`.
+Claude-facing adapter over `memory-os-gateway`.
 
-Surface status: `bounded` connector surface. It is supported as a narrow Claude
-integration package, but it is not the repository's production install/setup
-surface.
+Surface status: `production` Claude adapter surface. It is a supported peer
+adapter package over the same MemoryOS core, with Claude-specific runner and
+handoff behavior rather than OpenClaw-specific install/setup responsibilities.
 
-Supported bounded scope:
+Supported scope:
 
 - role-aware bootstrap for a bounded Claude workspace
 - connector-neutral pipeline adapter support for `extract` and `curate`
@@ -25,7 +25,8 @@ runbook for Phase A or Phase B, and hands prompt execution to an adapter-owned
 runner command over stdin without widening into direct canon writes.
 
 This package intentionally does not mutate `openclaw.json`, own workspace-wide
-setup, lease maintainer jobs, or write canon directly.
+setup, lease maintainer jobs, or write canon directly. Those responsibilities
+belong to the OpenClaw adapter, not to the shared adapter contract.
 
 See [supported surfaces](../../docs/supported-surfaces.md) for the current
 package matrix.

@@ -349,6 +349,31 @@ function main() {
       snapshot.releaseQualification.directAdapterSurface.pluginId,
       'memoryos-openclaw'
     );
+    assert.equal(snapshot.releaseQualification.adapterSurfaces.length, 3);
+    assert.equal(
+      snapshot.releaseQualification.adapterSurfaces.some(
+        (entry) =>
+          entry.package === 'adapter-openclaw' &&
+          entry.status === 'supported-openclaw-adapter-surface'
+      ),
+      true
+    );
+    assert.equal(
+      snapshot.releaseQualification.adapterSurfaces.some(
+        (entry) =>
+          entry.package === 'adapter-codex' &&
+          entry.status === 'supported-codex-adapter-surface'
+      ),
+      true
+    );
+    assert.equal(
+      snapshot.releaseQualification.adapterSurfaces.some(
+        (entry) =>
+          entry.package === 'adapter-claude' &&
+          entry.status === 'supported-claude-adapter-surface'
+      ),
+      true
+    );
     assert.equal(
       snapshot.releaseQualification.legacyShell.productionStatus,
       'retired'
@@ -375,7 +400,7 @@ function main() {
         (entry) =>
           entry.package === 'adapter-openclaw' &&
           entry.status === 'production' &&
-          entry.surface === 'supported-direct-install-surface'
+          entry.surface === 'supported-openclaw-adapter-surface'
       ),
       true
     );
@@ -391,8 +416,18 @@ function main() {
     assert.equal(
       snapshot.releaseQualification.packageMatrix.entries.some(
         (entry) =>
+          entry.package === 'adapter-codex' &&
+          entry.status === 'production' &&
+          entry.surface === 'supported-codex-adapter-surface'
+      ),
+      true
+    );
+    assert.equal(
+      snapshot.releaseQualification.packageMatrix.entries.some(
+        (entry) =>
           entry.package === 'adapter-claude' &&
-          entry.status === 'bounded'
+          entry.status === 'production' &&
+          entry.surface === 'supported-claude-adapter-surface'
       ),
       true
     );

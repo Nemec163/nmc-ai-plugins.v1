@@ -2,11 +2,10 @@
 
 Supported OpenClaw adapter package for MemoryOS.v1.
 
-Surface status: `production` optional OpenClaw connector/install surface. It
-also owns the installed-artifact wrapper entrypoints for `control-plane` and
-`memory-os-gateway`. The independent MemoryOS core remains the product
-boundary; this package is the supported OpenClaw connector over that core while
-`memoryos-app` is the standalone host/runtime surface.
+Surface status: `production` OpenClaw adapter surface. It is a peer adapter
+over the same MemoryOS core, and it owns the OpenClaw-specific install/setup
+path plus the installed-artifact wrapper entrypoints for `control-plane` and
+`memory-os-gateway`.
 
 Current responsibilities:
 

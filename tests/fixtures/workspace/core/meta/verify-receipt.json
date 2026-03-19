@@ -1,0 +1,78 @@
+{
+  "kind": "verification-receipt",
+  "schemaVersion": "1.0",
+  "authoritative": false,
+  "surface": "canon-verify",
+  "action": "verify",
+  "status": "ok",
+  "reason": "gateway.verify",
+  "refreshedAt": "2026-03-18T00:00:00Z",
+  "namespace": {
+    "kind": "memory-namespace",
+    "schemaVersion": "1.0",
+    "mode": "single-tenant-default",
+    "defaultNamespace": true,
+    "namespaceKey": "default/default/default",
+    "actorKey": "default/default",
+    "tenantId": "default",
+    "spaceId": "default",
+    "userId": "default",
+    "canonicalScope": {
+      "tenantId": "default",
+      "spaceId": "default",
+      "userId": "default"
+    },
+    "actor": {
+      "userId": "default",
+      "agentId": null,
+      "roleId": null
+    },
+    "scope": {
+      "tenantId": "default",
+      "spaceId": "default",
+      "userId": "default",
+      "agentId": null,
+      "roleId": null
+    },
+    "pathing": {
+      "canonicalRoot": "core",
+      "canonicalPathMode": "workspace-root-default",
+      "layout": "single-tenant-default",
+      "scopedPathsSupported": true,
+      "derivedReadIndexPath": "core/meta/read-index.json",
+      "runtimeShadowRoot": "runtime/shadow",
+      "runtimeRunsRoot": "runtime/shadow/runs",
+      "runtimeManifestPath": "runtime/shadow/manifest.json",
+      "runtimePathMode": "workspace-shadow-default"
+    },
+    "memoryRoot": "/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/fixtures/workspace",
+    "surface": "verification-provenance",
+    "authorityBoundary": {
+      "runtimeAuthoritative": false,
+      "canonicalPromotionPath": "single-promoter"
+    }
+  },
+  "rebuildableFrom": [
+    "canon"
+  ],
+  "authorityBoundary": {
+    "runtimeAuthoritative": false,
+    "canonicalPromotionPath": "single-promoter"
+  },
+  "evidence": {
+    "strategy": "content-addressed-graph-rebuild",
+    "recordFileCount": 15,
+    "recordChecksumDigest": "056fc5a13bd7948f4327af78ed0b2d94f004b5d892f8c2df86d286f509ee1ba3",
+    "edgesDigest": "2c8e445d6fbdf3865fd70d355fe85ab1e1895d7e5a518b5a5a7bbfe7929704c5",
+    "warningCount": 0,
+    "reconciliationChanged": false,
+    "reconciliationReasonCodes": []
+  },
+  "outputs": {
+    "outputPath": "core/meta/manifest.json",
+    "outputDigest": "1632e4bc65f78545dbbd1fd9c9bc272f453676a61d6e518a9fb4c56ebb698e16",
+    "graphPath": "core/meta/graph/edges.jsonl",
+    "graphDigest": "530ccc72d66ed64b837ada92e8b94a6c69c5e625268f08667d200a47d225be2e",
+    "edgesCount": 6
+  }
+}

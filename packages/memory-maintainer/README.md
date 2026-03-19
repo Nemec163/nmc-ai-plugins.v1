@@ -4,7 +4,7 @@ Shared maintainer contract for the file-first task board, board defaults, and
 the operational `system/` execution surface.
 
 Surface status: `internal` shared core package inside the product boundary. It
-is not a direct install, operator, or bounded connector surface.
+is not a direct install, operator, or adapter surface.
 
 This package owns:
 

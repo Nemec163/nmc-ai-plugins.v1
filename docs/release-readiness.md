@@ -16,14 +16,9 @@ boundary.
 - `packages/memoryos-app`: production standalone install/run surface
 - `packages/memory-os-gateway`: production programmatic surface
 - `packages/control-plane`: production read-only operator surface
-- `packages/adapter-openclaw`: production optional OpenClaw connector/install
-  surface over that independent core
-
-The following packages remain intentionally bounded rather than general
-production connectors:
-
-- `packages/adapter-codex`: bounded connector surface
-- `packages/adapter-claude`: bounded connector surface
+- `packages/adapter-openclaw`: production OpenClaw-specific adapter surface
+- `packages/adapter-codex`: production Codex-specific adapter surface
+- `packages/adapter-claude`: production Claude-specific adapter surface
 
 Use [supported-surfaces.md](./supported-surfaces.md) for the authoritative
 package matrix and support classes.
@@ -42,11 +37,12 @@ true:
 6. The supported standalone app path works without OpenClaw while preserving the
    existing `system/` layout, canon boundaries, and app-owned `memoryos run`
    host loop.
-7. The supported OpenClaw connector path keeps `openclaw memoryos setup`,
-   auto-bootstrap behavior, and `openclaw.plugin.json` intact without becoming
-   the product boundary.
-8. The contract and integration baselines are green.
-9. The production-readiness gate is green.
+7. Each supported adapter surface preserves its LLM- or host-specific contract
+   without becoming the product boundary.
+8. The OpenClaw adapter path keeps `openclaw memoryos setup`, auto-bootstrap
+   behavior, and `openclaw.plugin.json` intact.
+9. The contract and integration baselines are green.
+10. The production-readiness gate is green.
 
 ## Production Gate
 
@@ -60,7 +56,7 @@ That gate verifies:
 
 - required release-facing docs exist and root references point at live paths
 - the release-facing docs keep `MemoryOS.v1` framed as an independent core
-  product with optional connectors
+  product with peer adapter surfaces
 - `control-plane` release qualification and supported-surface fixtures are green
 - the full contract baseline via `./tests/run-contract-tests.sh`
 - the full integration baseline via `./tests/run-integration.sh`

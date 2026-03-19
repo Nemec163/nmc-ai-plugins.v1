@@ -2,19 +2,19 @@
 
 Monorepo for MemoryOS.v1: an autonomous, self-sufficient memory operating system with a standalone app surface and optional connector packages for external LLM and agent runtimes.
 
-The product boundary is the independent Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `memoryos-app` is the primary standalone install/run surface, `adapter-openclaw` is an optional production connector surface, and `adapter-codex` plus `adapter-claude` are bounded connector packages over the same core.
+The product boundary is the independent Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `memoryos-app` is the standalone app surface, while `adapter-openclaw`, `adapter-codex`, and `adapter-claude` are peer adapter surfaces over the same core, each adapted to its own host or LLM runtime.
 
-`packages/memoryos-app` is the supported standalone app surface for MemoryOS.v1. `packages/adapter-openclaw` remains the supported OpenClaw adapter/plugin surface. The old `nmc-memory-plugin` mirror has been retired and removed from the repository.
+`packages/memoryos-app` is the supported standalone app surface for MemoryOS.v1. `packages/adapter-openclaw`, `packages/adapter-codex`, and `packages/adapter-claude` are supported adapter surfaces. The old `nmc-memory-plugin` mirror has been retired and removed from the repository.
 
-Use this document as the entry point. Use [standalone app README](./packages/memoryos-app/README.md) for the primary local runtime surface, [adapter README](./packages/adapter-openclaw/README.md) for the OpenClaw connector surface, [supported surfaces](./docs/supported-surfaces.md) for the package matrix, [implementation guide](./docs/legacy/implementation-guide.md) for day-2 operations, [release readiness](./docs/release-readiness.md) for the current production gate, and [deliberate migration release plan](./docs/legacy/deliberate-migration-release-plan.md) for historical release-cutover context.
+Use this document as the entry point. Use [standalone app README](./packages/memoryos-app/README.md) for the local runtime surface, [OpenClaw adapter README](./packages/adapter-openclaw/README.md), [Codex adapter README](./packages/adapter-codex/README.md), and [Claude adapter README](./packages/adapter-claude/README.md) for the peer adapter surfaces, [supported surfaces](./docs/supported-surfaces.md) for the package matrix, [implementation guide](./docs/legacy/implementation-guide.md) for day-2 operations, [release readiness](./docs/release-readiness.md) for the current production gate, and [deliberate migration release plan](./docs/legacy/deliberate-migration-release-plan.md) for historical release-cutover context.
 
 ## What It Provides
 
 - An autonomous Memory OS core with canonical memory, runtime shadow state, operator surfaces, and deterministic promotion boundaries.
 - A shared `system/` layer with memory, skills, tasks, policy, docs, and scripts.
 - A git-backed canonical memory workspace with extract -> curate -> apply -> verify flow.
-- Optional connector surfaces for OpenClaw, Codex, and Claude, while the core product boundary stays independent of any single connector.
-- A direct OpenClaw adapter surface with managed setup and bootstrap behavior.
+- Peer adapter surfaces for OpenClaw, Codex, and Claude, while the core product boundary stays independent of any single connector.
+- Host-specific adapter behavior for plugin bootstrap, adapter-owned runners, and explicit gateway handoff without widening canon authority.
 
 ## Quick Start
 
@@ -79,7 +79,9 @@ These packages define the standalone memory system and its stable operator/progr
 - `packages/adapter-codex` attaches MemoryOS.v1 to Codex-oriented execution
   flows, including connector-neutral `extract` and `curate` execution through
   the shared pipeline contract.
-- `packages/adapter-claude` is a bounded Claude connector over gateway bootstrap, read, and handoff surfaces.
+- `packages/adapter-claude` attaches MemoryOS.v1 to Claude-oriented execution
+  flows, including connector-neutral `extract` and `curate` execution through
+  the shared pipeline contract.
 
 ### OpenClaw Adapter
 
@@ -221,7 +223,7 @@ node ./packages/memoryos-app/bin/memoryos.js status
 |---|---|
 | [packages/memoryos-app/README.md](./packages/memoryos-app/README.md) | Package-level standalone install, bootstrap, and local runtime CLI reference. |
 | [packages/adapter-openclaw/README.md](./packages/adapter-openclaw/README.md) | Package-level install, setup, structure, and OpenClaw adapter reference. |
-| [docs/supported-surfaces.md](./docs/supported-surfaces.md) | Production, bounded, internal, and retired package matrix for the current product boundary. |
+| [docs/supported-surfaces.md](./docs/supported-surfaces.md) | Production, internal, and retired package matrix for the current product boundary. |
 | [docs/release-readiness.md](./docs/release-readiness.md) | Current production go/no-go gate and release checklist for the independent MemoryOS repository. |
 | [docs/legacy/implementation-guide.md](./docs/legacy/implementation-guide.md) | Current implementation and day-2 operations guide. |
 | [docs/legacy/deliberate-migration-release-plan.md](./docs/legacy/deliberate-migration-release-plan.md) | Historical archive of the completed release-cutover and bridge-retirement planning work. |

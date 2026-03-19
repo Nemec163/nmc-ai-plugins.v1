@@ -1,8 +1,8 @@
 # Implementation Guide: MemoryOS.v1
 
 Current-state implementation and operations guide for the independent
-`MemoryOS.v1` core, its standalone app surface, and its supported optional
-OpenClaw connector/install surface.
+`MemoryOS.v1` core, its standalone app surface, and its supported peer adapter
+surfaces.
 
 Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), the package/status matrix lives in [../supported-surfaces.md](../supported-surfaces.md), the release gate lives in [../release-readiness.md](../release-readiness.md), standalone app details live in [../../packages/memoryos-app/README.md](../../packages/memoryos-app/README.md), and OpenClaw-adapter details live in [../../packages/adapter-openclaw/README.md](../../packages/adapter-openclaw/README.md).
 
@@ -12,8 +12,9 @@ The completed release-cutover and bridge-retirement planning work is preserved i
 
 The current repository is centered on the autonomous, connector-agnostic
 `MemoryOS.v1` core and supports direct standalone use through
-`packages/memoryos-app`, plus optional OpenClaw installation through
-`packages/adapter-openclaw`:
+`packages/memoryos-app`, plus adapter-specific runtime integration through
+`packages/adapter-openclaw`, `packages/adapter-codex`, and
+`packages/adapter-claude`:
 
 - `packages/memoryos-app` owns the standalone `memoryos` CLI, local bootstrap,
   and app-facing wrappers over gateway, control-plane, and pipeline surfaces.
@@ -26,17 +27,18 @@ The current repository is centered on the autonomous, connector-agnostic
 - `packages/adapter-openclaw/skills/` bundles the memory pipeline, maintenance scripts, and kanban operator.
 
 `packages/memoryos-app` is the supported production standalone app/install
-surface. `packages/adapter-openclaw` remains the supported production OpenClaw
-connector. The legacy `nmc-memory-plugin` shell has been retired and removed
-from the repository, but the product boundary remains `MemoryOS.v1` rather than
-either host surface.
+surface. `packages/adapter-openclaw`, `packages/adapter-codex`, and
+`packages/adapter-claude` are supported production adapter surfaces for their
+respective runtimes. The legacy `nmc-memory-plugin` shell has been retired and
+removed from the repository, but the product boundary remains `MemoryOS.v1`
+rather than any single host surface.
 
 Connector framing for this repository:
 
-- `packages/adapter-openclaw` is the production OpenClaw install/setup connector surface.
+- `packages/adapter-openclaw` is the production OpenClaw adapter surface with plugin install/setup ownership.
 - `packages/memoryos-app` is the production standalone install/run surface.
-- `packages/adapter-codex` is a bounded Codex connector surface with shared-pipeline `extract` and `curate` execution plus gateway-mediated handoff.
-- `packages/adapter-claude` is a bounded Claude connector surface over existing gateway and handoff contracts and is not part of the current direct-install production release boundary.
+- `packages/adapter-codex` is a production Codex adapter surface with shared-pipeline `extract` and `curate` execution plus gateway-mediated handoff.
+- `packages/adapter-claude` is a production Claude adapter surface over existing gateway and handoff contracts.
 - `packages/memory-os-gateway` is the supported programmatic surface.
 - `packages/control-plane` is the supported read-only operator surface.
 - shared `@nmc/*` packages plus `memory-os-runtime` remain internal product-boundary packages rather than direct install or operator surfaces.

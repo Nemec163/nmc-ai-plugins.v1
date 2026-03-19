@@ -2,11 +2,11 @@
 
 Codex-facing adapter over `memory-os-gateway` as a peer connector surface over the same MemoryOS core.
 
-Surface status: `bounded` connector surface. It is a supported narrow Codex
-integration package, but it is not the repository's production install/setup
-surface.
+Surface status: `production` Codex adapter surface. It is a supported peer
+adapter package over the same MemoryOS core, with Codex-specific runner and
+handoff behavior rather than OpenClaw-specific install/setup responsibilities.
 
-Current bounded scope:
+Current scope:
 
 - role-aware bootstrap for a single Codex role workspace
 - connector-neutral pipeline adapter support for `extract` and `curate`
@@ -25,7 +25,8 @@ runbook for Phase A or Phase B, and hands prompt execution to an adapter-owned
 runner command over stdin without widening into direct canon writes.
 
 This package intentionally does not mutate `openclaw.json`, bundle OpenClaw
-skills, lease maintainer jobs, or write canon directly.
+skills, lease maintainer jobs, or write canon directly. Those responsibilities
+belong to the OpenClaw adapter, not to the shared adapter contract.
 
 See [supported surfaces](../../docs/supported-surfaces.md) for the current
 package matrix.
