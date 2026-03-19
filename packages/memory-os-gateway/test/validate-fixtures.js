@@ -247,12 +247,20 @@ function main() {
   assert.equal(status.runtime.runCount, 0);
   assert.equal(status.readIndex.status, 'missing');
   assert.equal(status.readIndex.namespace.namespaceKey, 'default/default/default');
+  assert.equal(status.manifest.receipt.status, 'missing-receipt');
+  assert.equal(status.readIndex.receipt.status, 'not-captured');
+  assert.equal(status.runtime.receipt.status, 'not-captured');
+  assert.equal(status.verificationProvenance.receipts.canonVerify.status, 'missing-receipt');
 
   const health = getHealth({
     memoryRoot: FIXTURE_MEMORY_ROOT,
   });
   assert.equal(health.status, 'healthy');
   assert.equal(health.checks.some((check) => check.name === 'verify-script' && check.ok), true);
+  assert.equal(
+    health.warnings.includes('Manifest verify receipt is missing and verify provenance is incomplete.'),
+    true
+  );
 
   const verifyRoot = makeTempRoot();
   try {
@@ -269,6 +277,17 @@ function main() {
     assert.equal(verification.manifest.record_counts.procedures, 1);
     assert.equal(verification.reconciliation.strategy, 'content-addressed-graph-rebuild');
     assert.equal(verification.manifest.reconciliation.strategy, 'content-addressed-graph-rebuild');
+    assert.equal(verification.receipt.surface, 'canon-verify');
+    assert.equal(verification.receipt.action, 'verify');
+    assert.equal(verification.verificationProvenance.receipts.canonVerify.exists, true);
+    assert.equal(
+      verification.verificationProvenance.receipts.canonVerify.evidence.recordChecksumDigest,
+      verification.reconciliation.record_checksum_digest
+    );
+    assert.equal(
+      verification.verificationProvenance.receipts.readIndex.status,
+      'missing'
+    );
   } finally {
     fs.rmSync(verifyRoot, { recursive: true, force: true });
   }
@@ -364,6 +383,9 @@ function main() {
     assert.equal(capture.record.namespace.actor.agentId, null);
     assert.equal(capture.record.namespace.actor.roleId, null);
     assert.equal(fs.existsSync(capture.runPath), true);
+    assert.equal(capture.receipt.surface, 'runtime-summary');
+    assert.equal(capture.receipt.action, 'reconcile');
+    assert.equal(capture.receipt.evidence.runCount, 1);
 
     const runtimeDelta = getRuntimeDelta({
       memoryRoot: runtimeWorkspaceRoot,
@@ -464,6 +486,9 @@ function main() {
     assert.equal(runtimeStatus.runtime.namespace.namespaceKey, 'default/default/default');
     assert.equal(runtimeStatus.runtime.runCount, 1);
     assert.equal(runtimeStatus.runtime.totalArtifacts, 7);
+    assert.equal(runtimeStatus.runtime.receipt.exists, true);
+    assert.equal(runtimeStatus.runtime.receipt.action, 'reconcile');
+    assert.equal(runtimeStatus.verificationProvenance.receipts.runtimeSummary.exists, true);
     assert.deepEqual(hashCanonTree(runtimeWorkspaceRoot), canonSnapshot);
 
     const cliCaptureResult = spawnSync(
@@ -535,6 +560,8 @@ function main() {
       memoryRoot: readIndexWorkspaceRoot,
     });
     assert.equal(initialVerification.status, 'missing');
+    assert.equal(initialVerification.receipt.exists, true);
+    assert.equal(initialVerification.receipt.action, 'verify');
 
     const builtIndex = buildReadIndex({
       memoryRoot: readIndexWorkspaceRoot,
@@ -543,6 +570,8 @@ function main() {
     assert.equal(fs.existsSync(builtIndex.path), true);
     assert.equal(builtIndex.namespace.namespaceKey, 'default/default/default');
     assert.equal(builtIndex.stats.recordCount, 7);
+    assert.equal(builtIndex.receipt.surface, 'derived-read-index');
+    assert.equal(builtIndex.receipt.action, 'build');
     assert.equal(readReadIndex({ memoryRoot: readIndexWorkspaceRoot }).builtAt, '2026-03-18T15:00:00Z');
     assert.equal(
       readReadIndex({ memoryRoot: readIndexWorkspaceRoot }).namespace.namespaceKey,
@@ -555,6 +584,8 @@ function main() {
     assert.equal(verifiedIndex.status, 'ok');
     assert.equal(verifiedIndex.namespace.namespaceKey, 'default/default/default');
     assert.equal(verifiedIndex.stats.recordCount, 7);
+    assert.equal(verifiedIndex.receipt.action, 'verify');
+    assert.equal(verifiedIndex.receipt.evidence.manifestAligned, true);
 
     const scopedIndex = buildReadIndex({
       memoryRoot: readIndexWorkspaceRoot,
@@ -596,6 +627,9 @@ function main() {
     assert.equal(indexedStatus.manifest.reconciliationFresh, true);
     assert.equal(typeof indexedStatus.readIndex.sourceContentFingerprint, 'string');
     assert.equal(indexedStatus.readIndex.sourceReconciliationFresh, true);
+    assert.equal(indexedStatus.readIndex.receipt.exists, true);
+    assert.equal(indexedStatus.readIndex.receipt.action, 'verify');
+    assert.equal(indexedStatus.verificationProvenance.receipts.readIndex.exists, true);
 
     fs.appendFileSync(
       path.join(readIndexWorkspaceRoot, 'core/user/knowledge/work.md'),
@@ -619,6 +653,7 @@ function main() {
     });
     assert.equal(staleStatus.manifest.reconciliationFresh, false);
     assert.equal(staleStatus.readIndex.sourceReconciliationFresh, false);
+    assert.equal(staleStatus.readIndex.receipt.exists, true);
 
     const staleHealth = getHealth({
       memoryRoot: readIndexWorkspaceRoot,
@@ -643,6 +678,7 @@ function main() {
     );
     assert.equal(cliBuildIndex.status, 0, cliBuildIndex.stderr);
     assert.equal(JSON.parse(cliBuildIndex.stdout).builtAt, '2026-03-18T16:00:00Z');
+    assert.equal(JSON.parse(cliBuildIndex.stdout).receipt.action, 'build');
 
     const cliVerifyIndex = spawnSync(
       process.execPath,
@@ -653,6 +689,7 @@ function main() {
     );
     assert.equal(cliVerifyIndex.status, 0, cliVerifyIndex.stderr);
     assert.equal(JSON.parse(cliVerifyIndex.stdout).status, 'ok');
+    assert.equal(JSON.parse(cliVerifyIndex.stdout).receipt.action, 'verify');
   } finally {
     fs.rmSync(readIndexRoot, { recursive: true, force: true });
   }

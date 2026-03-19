@@ -5,14 +5,10 @@
 
 ## Progress Snapshot
 
-- completed: `verify hardening and content-addressed reconciliation — tighten verify/rebuild semantics around content-derived freshness and reconciliation evidence without widening authority`
-- next: `verify receipts and projection provenance surfaces — make verify/rebuild activity inspectable through non-authoritative receipts and audit-ready provenance without widening authority`
+- completed: `product boundary simplification and supported-surface alignment — reduce remaining doc drift between architecture, package docs, and shipped connector/operator surfaces without widening authority`
+- next: `TBD after Phase 7 completion — use Immediate Next Step to choose the next bounded change`
 - last verified on: `2026-03-19`
 - verified in this slice:
-  - `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/memory-canon/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-runtime/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
@@ -2236,12 +2232,41 @@ Implementation note:
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 
+## Verify Receipts and Projection Provenance Surfaces
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- added digest-backed non-authoritative receipts for canon verify at `core/meta/verify-receipt.json`, persisted read-index build/verify actions beside `read-index.json`, and runtime-summary reconciliation beside the runtime shadow manifest so refresh activity is inspectable without becoming authoritative
+- exposed receipt/provenance summaries through `memory-os-gateway` `verify`, `status`, and `health` surfaces, then threaded the same visibility through `control-plane` snapshot output so operators can inspect when and why derived surfaces were refreshed
+- kept ordinary read-path operations non-mutating by restricting receipt persistence to explicit verify/rebuild/refresh actions, while leaving projections, read-index data, runtime summaries, and the new receipts rebuildable and non-authoritative
+- aligned repository docs and package references with the actual in-repo roadmap location and the now-bounded `adapter-claude` surface so the shipped state and the documented state no longer contradict each other
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
+## Product Boundary Simplification and Supported-Surface Alignment
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- added [docs/supported-surfaces.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/supported-surfaces.md) as the minimal supported-surface document and explicit package matrix for the current `MemoryOS.v1` product boundary
+- extended `control-plane` release qualification with a machine-readable package matrix so snapshot and health consumers can inspect which packages are `production`, `bounded`, or `internal` without inferring that from scattered docs
+- aligned [docs/ARCHITECTURE.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/ARCHITECTURE.md), [docs/legacy/implementation-guide.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/implementation-guide.md), and package README files with the same taxonomy, including the supported operator, programmatic, connector, and internal package surfaces
+- preserved the existing `openclaw memoryos setup`/auto-bootstrap behavior, workspace layout, verify receipt visibility, and single promotion path while simplifying the public product-boundary story
+- verified with `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
 ## Immediate Next Step
 
-The next implementation step should make verify/rebuild activity itself inspectable through non-authoritative receipts and provenance surfaces:
+Phase 7 is now complete, so the next implementation step should lock the first post-boundary-cleanup slice explicitly before editing code again:
 
-- persist or expose digest-backed receipts for canon verify, read-index rebuilds, and runtime-summary reconciliation so operators can inspect when and why a derived surface was refreshed
-- keep projections, read-index data, runtime summaries, and any new receipts rebuildable and explicitly non-authoritative while improving provenance visibility
-- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while adding auditability around verification work
+- choose one bounded follow-up slice and record it in the roadmap `Progress Snapshot` plus `AGENTS.md` before implementation starts
+- prefer a slice that reuses the now-explicit supported-surface matrix instead of reintroducing package taxonomy drift through one-off doc or wrapper changes
+- keep `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, verify/provenance visibility, and the single promotion path unchanged while that next slice is defined
 
-Content-addressed freshness and drift evidence are now explicit across canon verify, derived read-index verification, and runtime shadow summaries. The next risk is leaving the verify/rebuild actions themselves comparatively opaque even though the resulting digests are now stricter and more auditable.
+The product-boundary story is now explicit in both docs and machine-readable release metadata. The next risk is starting a new change without first locking its scope, which would reopen the same taxonomy drift this slice just removed.

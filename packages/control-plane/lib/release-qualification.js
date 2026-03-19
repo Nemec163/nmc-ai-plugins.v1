@@ -18,6 +18,99 @@ const DIRECT_ADAPTER_CONTRACTS = Object.freeze([
   'system workspace layout',
 ]);
 
+const PACKAGE_MATRIX = Object.freeze([
+  {
+    package: '@nmc/memory-contracts',
+    layer: 'core',
+    status: 'internal',
+    surface: 'shared-contract-package',
+  },
+  {
+    package: '@nmc/memory-ingest',
+    layer: 'core',
+    status: 'internal',
+    surface: 'shared-ingest-package',
+  },
+  {
+    package: '@nmc/memory-canon',
+    layer: 'core',
+    status: 'internal',
+    surface: 'shared-canon-package',
+  },
+  {
+    package: '@nmc/memory-maintainer',
+    layer: 'core',
+    status: 'internal',
+    surface: 'shared-maintainer-package',
+  },
+  {
+    package: '@nmc/memory-workspace',
+    layer: 'core',
+    status: 'internal',
+    surface: 'shared-workspace-package',
+  },
+  {
+    package: '@nmc/memory-agents',
+    layer: 'core',
+    status: 'internal',
+    surface: 'shared-agent-package',
+  },
+  {
+    package: '@nmc/memory-pipeline',
+    layer: 'core',
+    status: 'internal',
+    surface: 'shared-pipeline-package',
+  },
+  {
+    package: '@nmc/memory-scripts',
+    layer: 'core',
+    status: 'internal',
+    surface: 'shared-script-package',
+  },
+  {
+    package: 'memory-os-runtime',
+    layer: 'core',
+    status: 'internal',
+    surface: 'runtime-shadow-package',
+  },
+  {
+    package: 'memory-os-gateway',
+    layer: 'gateway',
+    status: 'production',
+    surface: 'supported-programmatic-surface',
+  },
+  {
+    package: 'control-plane',
+    layer: 'operator',
+    status: 'production',
+    surface: 'supported-operator-surface',
+  },
+  {
+    package: 'adapter-openclaw',
+    layer: 'connector',
+    status: 'production',
+    surface: 'supported-direct-install-surface',
+  },
+  {
+    package: 'adapter-codex',
+    layer: 'connector',
+    status: 'bounded',
+    surface: 'bounded-connector-surface',
+  },
+  {
+    package: 'adapter-claude',
+    layer: 'connector',
+    status: 'bounded',
+    surface: 'bounded-connector-surface',
+  },
+  {
+    package: 'adapter-conformance',
+    layer: 'test',
+    status: 'internal',
+    surface: 'test-only-conformance-harness',
+  },
+]);
+
 function buildCheck(name, ok, detail) {
   return {
     name,
@@ -99,6 +192,11 @@ function getControlPlaneReleaseQualification(snapshot) {
       productionStatus: 'retired',
       directAdapterInstall: 'supported',
       removedFromRepository: true,
+    },
+    packageMatrix: {
+      source: 'control-plane-release-qualification',
+      packageCount: PACKAGE_MATRIX.length,
+      entries: PACKAGE_MATRIX,
     },
     retirementPrerequisites: {
       target: 'nmc-memory-plugin-legacy-retirement',

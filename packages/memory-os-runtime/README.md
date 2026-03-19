@@ -2,6 +2,9 @@
 
 Shadow-mode runtime store for non-canonical Memory OS artifacts.
 
+Surface status: `internal` shared core package inside the product boundary. It
+is not a direct install, operator, or bounded connector surface.
+
 Current v1 surface:
 
 - `captureShadowRuntime`
@@ -17,4 +20,4 @@ The runtime store stays:
 - rebuildable from canon plus captured runtime inputs
 - isolated from canon writes
 
-See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.
+See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for the extraction plan.

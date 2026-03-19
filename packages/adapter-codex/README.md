@@ -2,6 +2,10 @@
 
 Codex-facing adapter over `memory-os-gateway` for the first non-OpenClaw execution path.
 
+Surface status: `bounded` connector surface. It is a supported narrow Codex
+integration package, but it is not the repository's production install/setup
+surface.
+
 Current scope for Phase 4 / PR 4.2:
 
 - role-aware bootstrap for a single Codex role workspace

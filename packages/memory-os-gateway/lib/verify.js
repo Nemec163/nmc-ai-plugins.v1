@@ -3,6 +3,7 @@
 const path = require('node:path');
 
 const { loadMemoryCanon } = require('./load-deps');
+const { getVerificationProvenance, recordCanonVerifyReceipt } = require('./provenance');
 const { verifyReadIndex } = require('./read-index');
 
 function verify(options) {
@@ -15,7 +16,20 @@ function verify(options) {
     today,
     stderr: options.stderr,
   });
-  const readIndex = verifyReadIndex({ memoryRoot });
+  const receipt = recordCanonVerifyReceipt({
+    memoryRoot,
+    updatedAt,
+    result: {
+      ...result,
+      updatedAt,
+    },
+    reason: options.reason || 'gateway.verify',
+  });
+  const readIndex = verifyReadIndex({
+    memoryRoot,
+    reason: options.readIndexReason || 'gateway.verify.read-index-check',
+    persistReceipt: options.persistReadIndexReceipt !== false,
+  });
   const status =
     result.warningCount > 0 || (readIndex.exists && readIndex.ok === false)
       ? 'warning'
@@ -26,8 +40,10 @@ function verify(options) {
     memoryRoot,
     updatedAt,
     today,
+    receipt,
     readIndex,
     status,
+    verificationProvenance: getVerificationProvenance({ memoryRoot }),
   };
 }
 

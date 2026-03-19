@@ -2,6 +2,9 @@
 
 Shared package for engine-agnostic sequencing of the Memory OS pipeline phases:
 
+Surface status: `internal` shared core package inside the product boundary. It
+is not a direct install, operator, or bounded connector surface.
+
 - `extract`
 - `curate`
 - `apply`

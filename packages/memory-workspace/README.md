@@ -2,6 +2,9 @@
 
 Shared workspace utilities and scaffold orchestration extracted from OpenClaw setup code.
 
+Surface status: `internal` shared core package inside the product boundary. It
+is not a direct install, operator, or bounded connector surface.
+
 This package owns generic filesystem placement concerns:
 
 - path normalization (`expandHome`, `toConfigPath`, `toPosixPath`, `relativeWorkspacePath`)
@@ -17,4 +20,4 @@ Example:
 const { copyMemoryTemplate } = require("@nmc/memory-workspace");
 ```
 
-See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for migration sequencing.
+See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for migration sequencing.

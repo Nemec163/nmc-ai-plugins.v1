@@ -1,7 +1,7 @@
 # MemoryOS.v1 — Полная документация
 
 > Версия документа: 2026-03-19
-> Репозиторий: `nmc-ai-plugins.v1` (npm workspace monorepo)
+> Репозиторий: `memory-os.v1` (npm workspace monorepo)
 
 ---
 
@@ -43,14 +43,21 @@
 - **Pluggable adapters**: Ядро системы памяти отделено от коннекторов к конкретным средам исполнения (OpenClaw, Codex, Claude).
 - **Git-backed**: Полная история изменений, аудит, откат.
 
+Минимальная product-boundary taxonomy и package classification зафиксированы в
+[supported-surfaces.md](./supported-surfaces.md). Этот документ описывает
+архитектуру; `supported-surfaces.md` фиксирует, какие package surfaces сейчас
+production, bounded, internal или retired.
+
 ### Что входит в product boundary
 
-| Слой | Что включает |
-|---|---|
-| **Core** | contracts, canon, maintainer, workspace, scripts, agents, pipeline, gateway, runtime |
-| **Connectors** | adapter-openclaw (production), adapter-codex (bounded), adapter-claude (scaffold) |
-| **Operator** | control-plane (read-only) |
-| **Tests** | contract tests, integration tests, conformance suite, golden fixtures |
+| Слой | Что включает | Surface class |
+|---|---|---|
+| **Core packages** | `@nmc/memory-contracts`, `@nmc/memory-ingest`, `@nmc/memory-canon`, `@nmc/memory-maintainer`, `@nmc/memory-workspace`, `@nmc/memory-agents`, `@nmc/memory-pipeline`, `@nmc/memory-scripts`, `memory-os-runtime` | `internal` |
+| **Gateway** | `memory-os-gateway` | `production` programmatic surface |
+| **Operator** | `control-plane` | `production` read-only operator surface |
+| **Connectors** | `adapter-openclaw`, `adapter-codex`, `adapter-claude` | `adapter-openclaw`: `production`; `adapter-codex` / `adapter-claude`: `bounded` |
+| **Tests** | contract tests, integration tests, golden fixtures, `adapter-conformance` | `internal` test-only |
+| **Retired compatibility** | `nmc-memory-plugin`, `memory-os-gateway ops-snapshot` bridge | `retired` |
 
 ---
 
@@ -87,7 +94,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                      ADAPTER LAYER                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
-│  │adapter-openclaw│ │adapter-codex │  │adapter-claude (scaffold)│ │
+│  │adapter-openclaw│ │adapter-codex │  │adapter-claude (bounded) │ │
 │  └──────┬───────┘  └──────┬───────┘  └───────────────────────┘  │
 │         │                  │                                     │
 │  ┌──────┴──────────────────┴─────────────────────────────────┐  │
@@ -144,18 +151,23 @@
 
 ### Таблица пакетов
 
-| Пакет | npm-имя | Роль | Зависимости |
-|---|---|---|---|
-| `memory-contracts` | `@nmc/memory-contracts` | Общие контракты: типы записей, схемы, коды ошибок, адаптер протокол | — |
-| `memory-canon` | `@nmc/memory-canon` | Канонический слой: layout, manifest, graph, promoter, lock, verify | `@nmc/memory-contracts` |
-| `memory-workspace` | `@nmc/memory-workspace` | Утилиты путей, FS, шаблонов и scaffold | — |
-| `memory-scripts` | `@nmc/memory-scripts` | Shell-скрипты: verify, status, onboard, retention | — |
-| `memory-maintainer` | `@nmc/memory-maintainer` | Задачи, kanban, парсер frontmatter, политики | — |
-| `memory-os-runtime` | `memory-os-runtime` | Теневое runtime-хранилище (shadow store) | — |
-| `memory-os-gateway` | `memory-os-gateway` | In-process SDK и CLI для всех операций | canon, workspace, scripts, runtime, agents |
-| `adapter-openclaw` | `adapter-openclaw` | Production-адаптер для OpenClaw | все core через bundle |
-| `adapter-claude` | `adapter-claude` | Scaffold для будущего Claude-адаптера | — |
-| `adapter-conformance` | `adapter-conformance` | Shared тест-сьют для адаптеров | — |
+| Пакет | npm-имя | Роль | Surface class | Зависимости |
+|---|---|---|---|---|
+| `memory-contracts` | `@nmc/memory-contracts` | Общие контракты: типы записей, схемы, коды ошибок, adapter protocol | `internal` core | — |
+| `memory-ingest` | `@nmc/memory-ingest` | Engine-agnostic source normalization и provenance contracts | `internal` core | `@nmc/memory-contracts` |
+| `memory-canon` | `@nmc/memory-canon` | Канонический слой: layout, manifest, graph, promoter, lock, verify | `internal` core | `@nmc/memory-contracts` |
+| `memory-maintainer` | `@nmc/memory-maintainer` | Задачи, policy bundles, task parsing, operational contracts | `internal` core | — |
+| `memory-workspace` | `@nmc/memory-workspace` | Утилиты путей, FS, шаблонов и scaffold | `internal` core | — |
+| `memory-agents` | `@nmc/memory-agents` | Role roster, manifests, render helpers | `internal` core | — |
+| `memory-pipeline` | `@nmc/memory-pipeline` | Engine-agnostic pipeline sequencing | `internal` core | `@nmc/memory-contracts`, `@nmc/memory-scripts` |
+| `memory-scripts` | `@nmc/memory-scripts` | Deterministic shell scripts: verify, status, onboard, retention | `internal` core | — |
+| `memory-os-runtime` | `memory-os-runtime` | Теневое runtime-хранилище (shadow store) | `internal` core | — |
+| `memory-os-gateway` | `memory-os-gateway` | Supported SDK и CLI для read/bootstrap/query/status/verify/runtime/handoff | `production` programmatic | canon, workspace, scripts, runtime, agents |
+| `control-plane` | `control-plane` | Supported read-only operator SDK/CLI | `production` operator | gateway, runtime, maintainer |
+| `adapter-openclaw` | `adapter-openclaw` | Production OpenClaw install/setup connector и installed-artifact wrapper owner | `production` connector | все core через bundle |
+| `adapter-codex` | `adapter-codex` | Bounded Codex-коннектор поверх gateway bootstrap/read/handoff | `bounded` connector | gateway + conformance |
+| `adapter-claude` | `adapter-claude` | Bounded Claude-коннектор поверх gateway bootstrap/read/handoff | `bounded` connector | gateway + conformance |
+| `adapter-conformance` | `adapter-conformance` | Shared capability-scoped тест-сьют для адаптеров | `internal` test-only | — |
 
 ### 4.1 `@nmc/memory-contracts`
 
@@ -737,7 +749,11 @@ effective_git_flow = task.git_flow === 'inherit' ? board.gitFlow : task.git_flow
 
 ## 13. Адаптеры и коннекторы
 
-### adapter-openclaw (Production)
+Поддерживаемая classification для connector и operator surfaces зафиксирована в
+[supported-surfaces.md](./supported-surfaces.md). Ниже описана роль каждого
+adapter package, а не отдельная product/support taxonomy.
+
+### adapter-openclaw (Production Direct-Install Surface)
 
 Полнофункциональный адаптер для среды OpenClaw.
 
@@ -765,21 +781,21 @@ effective_git_flow = task.git_flow === 'inherit' ? board.gitFlow : task.git_flow
 - `scripts/prepare-bundle.js` копирует все 10+ core-пакетов в adapter root
 - Генерирует bin wrappers для `memory-control-plane` и `memory-os-gateway`
 
-### adapter-codex (Bounded)
+### adapter-codex (Bounded Connector)
 
 Адаптер для Codex с role-aware bootstrap, canon-safe read-only execution, и bounded single-run contract.
 
-### adapter-claude (Scaffold)
+### adapter-claude (Bounded Connector)
 
-Placeholder для будущего Claude-адаптера:
+Поддерживаемый bounded Claude-коннектор поверх `memory-os-gateway`:
 
-```javascript
-function createClaudeAdapter() {
-  throw new Error('scaffold only. Implement the Claude runtime contract before using it.');
-}
-```
+- role-aware bootstrap для Claude workspace
+- intake role bundle без прямого доступа к canon write path
+- canon-safe read/query/status surfaces через gateway
+- explicit proposal upload, feedback/completion handoff и conformance coverage
+- без прямой записи в canon, без владения workspace-wide setup и maintainer jobs
 
-### adapter-conformance (Test Suite)
+### adapter-conformance (Internal Test Suite)
 
 Shared тестовый harness для всех адаптеров.
 
@@ -1009,7 +1025,7 @@ jobs:
     ┌─────────▼────┐  ┌──────▼─────┐  ┌──────▼─────┐
     │adapter-      │  │adapter-    │  │adapter-    │
     │openclaw      │  │codex       │  │claude      │
-    │(production)  │  │(bounded)   │  │(scaffold)  │
+│(production)  │  │(bounded)   │  │(bounded)   │
     └──────────────┘  └────────────┘  └────────────┘
               │
     ┌─────────▼────────┐
@@ -1160,12 +1176,14 @@ pipeline.sh 2026-03-05 --phase verify
 | **Phase 4** | Adapter-codex: role-aware bootstrap + bounded single-run contract |
 | **Phase 5** | Runtime shadow store + OpenClaw runtime orchestration |
 | **Phase 6** | Control-plane: read-only operator surface + health monitor |
+| **Phase 7** | Product boundary simplification + supported-surface alignment |
 | **Release hardening** | Migration release prep, bridge retirement, surface freeze |
 | **Compatibility shell** | Wrapper convergence, skill discovery, artifact layout, regression cutover, install manifest |
 
 ### Текущий slice
 
-> `adapter-claude runtime contract` — замена scaffold-only пакета на bounded Claude connector contract поверх существующих gateway и handoff surfaces.
+> completed: `product boundary simplification and supported-surface alignment`
+> next: `TBD after Phase 7` — follow-on implementation slice is not locked yet; use the roadmap `Immediate Next Step` section as the source of truth for the next bounded change.
 
 ### Инварианты (всегда соблюдаются)
 

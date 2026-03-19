@@ -2,7 +2,11 @@
 
 Claude-facing bounded adapter over `memory-os-gateway`.
 
-Current scope for the `adapter-claude runtime contract` slice:
+Surface status: `bounded` connector surface. It is supported as a narrow Claude
+integration package, but it is not the repository's production install/setup
+surface.
+
+Supported bounded scope:
 
 - role-aware bootstrap for a bounded Claude workspace
 - role bundle intake for a Claude session

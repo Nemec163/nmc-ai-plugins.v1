@@ -2,6 +2,10 @@
 
 Supported OpenClaw adapter package for MemoryOS.v1.
 
+Surface status: `production` direct-install and setup surface for OpenClaw. It
+also owns the installed-artifact wrapper entrypoints for `control-plane` and
+`memory-os-gateway`.
+
 Current responsibilities:
 
 - plugin runtime registration and service bootstrap wiring
@@ -38,4 +42,4 @@ after extract without a monorepo workspace layout.
 The legacy `nmc-memory-plugin/` shell is retired. This package is the only
 supported OpenClaw install/setup surface in the repository.
 
-See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.
+See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for the extraction plan.

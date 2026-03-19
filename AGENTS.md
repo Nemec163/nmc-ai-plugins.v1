@@ -1,13 +1,13 @@
 # Repository Session Guide
 
-This repository now treats `MemoryOS.v1` as the product boundary and uses the roadmap in [docs/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/memory-os-roadmap.md) to migrate remaining compatibility-first surfaces away from the old plugin-centric framing.
+This repository now treats `MemoryOS.v1` as the product boundary and uses the roadmap in [docs/legacy/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/memory-os-roadmap.md) to migrate remaining compatibility-first surfaces away from the old plugin-centric framing.
 
 `nmc-memory-plugin` has been retired. `packages/adapter-openclaw` is the supported OpenClaw install/setup surface inside that product boundary.
 
 ## Current State
 
-- completed roadmap slice: `verify hardening and content-addressed reconciliation — tighten verify/rebuild semantics around content-derived freshness and reconciliation evidence without widening authority`
-- next roadmap slice: `verify receipts and projection provenance surfaces — make verify/rebuild activity inspectable through non-authoritative receipts and audit-ready provenance without widening authority`
+- completed roadmap slice: `product boundary simplification and supported-surface alignment — reduce remaining doc drift between architecture, package docs, and shipped connector/operator surfaces without widening authority`
+- next roadmap slice: `TBD after Phase 7 completion — use the roadmap Immediate Next Step section to lock the next bounded change`
 - regression baseline:
   - `./tests/run-contract-tests.sh`
   - `./tests/run-integration.sh`
@@ -17,7 +17,7 @@ This repository now treats `MemoryOS.v1` as the product boundary and uses the ro
 
 At the beginning of a new session:
 
-1. Read [docs/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/memory-os-roadmap.md).
+1. Read [docs/legacy/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/memory-os-roadmap.md).
 2. Read this `AGENTS.md`.
 3. Identify the single roadmap slice currently in progress or next up.
 4. Check `git status` before editing anything.
@@ -36,7 +36,7 @@ Work one roadmap slice at a time. Treat each `PR x.y` heading in the roadmap as 
    - `./tests/run-contract-tests.sh`
    - `./tests/run-integration.sh`
 7. If the change has regression risk, do a focused review pass before finalizing.
-8. Update [docs/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/memory-os-roadmap.md):
+8. Update [docs/legacy/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/memory-os-roadmap.md):
    - mark the completed roadmap slice as done
    - update `Immediate Next Step`
    - record the verification commands that were actually run
@@ -88,7 +88,7 @@ Phase 0 is complete:
 - `deliberate migration release prep` bundled the supported `packages/control-plane` operator surface and its shipped dependency closure into `nmc-memory-plugin`, extended extracted-artifact smoke coverage, and clarified installed-artifact operator docs without expanding control-plane authority
 - `bridge retirement` removed `ops-snapshot` from the gateway CLI surface in both root and shipped mirrors, left the old ops read model only as deprecated compatibility SDK output, and kept the bundled `control-plane` CLI as the sole documented operator command surface
 - `release-surface freeze` removed package-level deprecated gateway ops exports from the shipped `nmc-memory-plugin` mirror, kept the read model only for repo-local/internal compatibility tooling, and extended shipped-artifact smoke coverage so installed plugin artifacts no longer present that bridge as a supported SDK surface
-- `deliberate migration release planning` defined the post-freeze cutover in [docs/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/deliberate-migration-release-plan.md), classified the supported migration-release surfaces, and sequenced repo-local bridge retirement without expanding control-plane authority
+- `deliberate migration release planning` defined the post-freeze cutover in [docs/legacy/deliberate-migration-release-plan.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/deliberate-migration-release-plan.md), classified the supported migration-release surfaces, and sequenced repo-local bridge retirement without expanding control-plane authority
 - `repo-local bridge retirement prep` removed direct deprecated bridge validation from the root and shipped-mirror gateway fixture tests, leaving only implementation, docs, and negative release-boundary assertions ahead of full retirement
 - `repo-local bridge retirement` deleted `packages/memory-os-gateway/lib/ops.js`, removed the root package exports for the deprecated bridge, and replaced root fixture coverage with negative package-boundary assertions without changing shipped surfaces or operator capabilities
 - `shipped-mirror bridge cleanup decision` deleted `nmc-memory-plugin/packages/memory-os-gateway/lib/ops.js` and updated machine-readable/operator docs so the deprecated gateway ops bridge is now retired in both root and shipped mirrors
@@ -107,7 +107,8 @@ Phase 0 is complete:
 - `procedure evidence linkage surfaces` added read-only linkage from canonical current procedures to resolved runtime `feedback_refs`, supporting runtime runs, and related `procedural` artifacts in gateway lineage, recall, and control-plane operator views without widening runtime authority
 - `namespace / tenant / actor model foundations` added a shared namespace contract, explicit scoped path metadata for runtime shadow and derived read-index artifacts, gateway/control-plane namespace visibility, and default-scope backward compatibility without widening write authority or changing the current single-tenant install behavior
 - `verify hardening and content-addressed reconciliation` replaced mtime-driven canon graph reconciliation with content-addressed evidence, added digest-backed verify/read-index/runtime reconciliation surfaces, and kept projections/runtime explicitly rebuildable and non-authoritative
-- the next slice is `verify receipts and projection provenance surfaces`, which should make verify/rebuild actions themselves inspectable through non-authoritative receipts and provenance views without widening write authority or changing the current promotion path
+- `verify receipts and projection provenance surfaces` added digest-backed non-authoritative receipts for canon verify, read-index build/verify, and runtime-summary reconciliation, then surfaced that provenance through gateway status/verify/health and control-plane snapshot views without widening write authority
+- the next slice is `product boundary simplification and supported-surface alignment`, which should finish collapsing remaining doc drift between architecture docs, package docs, and the shipped connector/operator surface without widening authority
 
 ## Commit Convention
 

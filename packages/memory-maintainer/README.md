@@ -2,6 +2,9 @@
 
 Shared maintainer contract for the file-first task board, board defaults, and the operational `system/` execution surface.
 
+Surface status: `internal` shared core package inside the product boundary. It
+is not a direct install, operator, or bounded connector surface.
+
 This slice owns:
 
 - kanban status, priority, autonomy, and git-flow enums
@@ -18,4 +21,4 @@ Exports in this PR:
 
 The deployed reference CLI remains `system/scripts/kanban.mjs`; this package formalizes the shared contracts behind that behavior without changing workspace layout or user-facing paths.
 
-See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.
+See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for the extraction plan.

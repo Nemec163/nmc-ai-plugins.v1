@@ -3,6 +3,7 @@
 module.exports = {
   ...require('./lib/bootstrap'),
   ...require('./lib/health'),
+  ...require('./lib/provenance'),
   ...require('./lib/procedures'),
   ...require('./lib/query'),
   ...require('./lib/read-index'),

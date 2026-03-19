@@ -2,6 +2,9 @@
 
 In-process SDK and CLI for Memory OS read, bootstrap, query, status, verify, health, and safe write orchestration operations.
 
+Surface status: `production` programmatic surface. Installed artifacts should
+prefer the adapter-owned wrapper paths instead of nested `packages/` paths.
+
 Current v1 surface:
 
 - `readRecord` / `read_record`
@@ -58,12 +61,20 @@ Shadow runtime stays separate from canon in this slice:
 - `getRuntimeRecallBundle` exposes scored runtime recall hits without widening authority
 - `getRecallBundle` composes canonical current, optional role bundle/query context, and runtime recall for orchestration consumers
 - `status` reports runtime shadow counts without widening into canon mutation or orchestration ownership
+- runtime summary refreshes now persist digest-backed non-authoritative receipts beside the runtime manifest so operators can inspect reconcile provenance without widening authority
 
 Derived read index stays rebuildable and non-authoritative in this slice:
 
 - `buildReadIndex` materializes `core/meta/read-index.json` from canon only
 - `verifyReadIndex` reports whether a persisted index is fresh against current canon checksums
 - `query` prefers the persisted index when it is fresh and otherwise rebuilds an ephemeral in-memory index without changing canon
+- persisted read-index build/verify actions now emit digest-backed receipts that `status`, `verify`, and operator surfaces can inspect without treating the index as authoritative
+
+Verification provenance stays inspectable and non-authoritative in this slice:
+
+- `verify` persists a digest-backed receipt for canon manifest/graph refreshes under `core/meta/verify-receipt.json`
+- `status` exposes receipt summaries for canon verify, read-index activity, and runtime-summary reconciliation under `verificationProvenance`
+- control-plane snapshot inherits those receipt/provenance views through the supported gateway/operator surfaces
 
 Retrieval semantics stay bounded and explainable in this slice:
 
@@ -77,4 +88,4 @@ Procedure inspection stays canonical and read-only in this slice:
 - `compareProcedureVersions` emits a structured diff between two canonical procedure versions without introducing a rollback writer or runtime authority
 - the gateway CLI now exposes `list-procedures`, `inspect-procedure`, and `compare-procedure-versions` for operator-facing inspection paths
 
-See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan and phase sequencing.
+See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for the extraction plan and phase sequencing.

@@ -3,6 +3,7 @@
 const path = require('node:path');
 
 const { loadMemoryRuntime } = require('./load-deps');
+const { recordRuntimeSummaryReceipt } = require('./provenance');
 
 function requireMemoryRoot(options) {
   const memoryRoot = options && options.memoryRoot;
@@ -15,10 +16,22 @@ function requireMemoryRoot(options) {
 
 function captureRuntime(options = {}) {
   const runtime = loadMemoryRuntime();
-  return runtime.captureShadowRuntime({
+  const capture = runtime.captureShadowRuntime({
     ...options,
     memoryRoot: requireMemoryRoot(options),
   });
+  return {
+    ...capture,
+    receipt:
+      options.persistReceipt === false
+        ? null
+        : recordRuntimeSummaryReceipt({
+            ...options,
+            memoryRoot: requireMemoryRoot(options),
+            capture,
+            reason: options.reason || 'gateway.capture-runtime',
+          }),
+  };
 }
 
 function getRuntimeDelta(options = {}) {

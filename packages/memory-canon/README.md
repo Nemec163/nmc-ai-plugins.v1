@@ -3,6 +3,9 @@
 Shared canon contract for storage-aware validation, derived manifest and graph
 behavior, and the canonical write-boundary skeleton.
 
+Surface status: `internal` shared core package inside the product boundary. It
+is not a direct install, operator, or bounded connector surface.
+
 This slice owns:
 
 - canon layout helpers for `core/system`, `core/user`, `core/agents`, and `core/meta`
@@ -21,4 +24,4 @@ Exports in this PR:
 - `promoter`
 - `verify`
 
-See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.
+See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for the extraction plan.

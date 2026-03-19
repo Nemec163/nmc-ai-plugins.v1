@@ -44,6 +44,9 @@ function getHealth(options) {
   if (!status.manifest.exists) {
     warnings.push('Manifest is missing.');
   }
+  if (status.manifest.receipt && status.manifest.receipt.status === 'missing-receipt') {
+    warnings.push('Manifest verify receipt is missing and verify provenance is incomplete.');
+  }
   if (status.intake.backlogAlert) {
     warnings.push('Pending intake backlog is older than 7 days.');
   }
@@ -52,6 +55,9 @@ function getHealth(options) {
   }
   if (status.readIndex.exists && !status.readIndex.sourceFresh) {
     warnings.push('Persisted read index is stale and should be rebuilt.');
+  }
+  if (status.readIndex.receipt && status.readIndex.receipt.status === 'missing-receipt') {
+    warnings.push('Read index receipt is missing and read-index rebuild provenance is incomplete.');
   }
   if (status.manifest.reconciliation && status.manifest.reconciliationFresh === false) {
     warnings.push('Manifest reconciliation evidence is stale and verify should be rerun.');
@@ -62,6 +68,9 @@ function getHealth(options) {
     status.runtime.reconciliation.ok === false
   ) {
     warnings.push('Runtime shadow manifest reconciliation evidence drifted from current shadow records.');
+  }
+  if (status.runtime.receipt && status.runtime.receipt.status === 'missing-receipt') {
+    warnings.push('Runtime summary receipt is missing and runtime reconciliation provenance is incomplete.');
   }
 
   const ok = checks.every((check) => check.ok) && status.overall.status === 'OK';

@@ -5,6 +5,7 @@ const path = require('node:path');
 
 const { loadMemoryCanon } = require('./load-deps');
 const { buildNamespaceContext } = require('./namespace');
+const { getVerificationProvenance } = require('./provenance');
 const { verifyReadIndex } = require('./read-index');
 const { readManifestSnapshot } = require('./read');
 const { getRuntimeDelta } = require('./runtime');
@@ -67,6 +68,7 @@ function getStatus(options) {
   const manifest = readManifestSnapshot(memoryRoot);
   const readIndex = verifyReadIndex({
     memoryRoot,
+    persistReceipt: false,
     tenantId: namespace.tenantId,
     spaceId: namespace.spaceId,
     userId: namespace.userId,
@@ -132,6 +134,14 @@ function getStatus(options) {
         edgesDigest: manifest.reconciliation.edges_digest || null,
       }
     : null;
+  const verificationProvenance = getVerificationProvenance({
+    memoryRoot,
+    tenantId: namespace.tenantId,
+    spaceId: namespace.spaceId,
+    userId: namespace.userId,
+    agentId: namespace.scope.agentId,
+    roleId: namespace.scope.roleId,
+  });
 
   return {
     generatedAt: new Date().toISOString(),
@@ -156,6 +166,7 @@ function getStatus(options) {
       edgesCount: manifest ? manifest.edges_count : 0,
       reconciliation: manifestReconciliation,
       reconciliationFresh: readIndex.source.reconciliationFresh,
+      receipt: verificationProvenance.receipts.canonVerify,
     },
     intake: {
       pendingFiles: pendingFiles.length,
@@ -176,6 +187,7 @@ function getStatus(options) {
       disposable: runtimeDelta.disposable,
       rebuildableFrom: runtimeDelta.rebuildableFrom,
       reconciliation: runtimeDelta.reconciliation,
+      receipt: verificationProvenance.receipts.runtimeSummary,
       runCount: runtimeDelta.runCount,
       totalArtifacts: runtimeDelta.totalArtifacts,
       lastCapturedAt: runtimeDelta.lastCapturedAt,
@@ -204,7 +216,9 @@ function getStatus(options) {
       sourceReconciliation: readIndex.source.reconciliation,
       sourceReconciliationFresh: readIndex.source.reconciliationFresh,
       reconciliation: readIndex.reconciliation || null,
+      receipt: verificationProvenance.receipts.readIndex,
     },
+    verificationProvenance,
     overall: {
       status: overallStatus,
     },

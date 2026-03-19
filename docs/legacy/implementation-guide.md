@@ -2,7 +2,7 @@
 
 Current-state implementation and operations guide for MemoryOS.v1 and its supported direct-install OpenClaw adapter surface.
 
-Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), while OpenClaw-adapter details live in [../packages/adapter-openclaw/README.md](../packages/adapter-openclaw/README.md).
+Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), the package/status matrix lives in [../supported-surfaces.md](../supported-surfaces.md), and OpenClaw-adapter details live in [../packages/adapter-openclaw/README.md](../packages/adapter-openclaw/README.md).
 
 The current post-freeze cutover and repo-local bridge retirement sequence live in [deliberate-migration-release-plan.md](./deliberate-migration-release-plan.md).
 
@@ -21,9 +21,12 @@ The current repository is centered on the autonomous MemoryOS.v1 core and suppor
 
 Connector framing for this repository:
 
-- `packages/adapter-openclaw` is the OpenClaw connector surface.
-- `packages/adapter-codex` is the Codex connector surface.
-- `packages/adapter-claude` is the bounded Claude connector surface over existing gateway and handoff contracts and is not part of the current direct-install production release boundary.
+- `packages/adapter-openclaw` is the production OpenClaw install/setup connector surface.
+- `packages/adapter-codex` is a bounded Codex connector surface.
+- `packages/adapter-claude` is a bounded Claude connector surface over existing gateway and handoff contracts and is not part of the current direct-install production release boundary.
+- `packages/memory-os-gateway` is the supported programmatic surface.
+- `packages/control-plane` is the supported read-only operator surface.
+- shared `@nmc/*` packages plus `memory-os-runtime` remain internal product-boundary packages rather than direct install or operator surfaces.
 
 The deprecated `memory-os-gateway ops-snapshot` bridge is retired and is not part of the supported operator contract.
 

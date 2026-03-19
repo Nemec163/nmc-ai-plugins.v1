@@ -2,6 +2,8 @@
 
 Read-only operator surface for Memory OS over stable gateway, runtime, and maintainer contracts.
 
+Surface status: `production` read-only operator surface.
+
 Current control-plane v3 surface:
 
 - `getControlPlaneSnapshot` / `snapshot`
@@ -58,6 +60,7 @@ Control-plane v3 stays intentionally careful:
 - analytics and audit surfaces summarize queue, intervention, lock, and runtime history without becoming source-of-truth
 - runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
 - `snapshot` and `health` now emit release-qualification metadata that marks `control-plane` as the supported operator surface and `adapter-openclaw` as the supported OpenClaw direct-install surface
+- the same release-qualification metadata now carries a package matrix for the current product boundary so consumers can inspect which packages are `production`, `bounded`, or `internal`
 - the same release qualification records `nmc-memory-plugin` as a retired legacy shell rather than an active production surface
 - `snapshot.gateway.procedures` now carries the canonical procedure catalog so operators can inspect lineage/version state without implying control-plane ownership of promotion or rollback
 
@@ -73,4 +76,4 @@ Compatibility note:
 - the supported operator queue, audit, analytics, and runtime inspection contract now lives in `control-plane`
 - the current post-freeze cutover and repo-local bridge retirement sequence are tracked in [../../docs/deliberate-migration-release-plan.md](../../docs/deliberate-migration-release-plan.md)
 
-See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.
+See [Memory OS Roadmap](../../docs/legacy/memory-os-roadmap.md) for the extraction plan.

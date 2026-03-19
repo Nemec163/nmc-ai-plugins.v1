@@ -6,6 +6,7 @@ const path = require('node:path');
 
 const { loadMemoryCanon } = require('./load-deps');
 const { buildNamespaceContext } = require('./namespace');
+const { recordReadIndexReceipt } = require('./provenance');
 const { readManifestSnapshot } = require('./read');
 const { parseProjectionRecords, toPosixRelative, tokenizeText } = require('./records');
 
@@ -285,12 +286,36 @@ function buildReadIndex(options = {}) {
     fs.writeFileSync(indexPath, serializeReadIndex(index), 'utf8');
   }
 
-  return {
+  const result = {
     ...index,
     path: indexPath,
     relativePath,
     persisted: persist,
   };
+
+  if (persist && options.persistReceipt !== false) {
+    result.receipt = recordReadIndexReceipt({
+      ...options,
+      memoryRoot,
+      action: 'build',
+      reason: options.reason || 'gateway.build-read-index',
+      result: {
+        ...result,
+        status: 'ok',
+        sourceFresh: true,
+        reconciliation: {
+          strategy: 'content-addressed-read-index-build',
+          manifestRecordChecksumDigest:
+            source.reconciliation && source.reconciliation.recordChecksumDigest
+              ? source.reconciliation.recordChecksumDigest
+              : null,
+          manifestAligned: source.reconciliationFresh,
+        },
+      },
+    });
+  }
+
+  return result;
 }
 
 function diffSourceSnapshot(index, currentSource) {
@@ -357,7 +382,7 @@ function verifyReadIndex(options = {}) {
   const index = readReadIndex(options);
 
   if (!index) {
-    return {
+    const missingResult = {
       kind: 'read-index-verification',
       authoritative: false,
       namespace,
@@ -390,13 +415,23 @@ function verifyReadIndex(options = {}) {
         manifestAligned: null,
       },
     };
+    if (options.persistReceipt !== false) {
+      missingResult.receipt = recordReadIndexReceipt({
+        ...options,
+        memoryRoot,
+        action: 'verify',
+        reason: options.reason || 'gateway.verify-read-index',
+        result: missingResult,
+      });
+    }
+    return missingResult;
   }
 
   const currentSource = buildSourceSnapshot(memoryRoot, namespace);
   const reasons = diffSourceSnapshot(index, currentSource);
   const ok = reasons.length === 0;
 
-  return {
+  const verificationResult = {
     kind: 'read-index-verification',
     authoritative: false,
     namespace,
@@ -429,11 +464,26 @@ function verifyReadIndex(options = {}) {
       manifestAligned: currentSource.reconciliationFresh,
     },
   };
+
+  if (options.persistReceipt !== false) {
+    verificationResult.receipt = recordReadIndexReceipt({
+      ...options,
+      memoryRoot,
+      action: 'verify',
+      reason: options.reason || 'gateway.verify-read-index',
+      result: verificationResult,
+    });
+  }
+
+  return verificationResult;
 }
 
 function getQueryableReadIndex(options = {}) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
-  const verification = verifyReadIndex(options);
+  const verification = verifyReadIndex({
+    ...options,
+    persistReceipt: false,
+  });
 
   if (verification.ok) {
     return {
