@@ -1,6 +1,8 @@
 # Implementation Guide: MemoryOS.v1
 
-Current-state implementation and operations guide for MemoryOS.v1 and its supported direct-install OpenClaw adapter surface.
+Current-state implementation and operations guide for the independent
+`MemoryOS.v1` core plus its currently supported OpenClaw connector/install
+surface.
 
 Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), the package/status matrix lives in [../supported-surfaces.md](../supported-surfaces.md), the release gate lives in [../release-readiness.md](../release-readiness.md), and OpenClaw-adapter details live in [../packages/adapter-openclaw/README.md](../packages/adapter-openclaw/README.md).
 
@@ -8,7 +10,9 @@ The current post-freeze cutover and repo-local bridge retirement sequence live i
 
 ## Scope
 
-The current repository is centered on the autonomous MemoryOS.v1 core and supports direct OpenClaw installation through `packages/adapter-openclaw`:
+The current repository is centered on the autonomous, connector-agnostic
+`MemoryOS.v1` core and supports direct OpenClaw installation through
+`packages/adapter-openclaw`:
 
 - `packages/adapter-openclaw/openclaw.plugin.json` owns the direct install manifest and config schema.
 - `packages/adapter-openclaw/plugin.js` is the direct plugin entrypoint.
@@ -17,7 +21,10 @@ The current repository is centered on the autonomous MemoryOS.v1 core and suppor
 - `packages/adapter-openclaw/templates/workspace-memory/` and `packages/adapter-openclaw/templates/workspace-system/` provide the managed scaffold.
 - `packages/adapter-openclaw/skills/` bundles the memory pipeline, maintenance scripts, and kanban operator.
 
-`packages/adapter-openclaw` is now the supported production install/setup surface for OpenClaw. The legacy `nmc-memory-plugin` shell has been retired and removed from the repository.
+`packages/adapter-openclaw` is the supported production OpenClaw
+install/setup connector. The legacy `nmc-memory-plugin` shell has been retired
+and removed from the repository, but the product boundary remains `MemoryOS.v1`
+rather than the connector itself.
 
 Connector framing for this repository:
 

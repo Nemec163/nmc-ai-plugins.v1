@@ -18,7 +18,7 @@ internal, or retired.
 
 | Package | Class | Surface | Notes |
 |---|---|---|---|
-| `adapter-openclaw` | `production` | OpenClaw install/setup connector | Supported `openclaw memoryos setup` surface and owner of installed-artifact wrappers for `control-plane` and `memory-os-gateway` |
+| `adapter-openclaw` | `production` | OpenClaw install/setup connector | Supported `openclaw memoryos setup` surface and owner of installed-artifact wrappers for `control-plane` and `memory-os-gateway`; it is a connector over the independent MemoryOS core, not the product boundary itself |
 | `control-plane` | `production` | read-only operator surface | Supported operator SDK/CLI for snapshot, health, queues, analytics, audits, interventions, and runtime inspection |
 | `memory-os-gateway` | `production` | programmatic surface | Supported SDK/CLI for read, bootstrap, query, status, verify, runtime, and safe write orchestration; installed artifacts should prefer adapter-owned wrapper paths |
 | `adapter-codex` | `bounded` | Codex connector | Bounded single-run connector over gateway bootstrap, read, and explicit handoff surfaces |
@@ -33,6 +33,10 @@ internal, or retired.
 | `@nmc/memory-scripts` | `internal` | shared core package | Deterministic helper scripts consumed by adapter wrappers and tests |
 | `memory-os-runtime` | `internal` | shared core package | Non-authoritative shadow runtime store |
 | `adapter-conformance` | `internal` | test-only package | Capability-scoped adapter conformance harness |
+
+The product boundary remains the independent `MemoryOS.v1` core plus the stable
+gateway and operator surfaces. Connectors attach to that boundary; they do not
+replace it.
 
 ## Retired Compatibility Identifiers
 

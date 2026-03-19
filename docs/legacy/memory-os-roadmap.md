@@ -5,7 +5,7 @@
 
 ## Progress Snapshot
 
-- completed: `production readiness gate and release checklist — make the current OpenClaw-first release boundary reproducible through one explicit gate, aligned release docs, and CI-backed go/no-go checks`
+- completed: `production readiness gate and release checklist — make the independent MemoryOS.v1 release boundary reproducible through one explicit gate, aligned release docs, and CI-backed go/no-go checks`
 - next: `TBD after production-readiness hardening — use Immediate Next Step to choose the next bounded change`
 - last verified on: `2026-03-19`
 - verified in this slice:
@@ -2265,7 +2265,7 @@ Status: done on `2026-03-19`
 
 Implementation note:
 
-- added [docs/release-readiness.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/release-readiness.md) as the release-facing go/no-go document for the current OpenClaw-first production boundary
+- added [docs/release-readiness.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/release-readiness.md) as the release-facing go/no-go document for the independent `MemoryOS.v1` production boundary
 - added [tests/run-production-readiness.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/run-production-readiness.sh) so the repository now has one explicit production gate that checks live doc references, supported-surface metadata coverage, and the full contract/integration baselines
 - aligned [README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/README.md) and [docs/ARCHITECTURE.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/ARCHITECTURE.md) with the current production/bounded taxonomy, corrected stale doc links, and switched the documented CI path to the production gate instead of ad hoc separate commands
 - updated [/.github/workflows/nmc-memory-plugin-ci.yml](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/.github/workflows/nmc-memory-plugin-ci.yml) so CI now runs the same production-readiness gate that release candidates should pass locally

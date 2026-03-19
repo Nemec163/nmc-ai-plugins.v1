@@ -1,22 +1,28 @@
 # Release Readiness
 
-This document defines the current go/no-go gate for the production OpenClaw
-surface of `MemoryOS.v1`.
+This document defines the current go/no-go gate for the production
+`MemoryOS.v1` repository.
 
 ## Production Scope
 
-The current production scope is intentionally narrow:
+`MemoryOS.v1` remains an independent, connector-agnostic memory system. Its
+product boundary is the core package set plus the stable gateway and operator
+surfaces. Connectors attach to that core; they do not define the product
+boundary.
 
-- `packages/adapter-openclaw`: production install/setup surface
-- `packages/control-plane`: production read-only operator surface
+- `@nmc/memory-contracts`, `@nmc/memory-ingest`, `@nmc/memory-canon`,
+  `@nmc/memory-maintainer`, `@nmc/memory-workspace`, `@nmc/memory-agents`,
+  `@nmc/memory-pipeline`, and `memory-os-runtime`: independent MemoryOS core
 - `packages/memory-os-gateway`: production programmatic surface
+- `packages/control-plane`: production read-only operator surface
+- `packages/adapter-openclaw`: production connector/install surface over that
+  independent core
 
-The following packages are not part of the current production launch posture:
+The following packages remain intentionally bounded rather than general
+production connectors:
 
 - `packages/adapter-codex`: bounded connector surface
 - `packages/adapter-claude`: bounded connector surface
-- shared `@nmc/*` packages plus `memory-os-runtime`: internal product-boundary
-  packages rather than direct install or operator surfaces
 
 Use [supported-surfaces.md](./supported-surfaces.md) for the authoritative
 package matrix and support classes.
@@ -27,13 +33,16 @@ Call the current repository production-ready only when all of the following are
 true:
 
 1. Supported-surface docs stay aligned with release qualification metadata.
-2. `openclaw memoryos setup`, auto-bootstrap behavior, and `openclaw.plugin.json`
-   remain unchanged.
+2. The independent MemoryOS core remains the product boundary and is not
+   reframed as an OpenClaw-owned release.
 3. The managed workspace layout under `system/` remains unchanged.
 4. Runtime remains non-authoritative and cannot write canon directly.
 5. Canon writes stay behind the single promotion path.
-6. The contract and integration baselines are green.
-7. The production-readiness gate is green.
+6. The supported connector/install path keeps `openclaw memoryos setup`,
+   auto-bootstrap behavior, and `openclaw.plugin.json` intact without becoming
+   the product boundary.
+7. The contract and integration baselines are green.
+8. The production-readiness gate is green.
 
 ## Production Gate
 
@@ -46,6 +55,8 @@ Run the production gate from the repository root:
 That gate verifies:
 
 - required release-facing docs exist and root references point at live paths
+- the release-facing docs keep `MemoryOS.v1` framed as an independent core
+  product with optional connectors
 - `control-plane` release qualification and supported-surface fixtures are green
 - the full contract baseline via `./tests/run-contract-tests.sh`
 - the full integration baseline via `./tests/run-integration.sh`

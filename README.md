@@ -2,7 +2,7 @@
 
 Monorepo for MemoryOS.v1: an autonomous, self-sufficient memory operating system with optional connector packages for external LLM and agent runtimes.
 
-The product boundary is the Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `adapter-openclaw` is the production connector surface, while `adapter-codex` and `adapter-claude` are bounded connector packages over the same core.
+The product boundary is the independent Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `adapter-openclaw` is one production connector surface, while `adapter-codex` and `adapter-claude` are bounded connector packages over the same core.
 
 `packages/adapter-openclaw` is the supported OpenClaw adapter/plugin surface for MemoryOS.v1. The old `nmc-memory-plugin` mirror has been retired and removed from the repository.
 
@@ -13,7 +13,7 @@ Use this document as the entry point. Use [adapter README](./packages/adapter-op
 - An autonomous Memory OS core with canonical memory, runtime shadow state, operator surfaces, and deterministic promotion boundaries.
 - A shared `system/` layer with memory, skills, tasks, policy, docs, and scripts.
 - A git-backed canonical memory workspace with extract -> curate -> apply -> verify flow.
-- Optional connector surfaces for OpenClaw, Codex, and Claude, with only the OpenClaw surface currently in production scope.
+- Optional connector surfaces for OpenClaw, Codex, and Claude, while the core product boundary stays independent of any single connector.
 - A direct OpenClaw adapter surface with managed setup and bootstrap behavior.
 
 ## Quick Start
@@ -207,7 +207,7 @@ For an already scaffolded workspace, the fastest operational spot-check is:
 |---|---|
 | [packages/adapter-openclaw/README.md](./packages/adapter-openclaw/README.md) | Package-level install, setup, structure, and OpenClaw adapter reference. |
 | [docs/supported-surfaces.md](./docs/supported-surfaces.md) | Production, bounded, internal, and retired package matrix for the current product boundary. |
-| [docs/release-readiness.md](./docs/release-readiness.md) | Current production go/no-go gate and release checklist for the OpenClaw-first surface. |
+| [docs/release-readiness.md](./docs/release-readiness.md) | Current production go/no-go gate and release checklist for the independent MemoryOS repository. |
 | [docs/legacy/implementation-guide.md](./docs/legacy/implementation-guide.md) | Current implementation and day-2 operations guide. |
 | [docs/legacy/deliberate-migration-release-plan.md](./docs/legacy/deliberate-migration-release-plan.md) | Current migration-release surface classification and repo-local bridge retirement sequence. |
 | [docs/legacy/memory-os-roadmap.md](./docs/legacy/memory-os-roadmap.md) | Repo-specific migration roadmap from the current plugin to a modular Memory OS. |

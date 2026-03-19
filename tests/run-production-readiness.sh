@@ -38,8 +38,11 @@ assert_text_contains "README.md" "./docs/legacy/implementation-guide.md"
 assert_text_contains "README.md" "./docs/legacy/memory-os-roadmap.md"
 assert_text_contains "README.md" "./docs/supported-surfaces.md"
 assert_text_contains "README.md" "./docs/release-readiness.md"
+assert_text_contains "README.md" "independent Memory OS core"
 assert_text_contains "docs/release-readiness.md" "./tests/run-contract-tests.sh"
 assert_text_contains "docs/release-readiness.md" "./tests/run-integration.sh"
+assert_text_contains "docs/release-readiness.md" "independent, connector-agnostic memory system"
+assert_text_contains "docs/supported-surfaces.md" "independent MemoryOS core, not the product boundary itself"
 
 printf '\n[GATE] Release qualification and supported-surface fixtures\n'
 PATH="/usr/local/bin:$PATH" node "$ROOT_DIR/packages/control-plane/test/validate-fixtures.js"
