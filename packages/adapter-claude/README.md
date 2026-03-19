@@ -4,7 +4,8 @@ Claude-facing adapter over `memory-os-gateway`.
 
 Surface status: `production` Claude adapter surface. It is a supported peer
 adapter package over the same MemoryOS core, with Claude-specific runner and
-handoff behavior rather than OpenClaw-specific install/setup responsibilities.
+handoff behavior instead of OpenClaw plugin glue or standalone app bootstrap
+responsibilities.
 
 Supported scope:
 
@@ -25,8 +26,8 @@ runbook for Phase A or Phase B, and hands prompt execution to an adapter-owned
 runner command over stdin without widening into direct canon writes.
 
 This package intentionally does not mutate `openclaw.json`, own workspace-wide
-setup, lease maintainer jobs, or write canon directly. Those responsibilities
-belong to the OpenClaw adapter, not to the shared adapter contract.
+setup, lease maintainer jobs, or write canon directly. Those behaviors are
+host-specific concerns, not part of the shared peer-adapter contract.
 
 See [supported surfaces](../../docs/supported-surfaces.md) for the current
 package matrix.

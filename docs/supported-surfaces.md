@@ -15,11 +15,11 @@ product boundary. Use it when deciding which package is production or internal.
 | Package | Class | Surface | Notes |
 |---|---|---|---|
 | `memoryos-app` | `production` | standalone app surface | Supported standalone install/run surface with app-owned bootstrap, persistent `memoryos run` host loop, and local CLI over the independent MemoryOS core |
-| `adapter-openclaw` | `production` | OpenClaw adapter surface | Supported OpenClaw-specific adapter over the independent MemoryOS core, not the product boundary itself, with plugin bootstrap, setup, skill packaging, and installed-artifact operator wrappers |
+| `adapter-openclaw` | `production` | peer adapter surface | Supported peer adapter over the independent MemoryOS core, not the product boundary itself, with OpenClaw-specific plugin/bootstrap integration, shared pipeline participation, and adapter-owned wrapper entrypoints |
 | `control-plane` | `production` | read-only operator surface | Supported operator SDK/CLI for snapshot, health, queues, analytics, audits, interventions, and runtime inspection |
 | `memory-os-gateway` | `production` | programmatic surface | Supported SDK/CLI for read, bootstrap, query, status, verify, runtime, and safe write orchestration; installed artifacts should prefer adapter-owned wrapper paths |
-| `adapter-codex` | `production` | Codex adapter surface | Supported Codex-specific adapter over shared pipeline extract/curate execution, gateway bootstrap/read, and explicit handoff surfaces |
-| `adapter-claude` | `production` | Claude adapter surface | Supported Claude-specific adapter over shared pipeline extract/curate execution, gateway bootstrap/read, and explicit handoff surfaces |
+| `adapter-codex` | `production` | peer adapter surface | Supported peer adapter over the independent MemoryOS core, not the product boundary itself, with Codex-specific runner execution, shared pipeline participation, and explicit handoff surfaces |
+| `adapter-claude` | `production` | peer adapter surface | Supported peer adapter over the independent MemoryOS core, not the product boundary itself, with Claude-specific runner execution, shared pipeline participation, and explicit handoff surfaces |
 | `@nmc/memory-contracts` | `internal` | shared core package | Dependency-free contracts and schema helpers |
 | `@nmc/memory-ingest` | `internal` | shared core package | Engine-agnostic source and provenance contracts |
 | `@nmc/memory-canon` | `internal` | shared core package | Canon layout, validation, verify, and single-writer promotion boundary |

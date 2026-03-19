@@ -40,6 +40,8 @@ const STANDALONE_APP_CONTRACTS = Object.freeze([
   'canon promotion boundary',
 ]);
 
+const PEER_ADAPTER_SURFACE = 'supported-peer-adapter-surface';
+
 const PACKAGE_MATRIX = Object.freeze([
   {
     package: 'memoryos-app',
@@ -117,19 +119,19 @@ const PACKAGE_MATRIX = Object.freeze([
     package: 'adapter-openclaw',
     layer: 'connector',
     status: 'production',
-    surface: 'supported-openclaw-adapter-surface',
+    surface: PEER_ADAPTER_SURFACE,
   },
   {
     package: 'adapter-codex',
     layer: 'connector',
     status: 'production',
-    surface: 'supported-codex-adapter-surface',
+    surface: PEER_ADAPTER_SURFACE,
   },
   {
     package: 'adapter-claude',
     layer: 'connector',
     status: 'production',
-    surface: 'supported-claude-adapter-surface',
+    surface: PEER_ADAPTER_SURFACE,
   },
   {
     package: 'adapter-conformance',
@@ -203,34 +205,27 @@ function getControlPlaneReleaseQualification(snapshot) {
       status: 'supported-standalone-app-surface',
       preservedContracts: STANDALONE_APP_CONTRACTS,
     },
-    directAdapterSurface: {
-      package: 'adapter-openclaw',
-      pluginId: 'memoryos-openclaw',
-      cli: 'memoryos',
-      status: 'supported-openclaw-adapter-surface',
-      preservedContracts: OPENCLAW_ADAPTER_CONTRACTS,
-    },
     adapterSurfaces: [
       {
         package: 'adapter-openclaw',
         host: 'openclaw',
         pluginId: 'memoryos-openclaw',
         cli: 'memoryos',
-        status: 'supported-openclaw-adapter-surface',
+        status: PEER_ADAPTER_SURFACE,
         preservedContracts: OPENCLAW_ADAPTER_CONTRACTS,
       },
       {
         package: 'adapter-codex',
         host: 'codex',
         cli: 'adapter-owned-runner',
-        status: 'supported-codex-adapter-surface',
+        status: PEER_ADAPTER_SURFACE,
         preservedContracts: CODEX_ADAPTER_CONTRACTS,
       },
       {
         package: 'adapter-claude',
         host: 'claude',
         cli: 'adapter-owned-runner',
-        status: 'supported-claude-adapter-surface',
+        status: PEER_ADAPTER_SURFACE,
         preservedContracts: CLAUDE_ADAPTER_CONTRACTS,
       },
     ],

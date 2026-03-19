@@ -341,20 +341,13 @@ function main() {
       snapshot.releaseQualification.standaloneAppSurface.cli,
       'memoryos'
     );
-    assert.equal(
-      snapshot.releaseQualification.directAdapterSurface.package,
-      'adapter-openclaw'
-    );
-    assert.equal(
-      snapshot.releaseQualification.directAdapterSurface.pluginId,
-      'memoryos-openclaw'
-    );
     assert.equal(snapshot.releaseQualification.adapterSurfaces.length, 3);
     assert.equal(
       snapshot.releaseQualification.adapterSurfaces.some(
         (entry) =>
           entry.package === 'adapter-openclaw' &&
-          entry.status === 'supported-openclaw-adapter-surface'
+          entry.status === 'supported-peer-adapter-surface' &&
+          entry.pluginId === 'memoryos-openclaw'
       ),
       true
     );
@@ -362,7 +355,7 @@ function main() {
       snapshot.releaseQualification.adapterSurfaces.some(
         (entry) =>
           entry.package === 'adapter-codex' &&
-          entry.status === 'supported-codex-adapter-surface'
+          entry.status === 'supported-peer-adapter-surface'
       ),
       true
     );
@@ -370,7 +363,7 @@ function main() {
       snapshot.releaseQualification.adapterSurfaces.some(
         (entry) =>
           entry.package === 'adapter-claude' &&
-          entry.status === 'supported-claude-adapter-surface'
+          entry.status === 'supported-peer-adapter-surface'
       ),
       true
     );
@@ -392,7 +385,7 @@ function main() {
         (entry) =>
           entry.package === 'adapter-openclaw' &&
           entry.status === 'production' &&
-          entry.surface === 'supported-openclaw-adapter-surface'
+          entry.surface === 'supported-peer-adapter-surface'
       ),
       true
     );
@@ -410,7 +403,7 @@ function main() {
         (entry) =>
           entry.package === 'adapter-codex' &&
           entry.status === 'production' &&
-          entry.surface === 'supported-codex-adapter-surface'
+          entry.surface === 'supported-peer-adapter-surface'
       ),
       true
     );
@@ -419,7 +412,7 @@ function main() {
         (entry) =>
           entry.package === 'adapter-claude' &&
           entry.status === 'production' &&
-          entry.surface === 'supported-claude-adapter-surface'
+          entry.surface === 'supported-peer-adapter-surface'
       ),
       true
     );

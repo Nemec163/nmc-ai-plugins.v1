@@ -34,7 +34,7 @@ node ./packages/memoryos-app/bin/memoryos.js health
 node ./packages/memoryos-app/bin/memoryos.js pipeline 2026-03-05 --phase verify
 ```
 
-Install the optional OpenClaw adapter from this repository only when you want OpenClaw host/runtime integration:
+The three adapters are peer adapters over the same core. Use the OpenClaw path only when you need that specific host integration:
 
 ```bash
 openclaw plugins install ./packages/adapter-openclaw
@@ -50,6 +50,22 @@ For local development without installing the OpenClaw package, use the adapter s
 
 ```bash
 node ./packages/adapter-openclaw/lib/setup-cli.js --state-dir ~/.openclaw
+```
+
+For Codex or Claude, use their peer adapter packages as the `--adapter-module`
+for shared pipeline or standalone host execution instead of treating OpenClaw as
+the default adapter:
+
+```bash
+node ./packages/memoryos-app/bin/memoryos.js pipeline 2026-03-20 \
+  --phase extract \
+  --adapter-module ./packages/adapter-codex \
+  --llm-runner codex
+
+node ./packages/memoryos-app/bin/memoryos.js pipeline 2026-03-20 \
+  --phase curate \
+  --adapter-module ./packages/adapter-claude \
+  --llm-runner claude
 ```
 
 ## Architecture

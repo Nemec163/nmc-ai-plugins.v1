@@ -7,8 +7,8 @@
 This document is the high-level architecture reference for the current
 `MemoryOS.v1` repository. It is intentionally narrower than the historical
 design notes under [`docs/legacy/`](./legacy/README.md): it describes the live
-package boundary, the current standalone-first install/run path, and the
-current operational invariants.
+package boundary, the current standalone app path plus peer adapter paths, and
+the current operational invariants.
 
 For the authoritative package taxonomy, use
 [supported-surfaces.md](./supported-surfaces.md). For the production go/no-go
@@ -51,10 +51,11 @@ These rules are visible in code, tests, and release qualification:
 - projections, read-index data, runtime summaries, and receipts remain
   rebuildable and non-authoritative
 - `control-plane` stays read-only
-- adapters preserve their host-specific contracts without redefining the
-  product boundary
+- adapters preserve only their host-specific contracts without redefining the
+  product boundary or becoming privileged relative to one another
 - for the OpenClaw adapter specifically, `openclaw memoryos setup`, plugin
-  auto-bootstrap, and `openclaw.plugin.json` remain intact
+  auto-bootstrap, and `openclaw.plugin.json` remain intact as host-specific
+  integration details rather than a distinct product surface class
 
 ## Package Layers
 
@@ -119,10 +120,9 @@ the live product boundary.
 
 The repository exposes three peer adapters:
 
-- `adapter-openclaw`: production OpenClaw adapter/install surface with
+- `adapter-openclaw`: peer adapter for the OpenClaw host with
   `openclaw.plugin.json`, `plugin.js`, direct setup, auto-bootstrap, bundled
-  skills, and installed wrapper entrypoints for `control-plane` and
-  `memory-os-gateway`
+  skills, and wrapper entrypoints for `control-plane` and `memory-os-gateway`
 - `adapter-codex`: bounded Codex adapter for role-aware bootstrap,
   adapter-neutral `extract` and `curate` execution through the shared
   pipeline contract, bounded single-run execution, and explicit
@@ -196,9 +196,9 @@ into the shared pipeline package. Peer adapters can now attach their own
 extract/curate runner contracts without inheriting OpenClaw skill invocation
 assumptions, while Phase C remains core-owned.
 
-## Install And Runtime Paths
+## Runtime Paths
 
-The primary local install/run path is the standalone app:
+The primary local bootstrap/run path is the standalone app:
 
 ```bash
 node ./packages/memoryos-app/bin/memoryos.js init
@@ -206,20 +206,20 @@ node ./packages/memoryos-app/bin/memoryos.js run --phase verify --once
 node ./packages/memoryos-app/bin/memoryos.js status
 ```
 
-OpenClaw is one optional adapter. For that host, the supported development
-install path is:
+The adapters are equal peer surfaces. OpenClaw exposes a plugin-style install
+command because that host requires it:
 
 ```bash
 openclaw plugins install ./packages/adapter-openclaw
 ```
 
-The supported setup command is:
+Its host-specific setup command is:
 
 ```bash
 openclaw memoryos setup
 ```
 
-Installed artifacts expose adapter-owned wrapper entrypoints:
+The packaged OpenClaw adapter also exposes adapter-owned wrapper entrypoints:
 
 - `~/.openclaw/extensions/memoryos-openclaw/bin/memory-control-plane.js`
 - `~/.openclaw/extensions/memoryos-openclaw/bin/memory-os-gateway.js`

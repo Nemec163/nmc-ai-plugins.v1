@@ -3,14 +3,14 @@
 Supported OpenClaw adapter package for MemoryOS.v1.
 
 Surface status: `production` OpenClaw adapter surface. It is a peer adapter
-over the same MemoryOS core, and it owns the OpenClaw-specific install/setup
-path plus the installed-artifact wrapper entrypoints for `control-plane` and
-`memory-os-gateway`.
+over the same MemoryOS core. Its OpenClaw-specific bootstrap, plugin, skill,
+and wrapper behavior are host integration details, not a different class of
+adapter surface from `adapter-codex` or `adapter-claude`.
 
 Current responsibilities:
 
-- `openclaw.plugin.json`, `plugin.js`, and `package.json#openclaw` as the owned
-  install surface
+- `openclaw.plugin.json`, `plugin.js`, and `package.json#openclaw` as
+  OpenClaw-specific host integration assets
 - plugin runtime registration and service bootstrap wiring
 - setup CLI parsing and execution
 - pipeline phase invocation descriptors for `extract` and `curate`, plus the compatibility `memory-apply` Phase C wrapper
@@ -18,7 +18,7 @@ Current responsibilities:
 - bundled OpenClaw skill assets and `SKILL.md` packaging
 - `openclaw.json` mutation and managed bindings
 - managed `memorySearch.extraPaths` registration
-- gateway-backed scaffold bootstrap for direct OpenClaw installs
+- gateway-backed scaffold bootstrap for the OpenClaw host
 
 Runtime-backed orchestration surface:
 
@@ -33,8 +33,8 @@ The orchestration context stays explicitly non-authoritative:
 - runtime recall is labeled non-authoritative through the freshness boundary
 - maintainer references point at `system/tasks`, `system/policy`, and `system/scripts` instead of reintroducing adapter-owned tasking rules
 
-This package is the supported OpenClaw install/setup surface for MemoryOS.v1.
-Install it directly with `openclaw plugins install ./packages/adapter-openclaw`
+This package is the OpenClaw peer adapter for MemoryOS.v1. When targeting the
+OpenClaw host, install it with `openclaw plugins install ./packages/adapter-openclaw`
 and run setup with `openclaw memoryos setup`.
 
 Packed adapter artifacts also bundle the installed-artifact wrapper paths for
@@ -51,7 +51,7 @@ Published package exports:
 - `./pipeline-adapter`, `./install-surface`, and `./conformance-adapter` for
   integration and test surfaces
 
-This package is the supported OpenClaw install/setup surface in the repository.
+This package is one of the repository's three supported peer adapters.
 
 See [supported surfaces](../../docs/supported-surfaces.md) for the current
 package matrix and [implementation guide](../../docs/legacy/implementation-guide.md)

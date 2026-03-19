@@ -2,7 +2,7 @@
 
 This repository now treats `MemoryOS.v1` as the product boundary and uses the roadmap in [docs/legacy/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/legacy/memory-os-roadmap.md) to migrate remaining compatibility-first surfaces away from the old plugin-centric framing.
 
-`nmc-memory-plugin` has been retired. `packages/adapter-openclaw` is the supported OpenClaw install/setup surface inside that product boundary.
+`nmc-memory-plugin` has been retired. `packages/adapter-openclaw`, `packages/adapter-codex`, and `packages/adapter-claude` are supported peer adapters over that product boundary, each preserving only its host-specific integration contract.
 
 ## Current State
 

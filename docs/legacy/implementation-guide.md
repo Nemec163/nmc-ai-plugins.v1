@@ -19,9 +19,8 @@ The current repository is centered on the autonomous, connector-agnostic
 - `packages/memoryos-app` owns the standalone `memoryos` CLI, local bootstrap,
   and app-facing wrappers over gateway, control-plane, and pipeline surfaces.
 
-- `packages/adapter-openclaw/openclaw.plugin.json` owns the direct install manifest and config schema.
-- `packages/adapter-openclaw/plugin.js` is the direct plugin entrypoint.
-- `packages/adapter-openclaw` registers the `openclaw memoryos setup` CLI and the runtime bootstrap service.
+- `packages/adapter-openclaw/openclaw.plugin.json` and `plugin.js` provide the OpenClaw host integration manifest and entrypoint.
+- `packages/adapter-openclaw` registers the `openclaw memoryos setup` CLI and the runtime bootstrap service as OpenClaw-specific host glue.
 - `packages/control-plane/` remains the supported read-only operator surface.
 - `packages/adapter-openclaw/templates/workspace-memory/` and `packages/adapter-openclaw/templates/workspace-system/` provide the managed scaffold.
 - `packages/adapter-openclaw/skills/` bundles the memory pipeline, maintenance scripts, and kanban operator.
@@ -34,7 +33,7 @@ than any single host surface.
 
 Connector framing for this repository:
 
-- `packages/adapter-openclaw` is the production OpenClaw adapter surface with plugin install/setup ownership.
+- `packages/adapter-openclaw` is a production peer adapter surface with OpenClaw-specific plugin/bootstrap integration.
 - `packages/memoryos-app` is the production standalone install/run surface.
 - `packages/adapter-codex` is a production Codex adapter surface with shared-pipeline `extract` and `curate` execution plus gateway-mediated handoff.
 - `packages/adapter-claude` is a production Claude adapter surface over existing gateway and handoff contracts.
@@ -126,7 +125,7 @@ For installed programmatic access, prefer the adapter-owned wrapper directories:
 
 ## Managed Bootstrap
 
-The repository now supports two primary setup paths:
+The repository now supports one standalone app bootstrap path plus peer adapter bootstrap paths:
 
 1. Standalone app bootstrap via `memoryos init`.
 2. Adapter-specific bootstrap such as OpenClaw runtime bootstrap on plugin load or explicit `openclaw memoryos setup`.

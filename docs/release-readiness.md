@@ -16,9 +16,7 @@ boundary.
 - `packages/memoryos-app`: production standalone install/run surface
 - `packages/memory-os-gateway`: production programmatic surface
 - `packages/control-plane`: production read-only operator surface
-- `packages/adapter-openclaw`: production OpenClaw-specific adapter surface
-- `packages/adapter-codex`: production Codex-specific adapter surface
-- `packages/adapter-claude`: production Claude-specific adapter surface
+- `packages/adapter-openclaw`, `packages/adapter-codex`, and `packages/adapter-claude`: production peer adapter surfaces with host-specific runner/bootstrap contracts
 
 Use [supported-surfaces.md](./supported-surfaces.md) for the authoritative
 package matrix and support classes.
@@ -37,10 +35,13 @@ true:
 6. The supported standalone app path works without OpenClaw while preserving the
    existing `system/` layout, canon boundaries, and app-owned `memoryos run`
    host loop.
-7. Each supported adapter surface preserves its LLM- or host-specific contract
-   without becoming the product boundary.
-8. The OpenClaw adapter path keeps `openclaw memoryos setup`, auto-bootstrap
-   behavior, and `openclaw.plugin.json` intact.
+7. Each supported adapter surface preserves only its LLM- or host-specific
+   contract without becoming the product boundary or a privileged adapter
+   class.
+8. The OpenClaw adapter keeps `openclaw memoryos setup`, auto-bootstrap
+   behavior, and `openclaw.plugin.json` intact as host-specific integration
+   details, not as a higher-order install/setup surface than the other peer
+   adapters.
 9. The contract and integration baselines are green.
 10. The production-readiness gate is green.
 
@@ -67,6 +68,8 @@ For a release candidate, these manual spot checks are still worth doing after
 the automated gate is green:
 
 - install the packed `adapter-openclaw` artifact in a temp OpenClaw project
+- run `PATH="/usr/local/bin:$PATH" node ./packages/adapter-codex/test/validate-fixtures.js`
+- run `PATH="/usr/local/bin:$PATH" node ./packages/adapter-claude/test/validate-fixtures.js`
 - run `node ./packages/memoryos-app/bin/memoryos.js init`
 - run `node ./packages/memoryos-app/bin/memoryos.js run --phase verify --once`
 - run `node ./packages/memoryos-app/bin/memoryos.js status`
