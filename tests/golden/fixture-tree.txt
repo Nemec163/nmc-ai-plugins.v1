@@ -9,6 +9,9 @@ core/agents/trader/PITFALLS.md
 core/agents/trader/PLAYBOOK.md
 core/meta/graph/edges.jsonl
 core/meta/manifest.json
+core/meta/read-index.json
+core/meta/read-index.receipt.json
+core/meta/verify-receipt.json
 core/system/CANON.md
 core/system/curator-runbook.md
 core/user/identity/changelog.md

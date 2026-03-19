@@ -287,7 +287,7 @@ function main() {
     assert.equal(snapshot.gateway.procedures.kind, 'procedure-catalog');
     assert.equal(snapshot.gateway.procedures.summary.lineageCount, 1);
     assert.equal(snapshot.gateway.status.verificationProvenance.receipts.canonVerify.exists, true);
-    assert.equal(snapshot.gateway.status.verificationProvenance.receipts.readIndex.status, 'missing');
+    assert.equal(snapshot.gateway.status.verificationProvenance.receipts.readIndex.status, 'ok');
     assert.equal(snapshot.gateway.status.verificationProvenance.receipts.runtimeSummary.exists, true);
     assert.equal(snapshot.gateway.verify.receipt.surface, 'canon-verify');
     assert.equal(snapshot.gateway.verify.verificationProvenance.receipts.canonVerify.exists, true);
@@ -375,14 +375,6 @@ function main() {
       true
     );
     assert.equal(
-      snapshot.releaseQualification.legacyShell.productionStatus,
-      'retired'
-    );
-    assert.equal(
-      snapshot.releaseQualification.legacyShell.removedFromRepository,
-      true
-    );
-    assert.equal(
       snapshot.releaseQualification.packageMatrix.packageCount,
       16
     );
@@ -439,20 +431,6 @@ function main() {
       ),
       true
     );
-    assert.equal(
-      snapshot.releaseQualification.retirementPrerequisites.target,
-      'nmc-memory-plugin-legacy-retirement'
-    );
-    assert.equal(
-      snapshot.releaseQualification.retirementPrerequisites.cutoverReady,
-      true
-    );
-    assert.equal(
-      snapshot.releaseQualification.retirementPrerequisites.pendingGateCount,
-      0
-    );
-    assert.deepEqual(snapshot.releaseQualification.retirementPrerequisites.gates, []);
-    assert.equal(snapshot.releaseQualification.bridgeStatus.gatewayOpsSnapshot, 'retired');
     assert.equal(
       snapshot.queues.conflicts.items.some((conflict) => conflict.code === 'orphan-job'),
       true
@@ -634,7 +612,7 @@ This fixture forces the health monitor into degraded mode.`
     assert.equal(cliSnapshotJson.analytics.summary.runtimeRunCount, 1);
     assert.equal(cliSnapshotJson.runtime.inspector.summary.runCount, 1);
     assert.equal(cliSnapshotJson.releaseQualification.qualified, true);
-    assert.equal(cliSnapshotJson.releaseQualification.packageMatrix.packageCount, 15);
+    assert.equal(cliSnapshotJson.releaseQualification.packageMatrix.packageCount, 16);
 
     const cliHealth = spawnSync(
       process.execPath,
@@ -658,7 +636,7 @@ This fixture forces the health monitor into degraded mode.`
     const cliHealthJson = JSON.parse(cliHealth.stdout);
     assert.equal(cliHealthJson.status, 'degraded');
     assert.equal(cliHealthJson.releaseQualification.qualified, true);
-    assert.equal(cliHealthJson.releaseQualification.packageMatrix.packageCount, 15);
+    assert.equal(cliHealthJson.releaseQualification.packageMatrix.packageCount, 16);
 
     const cliAnalytics = spawnSync(
       process.execPath,

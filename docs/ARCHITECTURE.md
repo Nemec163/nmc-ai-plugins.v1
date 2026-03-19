@@ -33,13 +33,12 @@ remains explicitly non-authoritative.
 
 ## Product Boundary
 
-The current boundary is split into three package classes:
+The current boundary is split into two package classes:
 
 | Class | Packages | Role |
 |---|---|---|
 | `production` | `memoryos-app`, `memory-os-gateway`, `control-plane`, `adapter-openclaw`, `adapter-codex`, `adapter-claude` | Supported public standalone, programmatic, operator, and peer adapter surfaces |
 | `internal` | `@nmc/memory-contracts`, `@nmc/memory-ingest`, `@nmc/memory-canon`, `@nmc/memory-maintainer`, `@nmc/memory-workspace`, `@nmc/memory-agents`, `@nmc/memory-pipeline`, `@nmc/memory-scripts`, `memory-os-runtime`, `adapter-conformance` | Shared implementation and test packages inside the product boundary |
-| `retired` | `nmc-memory-plugin`, `memory-os-gateway ops-snapshot` bridge | Historical identifiers only; not live repository surfaces |
 
 ## Core Invariants
 
@@ -111,8 +110,8 @@ runtime, and maintainer contracts. The current CLI surface includes:
 - `runtime-inspector`
 - `record-intervention`
 
-Its release-qualification metadata also publishes the current package matrix and
-the retirement status of the old compatibility shell and gateway bridge.
+Its release-qualification metadata also publishes the current package matrix for
+the live product boundary.
 
 ### Connector Surfaces
 
@@ -211,7 +210,7 @@ PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh
 PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh
 ```
 
-The CI workflow at `.github/workflows/nmc-memory-plugin-ci.yml` runs the same
+The CI workflow under `.github/workflows/` runs the same
 production-readiness gate used for release candidates.
 
 ## Current Status

@@ -147,14 +147,6 @@ function buildCheck(name, ok, detail) {
   };
 }
 
-function buildRetirementGate(id, status, detail) {
-  return {
-    id,
-    status,
-    detail,
-  };
-}
-
 function getControlPlaneReleaseQualification(snapshot) {
   const checks = [
     buildCheck(
@@ -194,8 +186,6 @@ function getControlPlaneReleaseQualification(snapshot) {
       snapshot.operatorSurface.manualInterventions
     ),
   ];
-
-  const retirementGates = [];
 
   return {
     kind: 'control-plane-release-qualification',
@@ -244,35 +234,10 @@ function getControlPlaneReleaseQualification(snapshot) {
         preservedContracts: CLAUDE_ADAPTER_CONTRACTS,
       },
     ],
-    legacyShell: {
-      package: 'nmc-memory-plugin',
-      status: 'retired',
-      productionStatus: 'retired',
-      directAdapterInstall: 'not-supported',
-      removedFromRepository: true,
-    },
     packageMatrix: {
       source: 'control-plane-release-qualification',
       packageCount: PACKAGE_MATRIX.length,
       entries: PACKAGE_MATRIX,
-    },
-    retirementPrerequisites: {
-      target: 'nmc-memory-plugin-legacy-retirement',
-      cutoverReady: retirementGates.every((gate) => gate.status === 'cleared'),
-      pendingGateCount: retirementGates.filter((gate) => gate.status !== 'cleared').length,
-      gates: retirementGates,
-    },
-    bridgeStatus: {
-      gatewayOpsSnapshot: 'retired',
-      supportedReplacement: 'control-plane',
-      replacementCommands: [
-        'snapshot',
-        'queues',
-        'health',
-        'analytics',
-        'audits',
-        'runtime-inspector',
-      ],
     },
     checks,
   };

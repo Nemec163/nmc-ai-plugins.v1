@@ -29,9 +29,8 @@ The current repository is centered on the autonomous, connector-agnostic
 `packages/memoryos-app` is the supported production standalone app/install
 surface. `packages/adapter-openclaw`, `packages/adapter-codex`, and
 `packages/adapter-claude` are supported production adapter surfaces for their
-respective runtimes. The legacy `nmc-memory-plugin` shell has been retired and
-removed from the repository, but the product boundary remains `MemoryOS.v1`
-rather than any single host surface.
+respective runtimes, while the product boundary remains `MemoryOS.v1` rather
+than any single host surface.
 
 Connector framing for this repository:
 
@@ -42,8 +41,6 @@ Connector framing for this repository:
 - `packages/memory-os-gateway` is the supported programmatic surface.
 - `packages/control-plane` is the supported read-only operator surface.
 - shared `@nmc/*` packages plus `memory-os-runtime` remain internal product-boundary packages rather than direct install or operator surfaces.
-
-The deprecated `memory-os-gateway ops-snapshot` bridge is retired and is not part of the supported operator contract.
 
 ### Supported Standalone App Surface
 

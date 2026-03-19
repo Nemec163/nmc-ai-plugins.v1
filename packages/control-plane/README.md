@@ -72,8 +72,7 @@ Control-plane v3 stays intentionally careful:
 - analytics and audit surfaces summarize queue, intervention, lock, and runtime history without becoming source-of-truth
 - runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
 - `snapshot` and `health` emit release-qualification metadata that marks `control-plane` as the supported operator surface, `memoryos-app` as the supported standalone app surface, and `adapter-openclaw`, `adapter-codex`, plus `adapter-claude` as supported peer adapter surfaces
-- the same release-qualification metadata carries a package matrix for the current product boundary so consumers can inspect which packages are `production`, `internal`, or `retired`
-- the same release qualification records `nmc-memory-plugin` as a retired legacy shell rather than an active production surface
+- the same release-qualification metadata carries a package matrix for the current product boundary so consumers can inspect which packages are `production` and which are `internal`
 - `snapshot.gateway.procedures` now carries the canonical procedure catalog so operators can inspect lineage/version state without implying control-plane ownership of promotion or rollback
 
 Packaging note:
@@ -82,11 +81,9 @@ Packaging note:
 - the supported installed-artifact programmatic wrapper is `~/.openclaw/extensions/memoryos-openclaw/control-plane/`
 - installed-artifact automation should prefer that adapter-owned wrapper over nested `packages/control-plane/bin/` paths
 
-Compatibility note:
+Operator boundary note:
 
-- the deprecated `memory-os-gateway` ops snapshot bridge is retired from package surfaces
-- the supported operator queue, audit, analytics, and runtime inspection contract now lives in `control-plane`
-- the historical cutover plan is preserved in [../../docs/legacy/deliberate-migration-release-plan.md](../../docs/legacy/deliberate-migration-release-plan.md)
+- the supported operator queue, audit, analytics, and runtime inspection contract lives in `control-plane`
 
 See [supported surfaces](../../docs/supported-surfaces.md) for the current
 package matrix and [implementation guide](../../docs/legacy/implementation-guide.md)

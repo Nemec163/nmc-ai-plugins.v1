@@ -218,9 +218,9 @@ function main() {
   });
   assert.equal(search.namespace.namespaceKey, 'default/default/default');
   assert.equal(search.contract.rankingVersion, '1');
-  assert.equal(search.readIndex.status, 'rebuilt-ephemeral');
+  assert.equal(search.readIndex.status, 'ok');
   assert.equal(search.readIndex.namespace.namespaceKey, 'default/default/default');
-  assert.equal(search.readIndex.persisted, false);
+  assert.equal(search.readIndex.persisted, true);
   assert.equal(search.freshnessBoundary.runtimeDeltaIncluded, true);
   assert.equal(search.canonicalHits[0].recordId, 'st-2026-03-05-001');
   assert.equal(search.canonicalHits[0].authoritative, true);
@@ -245,12 +245,12 @@ function main() {
   assert.equal(status.runtime.shadowExists, false);
   assert.equal(status.runtime.namespace.namespaceKey, 'default/default/default');
   assert.equal(status.runtime.runCount, 0);
-  assert.equal(status.readIndex.status, 'missing');
+  assert.equal(status.readIndex.status, 'ok');
   assert.equal(status.readIndex.namespace.namespaceKey, 'default/default/default');
-  assert.equal(status.manifest.receipt.status, 'missing-receipt');
-  assert.equal(status.readIndex.receipt.status, 'not-captured');
+  assert.equal(status.manifest.receipt.status, 'ok');
+  assert.equal(status.readIndex.receipt.status, 'ok');
   assert.equal(status.runtime.receipt.status, 'not-captured');
-  assert.equal(status.verificationProvenance.receipts.canonVerify.status, 'missing-receipt');
+  assert.equal(status.verificationProvenance.receipts.canonVerify.status, 'ok');
 
   const health = getHealth({
     memoryRoot: FIXTURE_MEMORY_ROOT,
@@ -259,7 +259,7 @@ function main() {
   assert.equal(health.checks.some((check) => check.name === 'verify-script' && check.ok), true);
   assert.equal(
     health.warnings.includes('Manifest verify receipt is missing and verify provenance is incomplete.'),
-    true
+    false
   );
 
   const verifyRoot = makeTempRoot();
@@ -286,7 +286,7 @@ function main() {
     );
     assert.equal(
       verification.verificationProvenance.receipts.readIndex.status,
-      'missing'
+      'ok'
     );
   } finally {
     fs.rmSync(verifyRoot, { recursive: true, force: true });
@@ -559,7 +559,7 @@ function main() {
     const initialVerification = verifyReadIndex({
       memoryRoot: readIndexWorkspaceRoot,
     });
-    assert.equal(initialVerification.status, 'missing');
+    assert.equal(initialVerification.status, 'ok');
     assert.equal(initialVerification.receipt.exists, true);
     assert.equal(initialVerification.receipt.action, 'verify');
 

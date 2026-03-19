@@ -51,8 +51,7 @@ Published package exports:
 - `./pipeline-adapter`, `./install-surface`, and `./conformance-adapter` for
   integration and test surfaces
 
-The legacy `nmc-memory-plugin/` shell is retired. This package is the only
-supported OpenClaw install/setup surface in the repository.
+This package is the supported OpenClaw install/setup surface in the repository.
 
 See [supported surfaces](../../docs/supported-surfaces.md) for the current
 package matrix and [implementation guide](../../docs/legacy/implementation-guide.md)

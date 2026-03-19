@@ -1,8 +1,7 @@
 # Supported Surfaces
 
 This document is the minimal package matrix for the current `MemoryOS.v1`
-product boundary. Use it when deciding which package is production, internal,
-or retired.
+product boundary. Use it when deciding which package is production or internal.
 
 ## Support Classes
 
@@ -10,7 +9,6 @@ or retired.
   install story
 - `internal`: part of the product boundary, but not a direct install, operator,
   or public connector surface
-- `retired`: historical identifier kept only in roadmap and release metadata
 
 ## Package Matrix
 
@@ -36,10 +34,3 @@ or retired.
 The product boundary remains the independent `MemoryOS.v1` core plus the stable
 gateway and operator surfaces. Connectors attach to that boundary; they do not
 replace it.
-
-## Retired Compatibility Identifiers
-
-- `nmc-memory-plugin`: retired legacy shell; removed from the repository and
-  preserved only as a historical identifier in roadmap and release metadata
-- `memory-os-gateway ops-snapshot`: retired compatibility bridge; replaced by
-  `control-plane`

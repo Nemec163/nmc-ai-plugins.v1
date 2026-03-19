@@ -4,7 +4,7 @@ Monorepo for MemoryOS.v1: an autonomous, self-sufficient memory operating system
 
 The product boundary is the independent Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `memoryos-app` is the standalone app surface, while `adapter-openclaw`, `adapter-codex`, and `adapter-claude` are peer adapter surfaces over the same core, each adapted to its own host or LLM runtime.
 
-`packages/memoryos-app` is the supported standalone app surface for MemoryOS.v1. `packages/adapter-openclaw`, `packages/adapter-codex`, and `packages/adapter-claude` are supported adapter surfaces. The old `nmc-memory-plugin` mirror has been retired and removed from the repository.
+`packages/memoryos-app` is the supported standalone app surface for MemoryOS.v1. `packages/adapter-openclaw`, `packages/adapter-codex`, and `packages/adapter-claude` are supported adapter surfaces.
 
 Use this document as the entry point. Use [standalone app README](./packages/memoryos-app/README.md) for the local runtime surface, [OpenClaw adapter README](./packages/adapter-openclaw/README.md), [Codex adapter README](./packages/adapter-codex/README.md), and [Claude adapter README](./packages/adapter-claude/README.md) for the peer adapter surfaces, [supported surfaces](./docs/supported-surfaces.md) for the package matrix, [implementation guide](./docs/legacy/implementation-guide.md) for day-2 operations, [release readiness](./docs/release-readiness.md) for the current production gate, and [deliberate migration release plan](./docs/legacy/deliberate-migration-release-plan.md) for historical release-cutover context.
 
@@ -223,7 +223,7 @@ node ./packages/memoryos-app/bin/memoryos.js status
 |---|---|
 | [packages/memoryos-app/README.md](./packages/memoryos-app/README.md) | Package-level standalone install, bootstrap, and local runtime CLI reference. |
 | [packages/adapter-openclaw/README.md](./packages/adapter-openclaw/README.md) | Package-level install, setup, structure, and OpenClaw adapter reference. |
-| [docs/supported-surfaces.md](./docs/supported-surfaces.md) | Production, internal, and retired package matrix for the current product boundary. |
+| [docs/supported-surfaces.md](./docs/supported-surfaces.md) | Production and internal package matrix for the current product boundary. |
 | [docs/release-readiness.md](./docs/release-readiness.md) | Current production go/no-go gate and release checklist for the independent MemoryOS repository. |
 | [docs/legacy/implementation-guide.md](./docs/legacy/implementation-guide.md) | Current implementation and day-2 operations guide. |
 | [docs/legacy/deliberate-migration-release-plan.md](./docs/legacy/deliberate-migration-release-plan.md) | Historical archive of the completed release-cutover and bridge-retirement planning work. |

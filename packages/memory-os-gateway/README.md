@@ -48,16 +48,15 @@ Current CLI commands include:
 
 Operator boundary notes:
 
-- the deprecated gateway ops bridge has been retired from the root `memory-os-gateway` package surface
 - the supported operator surface lives in `packages/control-plane`
 - installed artifacts should continue to use `packages/control-plane`
-- `memory-os-gateway` now exposes only the supported read, bootstrap, query, runtime, status, verify, health, and safe write-orchestration surfaces
+- `memory-os-gateway` exposes the supported read, bootstrap, query, runtime, status, verify, health, and safe write-orchestration surfaces
 
 Write orchestration stays non-authoritative:
 
 - `propose` stores structured proposal payloads under `intake/proposals/`
 - `feedback` merges curator decisions and materializes `intake/pending/YYYY-MM-DD.md` when the batch is fully reviewed
-- `complete-job` writes a non-canonical job receipt under `intake/jobs/` and exposes the single-writer lock scaffold and promotion request for the legacy apply path without writing canon directly
+- `complete-job` writes a non-canonical job receipt under `intake/jobs/` and exposes the single-writer lock scaffold and promotion request for the apply compatibility path without writing canon directly
 - procedure-oriented proposal claims may carry `target_type: "procedure"`, `procedure_key`, `acceptance`, and `feedback_refs` so runtime feedback can move through the existing reviewed promotion path instead of bypassing canon
 
 Shadow runtime stays separate from canon:
