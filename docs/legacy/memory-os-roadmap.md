@@ -5,11 +5,12 @@
 
 ## Progress Snapshot
 
-- completed: `namespace / tenant / actor model foundations — introduce explicit namespace contract surfaces across gateway, runtime shadow, and derived read paths while preserving the current single-tenant default`
-- next: `verify hardening and content-addressed reconciliation — tighten verify/rebuild semantics around content-derived freshness and reconciliation evidence without widening authority`
+- completed: `verify hardening and content-addressed reconciliation — tighten verify/rebuild semantics around content-derived freshness and reconciliation evidence without widening authority`
+- next: `verify receipts and projection provenance surfaces — make verify/rebuild activity inspectable through non-authoritative receipts and audit-ready provenance without widening authority`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/memory-canon/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/memory-os-runtime/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
@@ -2217,12 +2218,30 @@ Implementation note:
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 
+## Verify Hardening and Content-Addressed Reconciliation
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- replaced mtime-driven canon graph reconciliation with a full content-addressed rebuild in `@nmc/memory-canon`, then recorded digest-backed reconciliation evidence in `core/meta/manifest.json` so verify output is auditable instead of inferred from timestamps alone
+- extended derived read-index verification with content fingerprints and explicit reconciliation metadata, keeping the index rebuildable and non-authoritative while separating index freshness from canonical manifest drift
+- added runtime shadow manifest reconciliation digests plus operator-facing runtime/read-index status, health, and analytics visibility so stale-versus-fresh reasoning is explicit across gateway and control-plane surfaces without widening write authority
+- fixed procedure evidence and procedure-aware recall resolution so explicit runtime `feedback_refs` and default-scope procedural artifacts stay linkable even when the caller is operating from a different role-scoped surface
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-canon/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-runtime/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
 ## Immediate Next Step
 
-The next implementation step should harden verify/rebuild semantics around content-addressed reconciliation without widening authority:
+The next implementation step should make verify/rebuild activity itself inspectable through non-authoritative receipts and provenance surfaces:
 
-- move freshness and drift detection further away from implicit file mtimes and toward content-derived snapshot/reconciliation evidence
-- keep projections, read-index data, and runtime summaries rebuildable and non-authoritative while making stale-versus-fresh reasoning more explicit and auditable
-- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while verification evidence becomes stricter
+- persist or expose digest-backed receipts for canon verify, read-index rebuilds, and runtime-summary reconciliation so operators can inspect when and why a derived surface was refreshed
+- keep projections, read-index data, runtime summaries, and any new receipts rebuildable and explicitly non-authoritative while improving provenance visibility
+- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while adding auditability around verification work
 
-Namespace semantics are now explicit across gateway, runtime shadow, and derived read paths. The next risk is leaving verify/reconcile freshness logic comparatively shallow even as scoped read/runtime artifacts become more explicit.
+Content-addressed freshness and drift evidence are now explicit across canon verify, derived read-index verification, and runtime shadow summaries. The next risk is leaving the verify/rebuild actions themselves comparatively opaque even though the resulting digests are now stricter and more auditable.

@@ -13,79 +13,112 @@ const {
   serializeManifestSnapshot,
 } = require('./manifest');
 
+const RECONCILIATION_STRATEGY = 'content-addressed-graph-rebuild';
+
 function sha256File(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
-function fileMtimeEpoch(filePath) {
-  return Math.floor(fs.statSync(filePath).mtimeMs / 1000);
+function sha256Text(content) {
+  return crypto.createHash('sha256').update(content).digest('hex');
 }
 
-function timestampToEpoch(timestamp) {
-  if (!timestamp) {
-    return 0;
-  }
-
-  const direct = Date.parse(timestamp);
-  if (!Number.isNaN(direct)) {
-    return Math.floor(direct / 1000);
-  }
-
-  const dayOnly = Date.parse(`${timestamp}T00:00:00Z`);
-  if (!Number.isNaN(dayOnly)) {
-    return Math.floor(dayOnly / 1000);
-  }
-
-  return 0;
+function digestEntries(entries) {
+  return sha256Text(
+    entries
+      .map(([relativePath, checksum]) => `${relativePath}\t${checksum}`)
+      .join('\n')
+  );
 }
 
-function readLastManifestTimestamp(manifestFile) {
-  if (!fs.existsSync(manifestFile)) {
-    return '';
+function buildRecordFileSnapshot(memoryRoot, recordFiles) {
+  const checksums = {};
+
+  for (const filePath of recordFiles) {
+    checksums[path.relative(memoryRoot, filePath).replace(/\\/g, '/')] = sha256File(filePath);
   }
 
-  try {
-    const parsed = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
-    return typeof parsed.last_updated === 'string' ? parsed.last_updated : '';
-  } catch (error) {
-    const markdown = fs.readFileSync(manifestFile, 'utf8');
-    const match = markdown.match(/"last_updated":\s*"([^"]*)"/);
-    return match ? match[1] : '';
-  }
+  const entries = Object.entries(checksums).sort(([left], [right]) => left.localeCompare(right));
+
+  return {
+    checksums,
+    digest: digestEntries(entries),
+    fileCount: entries.length,
+  };
 }
 
-function appendGraphEdges(edgesFile, edges, today) {
-  let currentLines = [];
-  const existingFragments = new Set();
+function buildEdgesDigest(edges) {
+  return digestEntries(edges.map((edge) => [`${edge.src}\t${edge.rel}\t${edge.dst}`, '1']));
+}
 
-  if (fs.existsSync(edgesFile)) {
-    currentLines = fs
-      .readFileSync(edgesFile, 'utf8')
-      .split('\n')
-      .filter((line) => line.trim().length > 0);
-
-    for (const line of currentLines) {
-      try {
-        const parsed = JSON.parse(line);
-        existingFragments.add(`"src":"${parsed.src}","rel":"${parsed.rel}","dst":"${parsed.dst}"`);
-      } catch (error) {
-        continue;
-      }
-    }
+function normalizeReconciliation(manifest) {
+  if (!manifest || !manifest.reconciliation || typeof manifest.reconciliation !== 'object') {
+    return null;
   }
 
-  for (const edge of edges) {
-    const fragment = `"src":"${edge.src}","rel":"${edge.rel}","dst":"${edge.dst}"`;
-    if (existingFragments.has(fragment)) {
-      continue;
-    }
+  return {
+    strategy: manifest.reconciliation.strategy || null,
+    record_file_count: Number.isInteger(manifest.reconciliation.record_file_count)
+      ? manifest.reconciliation.record_file_count
+      : 0,
+    record_checksum_digest: manifest.reconciliation.record_checksum_digest || null,
+    edges_digest: manifest.reconciliation.edges_digest || null,
+  };
+}
 
-    existingFragments.add(fragment);
-    currentLines.push(serializeGraphEdge(edge, today));
+function compareReconciliation(previous, current) {
+  if (!previous) {
+    return {
+      changed: true,
+      reasons: [
+        {
+          code: 'reconciliation-baseline-missing',
+          message: 'No prior reconciliation evidence was recorded.',
+        },
+      ],
+    };
   }
 
-  fs.writeFileSync(edgesFile, currentLines.length > 0 ? `${currentLines.join('\n')}\n` : '');
-  return currentLines.length;
+  const reasons = [];
+
+  if (previous.strategy !== current.strategy) {
+    reasons.push({
+      code: 'reconciliation-strategy-changed',
+      message: `Reconciliation strategy changed from ${previous.strategy || 'missing'} to ${current.strategy}.`,
+    });
+  }
+
+  if (previous.record_file_count !== current.record_file_count) {
+    reasons.push({
+      code: 'record-file-count-changed',
+      message: `Canonical record file count changed from ${previous.record_file_count} to ${current.record_file_count}.`,
+    });
+  }
+
+  if (previous.record_checksum_digest !== current.record_checksum_digest) {
+    reasons.push({
+      code: 'record-content-changed',
+      message: 'Canonical record content digest changed since the last reconciliation.',
+    });
+  }
+
+  if (previous.edges_digest !== current.edges_digest) {
+    reasons.push({
+      code: 'graph-output-changed',
+      message: 'Derived graph digest changed since the last reconciliation.',
+    });
+  }
+
+  return {
+    changed: reasons.length > 0,
+    reasons,
+  };
+}
+
+function writeGraphEdges(edgesFile, edges, today) {
+  const lines = edges.map((edge) => serializeGraphEdge(edge, today));
+  fs.writeFileSync(edgesFile, lines.length > 0 ? `${lines.join('\n')}\n` : '');
+  return lines.length;
 }
 
 function verifyCanonWorkspace(options) {
@@ -102,9 +135,13 @@ function verifyCanonWorkspace(options) {
     fs.writeFileSync(edgesFile, '');
   }
 
+  const previousManifest = fs.existsSync(manifestFile)
+    ? JSON.parse(fs.readFileSync(manifestFile, 'utf8'))
+    : null;
   const recordFiles = listRecordFiles(memoryRoot);
   const canonicalFiles = listCanonicalFiles(memoryRoot);
   const recordIds = new Set();
+  const recordFileSnapshot = buildRecordFileSnapshot(memoryRoot, recordFiles);
 
   for (const filePath of recordFiles) {
     const content = fs.readFileSync(filePath, 'utf8');
@@ -120,14 +157,9 @@ function verifyCanonWorkspace(options) {
     checksums[path.relative(memoryRoot, filePath).replace(/\\/g, '/')] = sha256File(filePath);
   }
 
-  const lastManifestEpoch = timestampToEpoch(readLastManifestTimestamp(manifestFile));
   const candidateEdges = [];
 
   for (const filePath of recordFiles) {
-    if (lastManifestEpoch !== 0 && fileMtimeEpoch(filePath) <= lastManifestEpoch) {
-      continue;
-    }
-
     const content = fs.readFileSync(filePath, 'utf8');
     candidateEdges.push(...extractLinksFromContent(content));
   }
@@ -164,13 +196,24 @@ function verifyCanonWorkspace(options) {
     validEdges.push(edge);
   }
 
-  const edgesCount = appendGraphEdges(edgesFile, validEdges, today);
+  const reconciliation = {
+    strategy: RECONCILIATION_STRATEGY,
+    record_file_count: recordFileSnapshot.fileCount,
+    record_checksum_digest: recordFileSnapshot.digest,
+    edges_digest: buildEdgesDigest(validEdges),
+  };
+  const reconciliationComparison = compareReconciliation(
+    normalizeReconciliation(previousManifest),
+    reconciliation
+  );
+  const edgesCount = writeGraphEdges(edgesFile, validEdges, today);
   const manifest = buildManifestSnapshot({
     schemaVersion: readSchemaVersionFromWorkspace(memoryRoot),
     lastUpdated: updatedAt,
     recordCounts,
     checksums,
     edgesCount,
+    reconciliation,
   });
 
   fs.writeFileSync(manifestFile, serializeManifestSnapshot(manifest));
@@ -180,6 +223,12 @@ function verifyCanonWorkspace(options) {
     edgesFile,
     manifest,
     manifestFile,
+    reconciliation: {
+      ...reconciliation,
+      previous: normalizeReconciliation(previousManifest),
+      changed: reconciliationComparison.changed,
+      reasons: reconciliationComparison.reasons,
+    },
     recordCounts,
     warningCount,
   };

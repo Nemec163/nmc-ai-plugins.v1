@@ -702,6 +702,18 @@ for line in checksums_path.read_text(encoding="utf-8").splitlines():
 if data.get("checksums") != expected_checksums:
     raise SystemExit("manifest checksums do not match frozen canonical checksums")
 
+reconciliation = data.get("reconciliation")
+if not isinstance(reconciliation, dict):
+    raise SystemExit(f"unexpected reconciliation: {reconciliation!r}")
+if reconciliation.get("strategy") != "content-addressed-graph-rebuild":
+    raise SystemExit(f"unexpected reconciliation strategy: {reconciliation.get('strategy')!r}")
+if reconciliation.get("record_file_count") != 15:
+    raise SystemExit(f"unexpected reconciliation record_file_count: {reconciliation.get('record_file_count')!r}")
+for key in ("record_checksum_digest", "edges_digest"):
+    value = reconciliation.get(key)
+    if not isinstance(value, str) or not value:
+        raise SystemExit(f"unexpected reconciliation {key}: {value!r}")
+
 entries = [
     "schema_version\tstring",
     "last_updated\tstring",
@@ -714,6 +726,11 @@ entries = [
     "record_counts.procedures\tnumber",
     "checksums\tobject",
     "edges_count\tnumber",
+    "reconciliation\tobject",
+    "reconciliation.strategy\tstring",
+    "reconciliation.record_file_count\tnumber",
+    "reconciliation.record_checksum_digest\tstring",
+    "reconciliation.edges_digest\tstring",
 ]
 print("\n".join(entries))
 PY

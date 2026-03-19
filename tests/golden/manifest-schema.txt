@@ -9,3 +9,8 @@ record_counts.competences	number
 record_counts.procedures	number
 checksums	object
 edges_count	number
+reconciliation	object
+reconciliation.strategy	string
+reconciliation.record_file_count	number
+reconciliation.record_checksum_digest	string
+reconciliation.edges_digest	string

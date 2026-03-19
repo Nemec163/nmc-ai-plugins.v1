@@ -184,6 +184,13 @@ function getControlPlaneRuntimeInspector(options = {}) {
         lastCapturedAgeDays > staleAfterDays,
       runtimeAuthoritative: false,
     },
+    reconciliation: runtimeDelta.reconciliation || {
+      status: runtimeDelta.exists ? 'missing-reconciliation' : 'not-captured',
+      ok: runtimeDelta.exists ? false : true,
+      reasons: [],
+      manifest: null,
+      current: null,
+    },
     summary: {
       runCount: runtimeDelta.runCount,
       totalArtifacts: runtimeDelta.totalArtifacts,

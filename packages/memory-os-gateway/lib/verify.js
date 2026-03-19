@@ -15,14 +15,19 @@ function verify(options) {
     today,
     stderr: options.stderr,
   });
+  const readIndex = verifyReadIndex({ memoryRoot });
+  const status =
+    result.warningCount > 0 || (readIndex.exists && readIndex.ok === false)
+      ? 'warning'
+      : 'ok';
 
   return {
     ...result,
     memoryRoot,
     updatedAt,
     today,
-    readIndex: verifyReadIndex({ memoryRoot }),
-    status: result.warningCount > 0 ? 'warning' : 'ok',
+    readIndex,
+    status,
   };
 }
 

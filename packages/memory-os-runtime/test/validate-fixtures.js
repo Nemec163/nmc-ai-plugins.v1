@@ -145,6 +145,10 @@ function main() {
     assert.equal(runtimeDelta.runs[0].namespace.namespaceKey, 'default/default/default');
     assert.equal(runtimeDelta.manifest.disposable, true);
     assert.equal(runtimeDelta.manifest.namespace.mode, 'single-tenant-default');
+    assert.equal(runtimeDelta.manifest.reconciliation.strategy, 'content-addressed-runtime-manifest');
+    assert.equal(typeof runtimeDelta.manifest.reconciliation.runContentDigest, 'string');
+    assert.equal(runtimeDelta.reconciliation.status, 'ok');
+    assert.equal(runtimeDelta.reconciliation.ok, true);
 
     const runtimeRecall = getRuntimeRecallBundle({
       memoryRoot,
@@ -158,6 +162,8 @@ function main() {
     assert.equal(runtimeRecall.buckets.retrievalTraces.entries[0].id, 'rt-001');
     assert.equal(runtimeRecall.hits[0].namespace.namespaceKey, 'default/default/default');
     assert.equal(runtimeRecall.freshnessBoundary.runtimeAuthoritative, false);
+    assert.equal(runtimeRecall.reconciliation.status, 'ok');
+    assert.equal(runtimeRecall.freshnessBoundary.runtimeReconciliationStatus, 'ok');
 
     const records = listRuntimeRecords({ memoryRoot });
     assert.equal(records.length, 1);

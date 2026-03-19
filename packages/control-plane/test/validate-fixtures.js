@@ -294,6 +294,7 @@ function main() {
     assert.equal(snapshot.runtime.inspector.kind, 'control-plane-runtime-inspector');
     assert.equal(snapshot.runtime.inspector.namespace.namespaceKey, 'default/default/default');
     assert.equal(snapshot.runtime.inspector.authoritative, false);
+    assert.equal(snapshot.runtime.inspector.reconciliation.ok, true);
     assert.equal(snapshot.runtime.inspector.procedures.canonicalCurrent.authoritative, true);
     assert.equal(snapshot.runtime.inspector.procedures.canonicalCurrent.lineageCount, 1);
     assert.equal(
@@ -375,6 +376,7 @@ function main() {
     assert.equal(analytics.queues.conflictCodes['orphan-job'], 1);
     assert.equal(analytics.runtime.runCount, 1);
     assert.equal(analytics.runtime.busiestBuckets[0].bucket, 'episodic');
+    assert.equal(analytics.runtime.reconciliation.ok, true);
 
     const audits = getControlPlaneAudits({
       memoryRoot: fixture.memoryRoot,
@@ -407,6 +409,7 @@ function main() {
     assert.equal(runtimeInspector.summary.totalArtifacts, 4);
     assert.equal(runtimeInspector.freshness.ageDays, 0);
     assert.equal(runtimeInspector.freshness.runtimeAuthoritative, false);
+    assert.equal(runtimeInspector.reconciliation.ok, true);
     assert.equal(runtimeInspector.procedures.canonicalCurrent.lineageCount, 1);
     assert.equal(runtimeInspector.procedures.runtimeArtifacts.totalCount, 2);
     assert.equal(runtimeInspector.procedures.recall.kind, 'procedure-aware-recall');
@@ -452,6 +455,12 @@ function main() {
     assert.equal(
       degradedHealth.checks.some(
         (check) => check.name === 'operator-audits-surface' && check.ok === true
+      ),
+      true
+    );
+    assert.equal(
+      degradedHealth.checks.some(
+        (check) => check.name === 'runtime-reconciliation' && check.ok === true
       ),
       true
     );

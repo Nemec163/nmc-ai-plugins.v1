@@ -16,8 +16,6 @@ function buildProcedureLookup(memoryRoot, namespace) {
     tenantId: namespace.tenantId,
     spaceId: namespace.spaceId,
     userId: namespace.userId,
-    agentId: namespace.scope.agentId,
-    roleId: namespace.scope.roleId,
   });
   const byRecordId = new Map();
 
@@ -177,8 +175,6 @@ function getRecallBundle(options = {}) {
     tenantId: namespace.tenantId,
     spaceId: namespace.spaceId,
     userId: namespace.userId,
-    agentId: namespace.scope.agentId,
-    roleId: namespace.scope.roleId,
     text,
     limit: options.limit,
   });

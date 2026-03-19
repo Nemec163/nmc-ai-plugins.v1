@@ -58,6 +58,14 @@ function buildAlerts({ queues, interventions, runtimeInspector, maintainer }) {
     });
   }
 
+  if (runtimeInspector.reconciliation && runtimeInspector.reconciliation.ok === false) {
+    alerts.push({
+      code: 'runtime-shadow-reconciliation-drift',
+      severity: 'warning',
+      message: 'Runtime shadow reconciliation evidence drifted from current runtime records.',
+    });
+  }
+
   if (maintainer.board.invalidTasks.count > 0) {
     alerts.push({
       code: 'invalid-maintainer-tasks',
@@ -175,6 +183,7 @@ function getControlPlaneAnalytics(options = {}) {
       topSources: runtimeInspector.summary.topSources,
       busiestBuckets: runtimeInspector.summary.busiestBuckets,
       freshness: runtimeInspector.freshness,
+      reconciliation: runtimeInspector.reconciliation,
     },
     maintainer: {
       taskCount: maintainer.board.tasks.total,

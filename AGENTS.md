@@ -6,8 +6,8 @@ This repository now treats `MemoryOS.v1` as the product boundary and uses the ro
 
 ## Current State
 
-- completed roadmap slice: `namespace / tenant / actor model foundations — introduce explicit namespace contract surfaces across gateway, runtime shadow, and derived read paths while preserving the current single-tenant default`
-- next roadmap slice: `verify hardening and content-addressed reconciliation — tighten verify/rebuild semantics around content-derived freshness and reconciliation evidence without widening authority`
+- completed roadmap slice: `verify hardening and content-addressed reconciliation — tighten verify/rebuild semantics around content-derived freshness and reconciliation evidence without widening authority`
+- next roadmap slice: `verify receipts and projection provenance surfaces — make verify/rebuild activity inspectable through non-authoritative receipts and audit-ready provenance without widening authority`
 - regression baseline:
   - `./tests/run-contract-tests.sh`
   - `./tests/run-integration.sh`
@@ -106,7 +106,8 @@ Phase 0 is complete:
 - `procedure-aware recall surfaces` added explicit procedure-aware recall summaries and operator views so canonical current procedures remain distinguishable from runtime `procedural` and `procedureFeedback` artifacts without widening runtime authority
 - `procedure evidence linkage surfaces` added read-only linkage from canonical current procedures to resolved runtime `feedback_refs`, supporting runtime runs, and related `procedural` artifacts in gateway lineage, recall, and control-plane operator views without widening runtime authority
 - `namespace / tenant / actor model foundations` added a shared namespace contract, explicit scoped path metadata for runtime shadow and derived read-index artifacts, gateway/control-plane namespace visibility, and default-scope backward compatibility without widening write authority or changing the current single-tenant install behavior
-- the next slice is `verify hardening and content-addressed reconciliation`, which should make freshness, drift detection, and rebuild evidence more content-derived and auditable while keeping projections/runtime non-authoritative and preserving the current promotion path
+- `verify hardening and content-addressed reconciliation` replaced mtime-driven canon graph reconciliation with content-addressed evidence, added digest-backed verify/read-index/runtime reconciliation surfaces, and kept projections/runtime explicitly rebuildable and non-authoritative
+- the next slice is `verify receipts and projection provenance surfaces`, which should make verify/rebuild actions themselves inspectable through non-authoritative receipts and provenance views without widening write authority or changing the current promotion path
 
 ## Commit Convention
 

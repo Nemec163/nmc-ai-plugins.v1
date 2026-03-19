@@ -129,9 +129,6 @@ function buildRuntimeEvidenceIndex(memoryRoot, options = {}) {
     roleId: options.roleId,
     role_id: options.role_id,
   });
-  const artifactsByRef = new Map();
-  const proceduralByRunId = new Map();
-  const runsById = new Map();
   const records =
     runtime && typeof runtime.listRuntimeRecords === 'function'
       ? runtime.listRuntimeRecords({
@@ -139,39 +136,69 @@ function buildRuntimeEvidenceIndex(memoryRoot, options = {}) {
           tenantId: namespace.tenantId,
           spaceId: namespace.spaceId,
           userId: namespace.userId,
-          agentId: namespace.scope.agentId,
-          roleId: namespace.scope.roleId,
         })
       : [];
 
+  const runtimeIndex = {
+    available: records.length > 0,
+    memoryRoot,
+    runtime,
+    runsById: new Map(),
+    artifactsByRef: new Map(),
+    proceduralByRunId: new Map(),
+  };
+
   for (const record of records) {
-    const runSummary = createRuntimeRunSummary(memoryRoot, runtime, record);
-    runsById.set(record.runId, runSummary);
-
-    const proceduralArtifacts = [];
-    for (const [bucketName, bucketEntries] of Object.entries(record.artifacts || {})) {
-      if (!Array.isArray(bucketEntries)) {
-        continue;
-      }
-
-      for (const entry of bucketEntries) {
-        const artifactSummary = createRuntimeArtifactSummary(runSummary, bucketName, entry);
-        artifactsByRef.set(artifactSummary.ref, artifactSummary);
-        if (bucketName === 'procedural') {
-          proceduralArtifacts.push(artifactSummary);
-        }
-      }
-    }
-
-    proceduralByRunId.set(record.runId, proceduralArtifacts.sort(compareRuntimeArtifacts));
+    indexRuntimeRecord(runtimeIndex, record);
   }
 
-  return {
-    available: records.length > 0,
-    runsById,
-    artifactsByRef,
-    proceduralByRunId,
-  };
+  return runtimeIndex;
+}
+
+function indexRuntimeRecord(runtimeIndex, record) {
+  if (!record || !record.runId || runtimeIndex.runsById.has(record.runId)) {
+    return;
+  }
+
+  const { memoryRoot, runtime } = runtimeIndex;
+  const runSummary = createRuntimeRunSummary(memoryRoot, runtime, record);
+  runtimeIndex.runsById.set(record.runId, runSummary);
+
+  const proceduralArtifacts = [];
+  for (const [bucketName, bucketEntries] of Object.entries(record.artifacts || {})) {
+    if (!Array.isArray(bucketEntries)) {
+      continue;
+    }
+
+    for (const entry of bucketEntries) {
+      const artifactSummary = createRuntimeArtifactSummary(runSummary, bucketName, entry);
+      runtimeIndex.artifactsByRef.set(artifactSummary.ref, artifactSummary);
+      if (bucketName === 'procedural') {
+        proceduralArtifacts.push(artifactSummary);
+      }
+    }
+  }
+
+  runtimeIndex.proceduralByRunId.set(record.runId, proceduralArtifacts.sort(compareRuntimeArtifacts));
+}
+
+function loadRuntimeRecordForRef(runtimeIndex, parsed) {
+  if (!parsed.valid || !runtimeIndex.runtime || typeof runtimeIndex.runtime.resolveRuntimeRunPath !== 'function') {
+    return;
+  }
+
+  const runPath = runtimeIndex.runtime.resolveRuntimeRunPath(
+    runtimeIndex.memoryRoot,
+    parsed.runId,
+    parsed.namespace || {}
+  );
+
+  if (!fs.existsSync(runPath)) {
+    return;
+  }
+
+  const record = loadJson(runPath);
+  indexRuntimeRecord(runtimeIndex, record);
 }
 
 function parseRuntimeArtifactRef(ref) {
@@ -233,8 +260,14 @@ function resolveProcedureFeedbackRef(ref, runtimeIndex) {
     };
   }
 
-  const supportingRun = runtimeIndex.runsById.get(parsed.runId) || null;
-  const artifact = runtimeIndex.artifactsByRef.get(parsed.ref) || null;
+  let supportingRun = runtimeIndex.runsById.get(parsed.runId) || null;
+  let artifact = runtimeIndex.artifactsByRef.get(parsed.ref) || null;
+
+  if (!artifact) {
+    loadRuntimeRecordForRef(runtimeIndex, parsed);
+    supportingRun = runtimeIndex.runsById.get(parsed.runId) || null;
+    artifact = runtimeIndex.artifactsByRef.get(parsed.ref) || null;
+  }
 
   return {
     ...parsed,

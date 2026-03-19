@@ -115,8 +115,22 @@ function getStatus(options) {
     overallStatus = 'ALERT';
   }
 
+  if (runtimeDelta.exists && runtimeDelta.reconciliation && runtimeDelta.reconciliation.ok === false) {
+    overallStatus = 'ALERT';
+  }
+
   const manifestAgeDays = manifest
     ? Math.floor((nowEpoch - timestampToEpoch(manifest.last_updated)) / 86400)
+    : null;
+  const manifestReconciliation = manifest && manifest.reconciliation && typeof manifest.reconciliation === 'object'
+    ? {
+        strategy: manifest.reconciliation.strategy || null,
+        recordFileCount: Number.isInteger(manifest.reconciliation.record_file_count)
+          ? manifest.reconciliation.record_file_count
+          : 0,
+        recordChecksumDigest: manifest.reconciliation.record_checksum_digest || null,
+        edgesDigest: manifest.reconciliation.edges_digest || null,
+      }
     : null;
 
   return {
@@ -140,6 +154,8 @@ function getStatus(options) {
             procedures: 0,
           },
       edgesCount: manifest ? manifest.edges_count : 0,
+      reconciliation: manifestReconciliation,
+      reconciliationFresh: readIndex.source.reconciliationFresh,
     },
     intake: {
       pendingFiles: pendingFiles.length,
@@ -159,6 +175,7 @@ function getStatus(options) {
       manifestPath: runtimeDelta.manifestPath,
       disposable: runtimeDelta.disposable,
       rebuildableFrom: runtimeDelta.rebuildableFrom,
+      reconciliation: runtimeDelta.reconciliation,
       runCount: runtimeDelta.runCount,
       totalArtifacts: runtimeDelta.totalArtifacts,
       lastCapturedAt: runtimeDelta.lastCapturedAt,
@@ -183,6 +200,10 @@ function getStatus(options) {
       tokenCount: readIndex.stats.tokenCount,
       reasons: readIndex.reasons,
       sourceManifestLastUpdated: readIndex.source.manifestLastUpdated,
+      sourceContentFingerprint: readIndex.source.contentFingerprint,
+      sourceReconciliation: readIndex.source.reconciliation,
+      sourceReconciliationFresh: readIndex.source.reconciliationFresh,
+      reconciliation: readIndex.reconciliation || null,
     },
     overall: {
       status: overallStatus,

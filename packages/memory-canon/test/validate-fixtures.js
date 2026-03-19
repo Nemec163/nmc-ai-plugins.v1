@@ -129,6 +129,11 @@ function main() {
     });
     assert.equal(verification.edgesCount, 6);
     assert.equal(verification.warningCount, 0);
+    assert.equal(verification.reconciliation.strategy, 'content-addressed-graph-rebuild');
+    assert.equal(verification.reconciliation.changed, false);
+    assert.deepEqual(verification.reconciliation.reasons, []);
+    assert.equal(typeof verification.reconciliation.record_checksum_digest, 'string');
+    assert.equal(typeof verification.reconciliation.edges_digest, 'string');
 
     const manifestValidation = validateManifestSnapshot(verification.manifest);
     assert.equal(manifestValidation.valid, true, 'Expected derived manifest to validate');
@@ -143,8 +148,17 @@ function main() {
       recordCounts: verification.recordCounts,
       checksums: verification.manifest.checksums,
       edgesCount: verification.edgesCount,
+      reconciliation: verification.manifest.reconciliation,
     });
     assert.equal(validateManifestSnapshot(derivedManifest).valid, true);
+
+    const repeatedVerification = verifyCanonWorkspace({
+      memoryRoot: workspaceCopy,
+      updatedAt: '2026-03-18T01:00:00Z',
+      today: '2026-03-18',
+    });
+    assert.equal(repeatedVerification.reconciliation.changed, false);
+    assert.deepEqual(repeatedVerification.reconciliation.reasons, []);
 
     const lockPath = resolveCanonLockPath(workspaceCopy);
     assert.equal(
@@ -271,6 +285,40 @@ function main() {
     assert.equal(
       fs.readFileSync(path.join(promotionCopy, 'core/meta/graph/edges.jsonl'), 'utf8'),
       fs.readFileSync(path.join(workspaceCopy, 'core/meta/graph/edges.jsonl'), 'utf8')
+    );
+
+    const linkRemovalCopy = path.join(tempRoot, 'link-removal-workspace');
+    copyDirectory(WORKSPACE_ROOT, linkRemovalCopy);
+    verifyCanonWorkspace({
+      memoryRoot: linkRemovalCopy,
+      updatedAt: '2026-03-18T00:00:00Z',
+      today: '2026-03-18',
+    });
+    const workKnowledgePath = path.join(linkRemovalCopy, 'core/user/knowledge/work.md');
+    fs.writeFileSync(
+      workKnowledgePath,
+      fs
+        .readFileSync(workKnowledgePath, 'utf8')
+        .replace('links:\n  - rel: derived_from\n    target: "evt-2026-03-05-001"\n', ''),
+      'utf8'
+    );
+    const reconciledAfterLinkRemoval = verifyCanonWorkspace({
+      memoryRoot: linkRemovalCopy,
+      updatedAt: '2026-03-18T02:00:00Z',
+      today: '2026-03-18',
+    });
+    assert.equal(reconciledAfterLinkRemoval.edgesCount, 5);
+    assert.equal(
+      fs
+        .readFileSync(path.join(linkRemovalCopy, 'core/meta/graph/edges.jsonl'), 'utf8')
+        .includes('"src":"fct-2026-03-05-001","rel":"derived_from","dst":"evt-2026-03-05-001"'),
+      false
+    );
+    assert.equal(
+      reconciledAfterLinkRemoval.reconciliation.reasons.some(
+        (reason) => reason.code === 'record-content-changed'
+      ),
+      true
     );
 
     fs.writeFileSync(

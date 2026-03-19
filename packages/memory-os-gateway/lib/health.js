@@ -53,6 +53,16 @@ function getHealth(options) {
   if (status.readIndex.exists && !status.readIndex.sourceFresh) {
     warnings.push('Persisted read index is stale and should be rebuilt.');
   }
+  if (status.manifest.reconciliation && status.manifest.reconciliationFresh === false) {
+    warnings.push('Manifest reconciliation evidence is stale and verify should be rerun.');
+  }
+  if (
+    status.runtime.shadowExists &&
+    status.runtime.reconciliation &&
+    status.runtime.reconciliation.ok === false
+  ) {
+    warnings.push('Runtime shadow manifest reconciliation evidence drifted from current shadow records.');
+  }
 
   const ok = checks.every((check) => check.ok) && status.overall.status === 'OK';
 

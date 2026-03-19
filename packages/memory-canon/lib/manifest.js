@@ -72,13 +72,19 @@ function countRecordIdsByType(recordIds) {
 }
 
 function buildManifestSnapshot(options) {
-  return {
+  const manifest = {
     schema_version: options.schemaVersion,
     last_updated: options.lastUpdated,
     record_counts: options.recordCounts,
     checksums: options.checksums,
     edges_count: options.edgesCount,
   };
+
+  if (options.reconciliation) {
+    manifest.reconciliation = options.reconciliation;
+  }
+
+  return manifest;
 }
 
 function serializeManifestSnapshot(manifest) {
@@ -104,6 +110,20 @@ function serializeManifestSnapshot(manifest) {
   });
 
   lines.push('  },');
+  if (manifest.reconciliation) {
+    lines.push('  "reconciliation": {');
+    lines.push(`    "strategy": ${JSON.stringify(manifest.reconciliation.strategy)},`);
+    lines.push(`    "record_file_count": ${manifest.reconciliation.record_file_count},`);
+    lines.push(
+      `    "record_checksum_digest": ${JSON.stringify(
+        manifest.reconciliation.record_checksum_digest
+      )},`
+    );
+    lines.push(
+      `    "edges_digest": ${JSON.stringify(manifest.reconciliation.edges_digest)}`
+    );
+    lines.push('  },');
+  }
   lines.push(`  "edges_count": ${manifest.edges_count}`);
   lines.push('}');
   lines.push('');
@@ -175,6 +195,61 @@ function validateManifestSnapshot(manifest) {
         'edges_count'
       )
     );
+  }
+
+  if (typeof manifest.reconciliation !== 'undefined') {
+    if (!isPlainObject(manifest.reconciliation)) {
+      issues.push(
+        buildIssue(
+          VALIDATION_ERROR_CODES.INVALID_SHAPE,
+          'reconciliation must be an object when provided.',
+          'reconciliation'
+        )
+      );
+    } else {
+      if (!isNonEmptyString(manifest.reconciliation.strategy)) {
+        issues.push(
+          buildIssue(
+            VALIDATION_ERROR_CODES.INVALID_VALUE,
+            'reconciliation.strategy must be a non-empty string.',
+            'reconciliation.strategy'
+          )
+        );
+      }
+
+      if (
+        !Number.isInteger(manifest.reconciliation.record_file_count) ||
+        manifest.reconciliation.record_file_count < 0
+      ) {
+        issues.push(
+          buildIssue(
+            VALIDATION_ERROR_CODES.INVALID_VALUE,
+            'reconciliation.record_file_count must be a non-negative integer.',
+            'reconciliation.record_file_count'
+          )
+        );
+      }
+
+      if (!isNonEmptyString(manifest.reconciliation.record_checksum_digest)) {
+        issues.push(
+          buildIssue(
+            VALIDATION_ERROR_CODES.INVALID_VALUE,
+            'reconciliation.record_checksum_digest must be a non-empty string.',
+            'reconciliation.record_checksum_digest'
+          )
+        );
+      }
+
+      if (!isNonEmptyString(manifest.reconciliation.edges_digest)) {
+        issues.push(
+          buildIssue(
+            VALIDATION_ERROR_CODES.INVALID_VALUE,
+            'reconciliation.edges_digest must be a non-empty string.',
+            'reconciliation.edges_digest'
+          )
+        );
+      }
+    }
   }
 
   return {

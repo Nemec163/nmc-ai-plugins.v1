@@ -64,6 +64,67 @@ function checksumContent(content) {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
+function buildContentFingerprint(recordFiles) {
+  return checksumContent(
+    Object.entries(recordFiles)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([relativePath, snapshot]) => `${relativePath}\t${snapshot && snapshot.checksum ? snapshot.checksum : ''}`)
+      .join('\n')
+  );
+}
+
+function normalizeReconciliationEvidence(reconciliation) {
+  if (!reconciliation || typeof reconciliation !== 'object') {
+    return null;
+  }
+
+  return {
+    strategy: reconciliation.strategy || null,
+    recordFileCount: Number.isInteger(reconciliation.recordFileCount)
+      ? reconciliation.recordFileCount
+      : Number.isInteger(reconciliation.record_file_count)
+        ? reconciliation.record_file_count
+        : 0,
+    recordChecksumDigest:
+      typeof reconciliation.recordChecksumDigest === 'string'
+        ? reconciliation.recordChecksumDigest
+        : typeof reconciliation.record_checksum_digest === 'string'
+          ? reconciliation.record_checksum_digest
+          : null,
+    edgesDigest:
+      typeof reconciliation.edgesDigest === 'string'
+        ? reconciliation.edgesDigest
+        : typeof reconciliation.edges_digest === 'string'
+          ? reconciliation.edges_digest
+          : null,
+  };
+}
+
+function normalizeStoredSource(source) {
+  const normalized = source && typeof source === 'object'
+    ? {
+        ...source,
+      }
+    : {};
+
+  normalized.recordFiles =
+    normalized.recordFiles && typeof normalized.recordFiles === 'object'
+      ? normalized.recordFiles
+      : {};
+  normalized.contentFingerprint =
+    typeof normalized.contentFingerprint === 'string' && normalized.contentFingerprint
+      ? normalized.contentFingerprint
+      : buildContentFingerprint(normalized.recordFiles);
+  normalized.reconciliation = normalizeReconciliationEvidence(normalized.reconciliation);
+  normalized.reconciliationFresh =
+    typeof normalized.reconciliationFresh === 'boolean'
+      ? normalized.reconciliationFresh
+      : normalized.reconciliation && normalized.reconciliation.recordChecksumDigest
+        ? normalized.reconciliation.recordChecksumDigest === normalized.contentFingerprint
+        : null;
+  return normalized;
+}
+
 function pickSnippet(record) {
   if (record.metadata.summary) {
     return record.metadata.summary;
@@ -86,11 +147,20 @@ function buildSourceSnapshot(memoryRoot, namespace) {
     };
   }
 
+  const contentFingerprint = buildContentFingerprint(recordFiles);
+  const reconciliation = normalizeReconciliationEvidence(manifest ? manifest.reconciliation : null);
+
   return {
     namespaceKey: namespace.namespaceKey,
     manifestLastUpdated: manifest ? manifest.last_updated : null,
     manifestPath: toPosixRelative(memoryRoot, canon.resolveManifestPath(memoryRoot)),
     recordFiles,
+    contentFingerprint,
+    reconciliation,
+    reconciliationFresh:
+      reconciliation && reconciliation.recordChecksumDigest
+        ? reconciliation.recordChecksumDigest === contentFingerprint
+        : null,
   };
 }
 
@@ -111,7 +181,7 @@ function readReadIndex(options = {}) {
   const storedNamespace = normalizeStoredNamespace(index, memoryRoot);
   index.namespace = storedNamespace;
   index.source = {
-    ...(index.source || {}),
+    ...normalizeStoredSource(index.source),
     namespaceKey: storedNamespace.namespaceKey,
   };
   index.records = Array.isArray(index.records)
@@ -232,6 +302,14 @@ function diffSourceSnapshot(index, currentSource) {
   const indexedPaths = Object.keys(indexedFiles).sort();
   const currentPaths = Object.keys(currentFiles).sort();
 
+  if (currentSource.contentFingerprint !== (index.source && index.source.contentFingerprint)) {
+    reasons.push({
+      code: 'content-fingerprint-mismatch',
+      path: 'source',
+      message: 'Read index content fingerprint drifted from current canon content.',
+    });
+  }
+
   for (const relativePath of indexedPaths) {
     if (!currentFiles[relativePath]) {
       reasons.push({
@@ -304,6 +382,13 @@ function verifyReadIndex(options = {}) {
         tokenCount: 0,
       },
       source: buildSourceSnapshot(memoryRoot, namespace),
+      reconciliation: {
+        strategy: 'content-addressed-read-index-verify',
+        indexedContentFingerprint: null,
+        currentContentFingerprint: null,
+        manifestRecordChecksumDigest: null,
+        manifestAligned: null,
+      },
     };
   }
 
@@ -330,6 +415,19 @@ function verifyReadIndex(options = {}) {
       tokenCount: index.postings ? Object.keys(index.postings).length : 0,
     },
     source: currentSource,
+    reconciliation: {
+      strategy: 'content-addressed-read-index-verify',
+      indexedContentFingerprint:
+        index.source && typeof index.source.contentFingerprint === 'string'
+          ? index.source.contentFingerprint
+          : null,
+      currentContentFingerprint: currentSource.contentFingerprint,
+      manifestRecordChecksumDigest:
+        currentSource.reconciliation && currentSource.reconciliation.recordChecksumDigest
+          ? currentSource.reconciliation.recordChecksumDigest
+          : null,
+      manifestAligned: currentSource.reconciliationFresh,
+    },
   };
 }
 

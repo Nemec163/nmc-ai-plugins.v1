@@ -54,6 +54,13 @@ function getControlPlaneHealth(options = {}) {
         : 'no runtime shadow',
     },
     {
+      name: 'runtime-reconciliation',
+      ok:
+        !snapshot.runtime.inspector.shadowExists ||
+        snapshot.runtime.inspector.reconciliation.ok === true,
+      detail: snapshot.runtime.inspector.reconciliation.status,
+    },
+    {
       name: 'operator-audits-surface',
       ok: Array.isArray(snapshot.audits.trail),
       detail: `${snapshot.audits.summary.totalEntries} audit entries`,
@@ -93,6 +100,10 @@ function getControlPlaneHealth(options = {}) {
     ...snapshot.interventions.errors.map(
       (error) => `Invalid intervention ${error.relativePath}`
     ),
+    ...(snapshot.runtime.inspector.reconciliation &&
+    snapshot.runtime.inspector.reconciliation.ok === false
+      ? ['runtime-shadow-reconciliation-drift']
+      : []),
     ...snapshot.maintainer.board.settings.issues.map((issue) => issue.message),
     ...snapshot.maintainer.board.invalidTasks.items.map(
       (task) => `Invalid task ${task.taskId || task.filePath}`

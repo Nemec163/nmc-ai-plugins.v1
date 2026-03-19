@@ -28,5 +28,11 @@
     "core/user/state/current.md": "cb6cc0e64d2daf07b8f605d0f32f54407f47f509398f4d6782ee74b9ca2e2d0e",
     "core/user/timeline/2026/03/05.md": "8f1edbabfe7df592d410ebfaa82fccc2408a7049b48f5885bc9b6a1acd0a80bc"
   },
-  "edges_count": 6
+  "edges_count": 6,
+  "reconciliation": {
+    "strategy": "content-addressed-graph-rebuild",
+    "record_file_count": 15,
+    "record_checksum_digest": "056fc5a13bd7948f4327af78ed0b2d94f004b5d892f8c2df86d286f509ee1ba3",
+    "edges_digest": "2c8e445d6fbdf3865fd70d355fe85ab1e1895d7e5a518b5a5a7bbfe7929704c5"
+  }
 }

@@ -267,6 +267,8 @@ function main() {
     assert.equal(verification.edgesCount, 6);
     assert.equal(verification.manifest.record_counts.facts, 2);
     assert.equal(verification.manifest.record_counts.procedures, 1);
+    assert.equal(verification.reconciliation.strategy, 'content-addressed-graph-rebuild');
+    assert.equal(verification.manifest.reconciliation.strategy, 'content-addressed-graph-rebuild');
   } finally {
     fs.rmSync(verifyRoot, { recursive: true, force: true });
   }
@@ -590,6 +592,10 @@ function main() {
     });
     assert.equal(indexedStatus.readIndex.status, 'ok');
     assert.equal(indexedStatus.readIndex.recordCount, 7);
+    assert.equal(indexedStatus.manifest.reconciliation.strategy, 'content-addressed-graph-rebuild');
+    assert.equal(indexedStatus.manifest.reconciliationFresh, true);
+    assert.equal(typeof indexedStatus.readIndex.sourceContentFingerprint, 'string');
+    assert.equal(indexedStatus.readIndex.sourceReconciliationFresh, true);
 
     fs.appendFileSync(
       path.join(readIndexWorkspaceRoot, 'core/user/knowledge/work.md'),
@@ -601,7 +607,26 @@ function main() {
       memoryRoot: readIndexWorkspaceRoot,
     });
     assert.equal(staleVerification.status, 'stale');
+    assert.equal(
+      staleVerification.reasons.some((reason) => reason.code === 'content-fingerprint-mismatch'),
+      true
+    );
     assert.equal(staleVerification.reasons.some((reason) => reason.code === 'checksum-mismatch'), true);
+    assert.equal(staleVerification.source.reconciliationFresh, false);
+
+    const staleStatus = getStatus({
+      memoryRoot: readIndexWorkspaceRoot,
+    });
+    assert.equal(staleStatus.manifest.reconciliationFresh, false);
+    assert.equal(staleStatus.readIndex.sourceReconciliationFresh, false);
+
+    const staleHealth = getHealth({
+      memoryRoot: readIndexWorkspaceRoot,
+    });
+    assert.equal(
+      staleHealth.warnings.includes('Manifest reconciliation evidence is stale and verify should be rerun.'),
+      true
+    );
 
     const rebuiltQuery = query({
       memoryRoot: readIndexWorkspaceRoot,

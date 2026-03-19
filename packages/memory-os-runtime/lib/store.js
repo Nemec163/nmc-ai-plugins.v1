@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -107,6 +108,131 @@ function normalizeManifestNamespace(memoryRoot, manifest) {
   return {
     ...manifest,
     namespace,
+    reconciliation: normalizeRuntimeReconciliation(manifest.reconciliation),
+  };
+}
+
+function sha256Text(content) {
+  return crypto.createHash('sha256').update(content).digest('hex');
+}
+
+function sha256File(filePath) {
+  return sha256Text(fs.readFileSync(filePath));
+}
+
+function normalizeRuntimeReconciliation(reconciliation) {
+  if (!reconciliation || typeof reconciliation !== 'object' || Array.isArray(reconciliation)) {
+    return null;
+  }
+
+  return {
+    strategy: reconciliation.strategy || null,
+    runFileCount: Number.isInteger(reconciliation.runFileCount)
+      ? reconciliation.runFileCount
+      : Number.isInteger(reconciliation.run_file_count)
+        ? reconciliation.run_file_count
+        : 0,
+    runContentDigest:
+      typeof reconciliation.runContentDigest === 'string'
+        ? reconciliation.runContentDigest
+        : typeof reconciliation.run_content_digest === 'string'
+          ? reconciliation.run_content_digest
+          : null,
+  };
+}
+
+function buildRuntimeReconciliation(memoryRoot, records) {
+  const entries = (Array.isArray(records) ? records : [])
+    .map((record) => {
+      const relativePath = record.filePath
+        ? path.relative(memoryRoot, record.filePath).split(path.sep).join('/')
+        : `runtime/shadow/runs/${record.runId || 'unknown'}.json`;
+      const checksum =
+        record.filePath && fs.existsSync(record.filePath)
+          ? sha256File(record.filePath)
+          : sha256Text(JSON.stringify(record));
+
+      return [relativePath, checksum];
+    })
+    .sort(([left], [right]) => left.localeCompare(right));
+
+  return {
+    strategy: 'content-addressed-runtime-manifest',
+    run_file_count: entries.length,
+    run_content_digest: sha256Text(
+      entries.map(([relativePath, checksum]) => `${relativePath}\t${checksum}`).join('\n')
+    ),
+  };
+}
+
+function compareRuntimeReconciliation(options = {}) {
+  const exists = options.exists === true;
+  const hasManifest = options.hasManifest === true;
+  const current = options.current || buildRuntimeReconciliation('', []);
+  const manifest = normalizeRuntimeReconciliation(options.manifest);
+
+  if (!exists && !hasManifest) {
+    return {
+      status: 'not-captured',
+      ok: true,
+      reasons: [],
+      manifest,
+      current,
+    };
+  }
+
+  if (exists && !hasManifest) {
+    return {
+      status: 'missing-manifest',
+      ok: false,
+      reasons: [
+        {
+          code: 'runtime-manifest-missing',
+          message: 'Runtime shadow exists but the runtime manifest is missing.',
+        },
+      ],
+      manifest: null,
+      current,
+    };
+  }
+
+  if (!manifest) {
+    return {
+      status: 'missing-reconciliation',
+      ok: false,
+      reasons: [
+        {
+          code: 'runtime-reconciliation-missing',
+          message: 'Runtime manifest is missing content-derived reconciliation evidence.',
+        },
+      ],
+      manifest: null,
+      current,
+    };
+  }
+
+  const reasons = [];
+
+  if (manifest.runFileCount !== current.run_file_count) {
+    reasons.push({
+      code: 'runtime-run-file-count-mismatch',
+      message: `Runtime manifest expected ${manifest.runFileCount} run files, found ${current.run_file_count}.`,
+    });
+  }
+
+  if (manifest.runContentDigest !== current.run_content_digest) {
+    reasons.push({
+      code: 'runtime-content-digest-mismatch',
+      message: 'Runtime manifest content digest drifted from current runtime shadow records.',
+    });
+  }
+
+  return {
+    status: reasons.length === 0 ? 'ok' : 'stale',
+    ok: reasons.length === 0,
+    reasons,
+    manifest,
+    current,
   };
 }
 
@@ -399,6 +525,7 @@ function buildManifest(memoryRoot, records, updatedAt, namespaceOptions = {}) {
   const namespace = records[0] && records[0].namespace
     ? buildRuntimeNamespaceFromRecord(memoryRoot, records[0])
     : buildRuntimeNamespaceContext(memoryRoot, namespaceOptions);
+  const reconciliation = buildRuntimeReconciliation(memoryRoot, records);
 
   return {
     kind: 'runtime-shadow-manifest',
@@ -411,6 +538,7 @@ function buildManifest(memoryRoot, records, updatedAt, namespaceOptions = {}) {
     runCount: summary.runCount,
     totalArtifacts: summary.totalArtifacts,
     lastCapturedAt: summary.lastCapturedAt,
+    reconciliation,
     buckets: Object.fromEntries(
       RUNTIME_BUCKETS.map((bucketName) => [bucketName, { count: summary.buckets[bucketName].count }])
     ),
@@ -503,6 +631,7 @@ function getRuntimeDelta(options) {
   const runtimeRoot = resolveRuntimeRoot(memoryRoot);
   const manifestPath = resolveRuntimeManifestPath(memoryRoot, namespace.scope);
   const exists = fs.existsSync(shadowRoot);
+  const hasManifest = fs.existsSync(manifestPath);
 
   const records = listRuntimeRecords({
     memoryRoot,
@@ -512,9 +641,15 @@ function getRuntimeDelta(options) {
     filePath: resolveRuntimeRunPath(memoryRoot, record.runId, namespace.scope),
   }));
   const summary = summarizeRecords(memoryRoot, records, limit);
-  const manifest = fs.existsSync(manifestPath)
+  const manifest = hasManifest
     ? normalizeManifestNamespace(memoryRoot, loadJson(manifestPath))
     : buildManifest(memoryRoot, records, summary.lastCapturedAt || null, namespace.scope);
+  const reconciliation = compareRuntimeReconciliation({
+    exists,
+    hasManifest,
+    manifest: manifest ? manifest.reconciliation : null,
+    current: buildRuntimeReconciliation(memoryRoot, records),
+  });
 
   return {
     kind: 'runtime-delta',
@@ -528,6 +663,7 @@ function getRuntimeDelta(options) {
     manifestPath,
     exists,
     manifest,
+    reconciliation,
     runCount: summary.runCount,
     totalArtifacts: summary.totalArtifacts,
     lastCapturedAt: summary.lastCapturedAt,
@@ -550,7 +686,8 @@ function getRuntimeRecallBundle(options) {
     filePath: resolveRuntimeRunPath(memoryRoot, record.runId, namespace.scope),
   }));
   const manifestPath = resolveRuntimeManifestPath(memoryRoot, namespace.scope);
-  const manifest = fs.existsSync(manifestPath)
+  const hasManifest = fs.existsSync(manifestPath);
+  const manifest = hasManifest
     ? normalizeManifestNamespace(memoryRoot, loadJson(manifestPath))
     : buildManifest(
         memoryRoot,
@@ -558,6 +695,12 @@ function getRuntimeRecallBundle(options) {
         records[0] ? records[0].capturedAt : null,
         namespace.scope
       );
+  const reconciliation = compareRuntimeReconciliation({
+    exists: records.length > 0,
+    hasManifest,
+    manifest: manifest ? manifest.reconciliation : null,
+    current: buildRuntimeReconciliation(memoryRoot, records),
+  });
   const allHits = [];
 
   for (const record of records) {
@@ -626,6 +769,7 @@ function getRuntimeRecallBundle(options) {
     text,
     tokens,
     manifest,
+    reconciliation,
     shadowExists: records.length > 0,
     runCount: records.length,
     totalArtifacts: manifest.totalArtifacts || 0,
@@ -637,6 +781,7 @@ function getRuntimeRecallBundle(options) {
     freshnessBoundary: {
       runtimeLastCapturedAt: manifest.lastCapturedAt || null,
       runtimeAuthoritative: false,
+      runtimeReconciliationStatus: reconciliation.status,
     },
   };
 }
