@@ -7,7 +7,7 @@ const { printSummary, setupOpenClaw } = require("./openclaw-setup");
 
 function usage() {
   return [
-    "Usage: node scripts/setup-openclaw.js [options]",
+    "Usage: node ./packages/adapter-openclaw/lib/setup-cli.js [options]",
     "",
     "Options:",
     "  --state-dir <path>",

@@ -190,7 +190,7 @@ function getControlPlaneReleaseQualification(snapshot) {
       package: 'nmc-memory-plugin',
       status: 'retired',
       productionStatus: 'retired',
-      directAdapterInstall: 'supported',
+      directAdapterInstall: 'not-supported',
       removedFromRepository: true,
     },
     packageMatrix: {

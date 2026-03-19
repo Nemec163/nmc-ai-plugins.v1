@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
+const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
@@ -49,11 +50,75 @@ function buildBundleSummary(intake) {
   return intake.files.map((filePath) => `- ${filePath}`).join('\n');
 }
 
+function ensureDir(dirPath) {
+  fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function formatTimestamp(value) {
+  return value || new Date().toISOString();
+}
+
+function buildPendingBatchScaffold(date, generatedBy, updatedAt) {
+  return [
+    '---',
+    `batch_date: ${JSON.stringify(date)}`,
+    'schema_version: "1.0"',
+    `generated_by: ${JSON.stringify(generatedBy)}`,
+    `updated_at: ${JSON.stringify(updatedAt)}`,
+    '---',
+    `# Extracted Claims - ${date}`,
+    '',
+    '<!-- Phase A scaffold: append one ## claim-YYYYMMDD-NNN block per extracted claim. -->',
+    '',
+  ].join('\n');
+}
+
+function ensurePendingBatchScaffold(filePath, options = {}) {
+  if (fs.existsSync(filePath)) {
+    return false;
+  }
+
+  ensureDir(path.dirname(filePath));
+  fs.writeFileSync(
+    filePath,
+    buildPendingBatchScaffold(options.date, options.generatedBy, options.updatedAt),
+    'utf8'
+  );
+  return true;
+}
+
+function createPhaseArtifactsDir(workspaceDir) {
+  const phaseRoot = path.join(workspaceDir, '.memoryos', 'phase-runs');
+  ensureDir(phaseRoot);
+  return phaseRoot;
+}
+
+function countClaimSections(content) {
+  const matches = String(content || '').match(/^## claim-\d{8}-\d{3,}\s*$/gm);
+  return matches ? matches.length : 0;
+}
+
+function countReviewedClaims(content) {
+  const matches = String(content || '').match(/^- curator_decision:\s*"?(accept|reject|defer)"?\s*$/gm);
+  return matches ? matches.length : 0;
+}
+
+function writePhaseInputContract(filePath, payload) {
+  ensureDir(path.dirname(filePath));
+  fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+}
+
+function writePhaseReceipt(filePath, payload) {
+  ensureDir(path.dirname(filePath));
+  fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+}
+
 function buildExtractPrompt(options = {}) {
   return `You are the MemoryOS extractor running through adapter-claude.
 
 Operate from the attached role workspace at ${options.workspaceDir}.
-Start by reading BOOT.md, then read ${options.runbookPath} and follow Phase A only.
+Start by reading ${options.phaseInputPath} for the machine-readable phase contract.
+Then read BOOT.md, then read ${options.runbookPath} and follow Phase A only.
 
 Task:
 - batch date: ${options.date}
@@ -65,6 +130,9 @@ Role bundle files available in this workspace:
 ${buildBundleSummary(options.intake)}
 
 Required behavior:
+- first action: open ${options.pendingBatchPath} and keep that file as the single working output
+- the batch scaffold already exists; preserve the frontmatter/header and append claim blocks in place
+- use the exact claim block shape documented in the runbook and phase contract
 - work source-first and use only observations provided for the requested date
 - do not assume OpenClaw session paths or OpenClaw skill wiring
 - do not compare against canon during extract
@@ -73,6 +141,18 @@ Required behavior:
 - do not update manifest, graph, or other core/meta files
 - only create or update ${options.pendingBatchPath}
 - if the batch already exists, resume in place and continue deterministic claim numbering
+- before finishing, verify the file still parses as a pending batch and that each claim has the required fields
+
+Claim block reminder:
+## claim-YYYYMMDD-NNN
+- source_session: "..."
+- source_agent: "..."
+- observed_at: "..."
+- confidence: "low|medium|high"
+- tags: ["..."]
+- target_layer: "L1|L2|L3|L4|L5|agent"
+- target_domain: "..."
+- claim: "..."
 
 When finished, print a short summary including the batch path and claim count.`;
 }
@@ -81,7 +161,8 @@ function buildCuratePrompt(options = {}) {
   return `You are the MemoryOS curator running through adapter-claude.
 
 Operate from the attached role workspace at ${options.workspaceDir}.
-Start by reading BOOT.md, then read ${options.runbookPath} and follow Phase B only.
+Start by reading ${options.phaseInputPath} for the machine-readable phase contract.
+Then read BOOT.md, then read ${options.runbookPath} and follow Phase B only.
 
 Task:
 - batch date: ${options.date}
@@ -149,12 +230,50 @@ function runClaudePhase(flags) {
   const runbookPath = `${memoryPath}/core/system/curator-runbook.md`;
   const pendingBatchPath = `${memoryPath}/intake/pending/${date}.md`;
   const processedBatchPath = `${memoryPath}/intake/processed/${date}.md`;
+  const pendingBatchFilePath = path.join(memoryRoot, 'intake/pending', `${date}.md`);
+  const processedBatchFilePath = path.join(memoryRoot, 'intake/processed', `${date}.md`);
+  const phaseArtifactsDir = createPhaseArtifactsDir(workspaceDir);
+  const startedAt = formatTimestamp();
+  const phaseInputPath = path.join(phaseArtifactsDir, `${phase}-${date}.input.json`);
+  const phaseReceiptPath = path.join(phaseArtifactsDir, `${phase}-${date}.receipt.json`);
+  const scaffoldCreated =
+    phase === 'extract'
+      ? ensurePendingBatchScaffold(pendingBatchFilePath, {
+          date,
+          generatedBy: 'adapter-claude/extract-scaffold',
+          updatedAt: startedAt,
+        })
+      : false;
+  writePhaseInputContract(phaseInputPath, {
+    kind: 'adapter-phase-input',
+    adapter: 'adapter-claude',
+    phase,
+    date,
+    created_at: startedAt,
+    workspace_dir: workspaceDir,
+    memory_root: memoryRoot,
+    memory_path: memoryPath,
+    runbook_path: runbookPath,
+    source_hint: sourceGlob,
+    target_batch: {
+      pending_batch_path: pendingBatchPath,
+      processed_batch_path: processedBatchPath,
+      pending_batch_file: pendingBatchFilePath,
+      processed_batch_file: processedBatchFilePath,
+      scaffold_created: scaffoldCreated,
+    },
+    role_bundle: {
+      role_id: intake.role.id,
+      files: intake.files,
+    },
+  });
   const prompt = buildPhasePrompt({
     date,
     intake,
     memoryPath,
     pendingBatchPath,
     phase,
+    phaseInputPath,
     processedBatchPath,
     runbookPath,
     sourceGlob,
@@ -182,6 +301,33 @@ function runClaudePhase(flags) {
   if (result.error) {
     throw result.error;
   }
+
+  const finishedAt = formatTimestamp();
+  const pendingBatchExists = fs.existsSync(pendingBatchFilePath);
+  const pendingBatchContent = pendingBatchExists
+    ? fs.readFileSync(pendingBatchFilePath, 'utf8')
+    : '';
+  writePhaseReceipt(phaseReceiptPath, {
+    kind: 'adapter-phase-receipt',
+    adapter: 'adapter-claude',
+    phase,
+    date,
+    started_at: startedAt,
+    finished_at: finishedAt,
+    status: result.status == null ? 'failed' : result.status === 0 ? 'completed' : 'failed',
+    exit_code: result.status == null ? null : result.status,
+    signal: result.signal || null,
+    workspace_dir: workspaceDir,
+    memory_root: memoryRoot,
+    input_contract_path: phaseInputPath,
+    pending_batch: {
+      path: pendingBatchPath,
+      file_path: pendingBatchFilePath,
+      exists: pendingBatchExists,
+      claim_count: countClaimSections(pendingBatchContent),
+      reviewed_claim_count: countReviewedClaims(pendingBatchContent),
+    },
+  });
 
   return result.status == null ? 1 : result.status;
 }

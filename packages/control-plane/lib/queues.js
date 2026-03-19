@@ -70,6 +70,7 @@ function summarizeProposal(memoryRoot, filePath) {
     status: proposal.status || null,
     createdAt: proposal.created_at || null,
     updatedAt: proposal.updated_at || null,
+    appliedAt: proposal.applied_at || null,
     source: proposal.source || null,
     generatedBy: proposal.generated_by || null,
     claimsCount: claims.length,
@@ -77,6 +78,8 @@ function summarizeProposal(memoryRoot, filePath) {
     feedbackCount: Array.isArray(proposal.feedback) ? proposal.feedback.length : 0,
     pendingBatchPath: proposal.pending_batch_path || null,
     pendingBatchExists: fileExists(memoryRoot, proposal.pending_batch_path),
+    processedBatchPath: proposal.processed_batch_path || null,
+    processedBatchExists: fileExists(memoryRoot, proposal.processed_batch_path),
     jobPath: proposal.job_path || null,
     jobExists: fileExists(memoryRoot, proposal.job_path),
     relativePath,
@@ -95,9 +98,12 @@ function summarizeJob(memoryRoot, filePath) {
     status: job.status || null,
     createdAt: job.created_at || null,
     updatedAt: job.updated_at || null,
+    appliedAt: job.applied_at || null,
     authoritative: Boolean(job.authoritative),
     pendingBatchPath: job.pending_batch_path || null,
     pendingBatchExists: fileExists(memoryRoot, job.pending_batch_path),
+    processedBatchPath: job.processed_batch_path || null,
+    processedBatchExists: fileExists(memoryRoot, job.processed_batch_path),
     operation: writePath.implementation || null,
     singleWriter: writePath.single_writer || null,
     lockPath: writePath.lock_path || null,
@@ -151,7 +157,11 @@ function buildConflicts(proposals, proposalErrors, jobs, jobErrors, lockState) {
   }
 
   for (const proposal of proposals) {
-    if (proposal.pendingBatchPath && !proposal.pendingBatchExists) {
+    if (
+      proposal.pendingBatchPath &&
+      !proposal.pendingBatchExists &&
+      !proposal.processedBatchExists
+    ) {
       conflicts.push({
         code: 'missing-pending-batch',
         severity: 'warning',
@@ -218,7 +228,7 @@ function buildConflicts(proposals, proposalErrors, jobs, jobErrors, lockState) {
       });
     }
 
-    if (job.pendingBatchPath && !job.pendingBatchExists) {
+    if (job.pendingBatchPath && !job.pendingBatchExists && !job.processedBatchExists) {
       conflicts.push({
         code: 'missing-job-pending-batch',
         severity: 'warning',

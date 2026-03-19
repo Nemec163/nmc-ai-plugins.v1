@@ -376,6 +376,112 @@ function main() {
       'runtime/shadow/runs/trader-2026-03-19-xyz.json#procedureFeedback/pf-002',
     ]);
 
+    const manualGroupingCopy = path.join(tempRoot, 'manual-grouping-workspace');
+    copyDirectory(WORKSPACE_ROOT, manualGroupingCopy);
+    fs.writeFileSync(
+      path.join(manualGroupingCopy, 'intake/pending/2026-03-20.md'),
+      [
+        '---',
+        'batch_date: "2026-03-20"',
+        'schema_version: "1.0"',
+        'generated_by: "manual-e2e-fixture"',
+        'updated_at: "2026-03-20T09:10:00Z"',
+        '---',
+        '# Extracted Claims - 2026-03-20',
+        '',
+        '## claim-20260320-001',
+        '- source_session: "manual-2026-03-20-client"',
+        '- source_agent: "mnemo"',
+        '- observed_at: "2026-03-20T08:58:00Z"',
+        '- confidence: "high"',
+        '- tags: ["memoryos","testing","focus"]',
+        '- target_layer: "L5"',
+        '- target_domain: "state"',
+        '- claim: "The user is currently focused on completing a full manual end-to-end MemoryOS test through the codex adapter."',
+        '- curator_decision: "accept"',
+        '- curator_notes: "Current work focus for today."',
+        '',
+        '## claim-20260320-002',
+        '- source_session: "manual-2026-03-20-client"',
+        '- source_agent: "mnemo"',
+        '- observed_at: "2026-03-20T09:01:00Z"',
+        '- confidence: "high"',
+        '- tags: ["communication","preferences","calls"]',
+        '- target_layer: "L3"',
+        '- target_domain: "preferences"',
+        '- claim: "The user does not want calls after 18:00."',
+        '- curator_decision: "accept"',
+        '- curator_notes: "Durable communication preference."',
+        '',
+        '## claim-20260320-003',
+        '- source_session: "manual-2026-03-20-client"',
+        '- source_agent: "mnemo"',
+        '- observed_at: "2026-03-20T09:01:00Z"',
+        '- confidence: "high"',
+        '- tags: ["communication","preferences","async"]',
+        '- target_layer: "L3"',
+        '- target_domain: "preferences"',
+        '- claim: "Async written updates work better for the user than late calls."',
+        '- curator_decision: "accept"',
+        '- curator_notes: "Durable communication preference detail."',
+        '',
+        '## claim-20260320-004',
+        '- source_session: "manual-2026-03-20-client"',
+        '- source_agent: "mnemo"',
+        '- observed_at: "2026-03-20T09:04:00Z"',
+        '- confidence: "high"',
+        '- tags: ["trading","playbook","procedure"]',
+        '- target_layer: "agent"',
+        '- target_domain: "trader"',
+        '- target_type: "procedure"',
+        '- procedure_key: "volatile-open-confirmation-checklist"',
+        '- acceptance: ["Wait for confirmation after the initial fakeout before calling a momentum entry.","Prefer slower confirmation-based entries during volatile opens.","Require a five-minute volume check before suggesting any momentum entry on a volatile open."]',
+        '- feedback_refs: ["runtime/shadow/runs/trader-2026-03-05-abc.json#procedureFeedback/pf-001"]',
+        '- claim: "Tighten the volatile-open checklist so momentum guidance also requires a five-minute volume check after confirmation."',
+        '- curator_decision: "accept"',
+        '- curator_notes: "Procedure refinement for trader playbook."',
+        '',
+        '## claim-20260320-005',
+        '- source_session: "manual-2026-03-20-client"',
+        '- source_agent: "mnemo"',
+        '- observed_at: "2026-03-20T09:06:00Z"',
+        '- confidence: "medium"',
+        '- tags: ["planning","timeline","customer-interviews"]',
+        '- target_layer: "L2"',
+        '- target_domain: "timeline"',
+        '- claim: "On 2026-03-20 the user decided to send customer interview summaries on Monday morning instead of improvising them during the week."',
+        '- curator_decision: "accept"',
+        '- curator_notes: "Concrete dated planning event."',
+        '',
+      ].join('\n'),
+      'utf8'
+    );
+
+    const manualPromotion = promoter.promote({
+      type: 'canon-write',
+      memory_root: manualGroupingCopy,
+      writer: CANON_SINGLE_WRITER,
+      holder: 'fixture-manual-grouping',
+      operation: 'core-promoter',
+      batch_date: '2026-03-20',
+    });
+    const manualTimeline = parseProjectionRecords(
+      fs.readFileSync(path.join(manualGroupingCopy, 'core/user/timeline/2026/03/20.md'), 'utf8')
+    ).map((record) => record.metadata);
+    const manualEvent = manualTimeline.find((record) =>
+      Array.isArray(record.evidence) &&
+      record.evidence.includes('intake/pending/2026-03-20.md#claim-20260320-005')
+    );
+
+    assert.deepEqual(manualEvent.evidence, ['intake/pending/2026-03-20.md#claim-20260320-005']);
+    assert.equal(String(manualEvent.body).includes('calls after 18:00'), false);
+    assert.equal(
+      String(manualEvent.body).includes('full manual end-to-end MemoryOS test'),
+      false
+    );
+    assert.equal(manualPromotion.receiptUpdates.proposalsUpdated, 0);
+    assert.equal(manualPromotion.receiptUpdates.jobsUpdated, 0);
+
     console.log(
       'Validated 7 canonical record fixtures and rebuilt 6 graph edges through @nmc/memory-canon.'
     );

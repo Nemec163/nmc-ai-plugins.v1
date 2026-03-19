@@ -179,6 +179,45 @@ function main() {
     fs.mkdirSync(sharedSkillsRoot, { recursive: true });
 
     const pipelineAdapter = createClaudePipelineAdapter();
+    const extractInvocation = pipelineAdapter.runExtract({
+      date: '2026-03-18',
+      llmRunner: fakeClaude.runnerPath,
+      memoryRoot,
+      roleId: 'mnemo',
+      sharedSkillsRoot,
+      systemRoot,
+      workspaceDir,
+    });
+
+    const extractResult = spawnSync(extractInvocation.command, extractInvocation.args, {
+      cwd: pipelineRoot,
+      encoding: 'utf8',
+    });
+    assert.equal(extractResult.status, 0, extractResult.stderr);
+    assert.equal(fs.existsSync(path.join(memoryRoot, 'intake/pending/2026-03-18.md')), true);
+    assert.match(
+      fs.readFileSync(path.join(memoryRoot, 'intake/pending/2026-03-18.md'), 'utf8'),
+      /Phase A scaffold/
+    );
+    const extractContractPath = path.join(
+      workspaceDir,
+      '.memoryos/phase-runs/extract-2026-03-18.input.json'
+    );
+    const extractReceiptPath = path.join(
+      workspaceDir,
+      '.memoryos/phase-runs/extract-2026-03-18.receipt.json'
+    );
+    assert.equal(fs.existsSync(extractContractPath), true);
+    assert.equal(fs.existsSync(extractReceiptPath), true);
+    const extractContract = JSON.parse(fs.readFileSync(extractContractPath, 'utf8'));
+    const extractReceipt = JSON.parse(fs.readFileSync(extractReceiptPath, 'utf8'));
+    assert.equal(extractContract.adapter, 'adapter-claude');
+    assert.equal(extractContract.phase, 'extract');
+    assert.equal(extractContract.target_batch.scaffold_created, true);
+    assert.equal(extractReceipt.status, 'completed');
+    assert.equal(extractReceipt.pending_batch.exists, true);
+    assert.equal(extractReceipt.pending_batch.claim_count, 0);
+
     const curateInvocation = pipelineAdapter.runCurate({
       date: '2026-03-18',
       llmRunner: fakeClaude.runnerPath,
@@ -200,9 +239,18 @@ function main() {
     assert.equal(fakeOutput.args[0], '--phase');
     assert.equal(fakeOutput.args[1], 'curate');
     assert.match(fakeOutput.prompt, /MemoryOS curator running through adapter-claude/);
+    assert.match(fakeOutput.prompt, /\.memoryos\/phase-runs\/curate-2026-03-18\.input\.json/);
     assert.match(fakeOutput.prompt, /intake\/pending\/2026-03-18\.md/);
     assert.match(fakeOutput.prompt, /exactly one "### curator-annotation" block/);
     assert.doesNotMatch(fakeOutput.prompt, /OpenClaw session paths/);
+    assert.equal(
+      fs.existsSync(path.join(workspaceDir, '.memoryos/phase-runs/curate-2026-03-18.input.json')),
+      true
+    );
+    assert.equal(
+      fs.existsSync(path.join(workspaceDir, '.memoryos/phase-runs/curate-2026-03-18.receipt.json')),
+      true
+    );
   } finally {
     fs.rmSync(pipelineRoot, { recursive: true, force: true });
   }

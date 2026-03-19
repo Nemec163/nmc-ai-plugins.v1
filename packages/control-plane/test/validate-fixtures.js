@@ -16,7 +16,11 @@ const {
   getControlPlaneSnapshot,
   recordControlPlaneIntervention,
 } = require('..');
-const { acquireCanonWriteLock } = require('../../memory-canon');
+const {
+  acquireCanonWriteLock,
+  createPromoterInterface,
+  releaseCanonWriteLock,
+} = require('../../memory-canon');
 const { captureRuntime, completeJob, feedback, propose } = require('../../memory-os-gateway');
 
 const MEMORY_FIXTURE = path.resolve(
@@ -734,6 +738,54 @@ This fixture forces the health monitor into degraded mode.`
     assert.doesNotMatch(cliUsage.stderr, /propose|feedback|complete-job/);
   } finally {
     fs.rmSync(fixture.root, { recursive: true, force: true });
+  }
+
+  const appliedFixture = buildWorkspaceFixture();
+  try {
+    releaseCanonWriteLock({
+      memoryRoot: appliedFixture.memoryRoot,
+      expectedHolder: 'control-plane-lock-holder',
+    });
+    const promoter = createPromoterInterface();
+    promoter.promote({
+      type: 'canon-write',
+      memory_root: appliedFixture.memoryRoot,
+      writer: promoter.single_writer,
+      holder: 'control-plane-applied-test',
+      operation: 'core-promoter',
+      batch_date: '2026-03-18',
+    });
+
+    const queuesAfterApply = getControlPlaneQueues({
+      memoryRoot: appliedFixture.memoryRoot,
+      updatedAt: '2026-03-18T15:00:00Z',
+      today: '2026-03-18',
+    });
+    const appliedProposal = queuesAfterApply.proposals.items.find(
+      (proposal) => proposal.proposalId === 'proposal-2026-03-18-control-plane'
+    );
+    const appliedJob = queuesAfterApply.jobs.items.find(
+      (job) => job.jobId === 'proposal-2026-03-18-control-plane-apply'
+    );
+
+    assert.equal(appliedProposal.status, 'applied');
+    assert.equal(appliedProposal.pendingBatchPath, null);
+    assert.equal(appliedProposal.processedBatchPath, 'intake/processed/2026-03-18.md');
+    assert.equal(appliedJob.status, 'applied');
+    assert.equal(appliedJob.pendingBatchPath, null);
+    assert.equal(appliedJob.processedBatchPath, 'intake/processed/2026-03-18.md');
+    assert.equal(
+      queuesAfterApply.conflicts.items.some((conflict) => conflict.code === 'missing-pending-batch'),
+      false
+    );
+    assert.equal(
+      queuesAfterApply.conflicts.items.some(
+        (conflict) => conflict.code === 'missing-job-pending-batch'
+      ),
+      false
+    );
+  } finally {
+    fs.rmSync(appliedFixture.root, { recursive: true, force: true });
   }
 
   console.log(

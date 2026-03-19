@@ -802,6 +802,83 @@ function main() {
     fs.rmSync(orchestrationRoot, { recursive: true, force: true });
   }
 
+  const appliedHandoffRoot = makeTempRoot();
+  try {
+    const appliedWorkspaceRoot = path.join(appliedHandoffRoot, 'workspace');
+    fs.cpSync(WORKSPACE_FIXTURE, appliedWorkspaceRoot, { recursive: true });
+
+    const submission = propose({
+      memoryRoot: appliedWorkspaceRoot,
+      batchDate: '2026-03-18',
+      proposalId: 'proposal-2026-03-18-applied',
+      source: 'gateway-applied-fixture',
+      claims: [
+        {
+          claim_id: 'claim-20260318-apply-001',
+          source_session: 'gateway-2026-03-18-apply',
+          source_agent: 'mnemo',
+          observed_at: '2026-03-18T15:00:00Z',
+          confidence: 'high',
+          tags: ['gateway', 'handoff'],
+          target_layer: 'L3',
+          target_domain: 'work',
+          claim: 'Applied handoff receipts should converge after promotion.',
+        },
+      ],
+    });
+    feedback({
+      memoryRoot: appliedWorkspaceRoot,
+      proposalId: submission.proposalId,
+      feedback: [
+        {
+          claim_id: 'claim-20260318-apply-001',
+          curator_decision: 'accept',
+          curator_notes: 'Approve applied-state reconciliation fixture.',
+          actor: 'fixture-reviewer',
+        },
+      ],
+    });
+    completeJob({
+      memoryRoot: appliedWorkspaceRoot,
+      proposalId: submission.proposalId,
+      holder: 'gateway-applied-test',
+    });
+
+    const promoter = createPromoterInterface();
+    const promotion = promoter.promote({
+      type: 'canon-write',
+      memory_root: appliedWorkspaceRoot,
+      writer: promoter.single_writer,
+      holder: 'gateway-applied-test',
+      operation: 'core-promoter',
+      batch_date: '2026-03-18',
+    });
+    const proposalReceipt = JSON.parse(
+      fs.readFileSync(
+        path.join(appliedWorkspaceRoot, 'intake/proposals/proposal-2026-03-18-applied.json'),
+        'utf8'
+      )
+    );
+    const jobReceipt = JSON.parse(
+      fs.readFileSync(
+        path.join(appliedWorkspaceRoot, 'intake/jobs/proposal-2026-03-18-applied-apply.json'),
+        'utf8'
+      )
+    );
+
+    assert.equal(proposalReceipt.status, 'applied');
+    assert.equal(proposalReceipt.pending_batch_path, null);
+    assert.equal(proposalReceipt.processed_batch_path, 'intake/processed/2026-03-18.md');
+    assert.equal(jobReceipt.status, 'applied');
+    assert.equal(jobReceipt.pending_batch_path, null);
+    assert.equal(jobReceipt.processed_batch_path, 'intake/processed/2026-03-18.md');
+    assert.equal(jobReceipt.promotion_result.processedBatchPath, 'intake/processed/2026-03-18.md');
+    assert.equal(promotion.receiptUpdates.proposalsUpdated, 1);
+    assert.equal(promotion.receiptUpdates.jobsUpdated, 1);
+  } finally {
+    fs.rmSync(appliedHandoffRoot, { recursive: true, force: true });
+  }
+
   const procedureInspectionRoot = makeTempRoot();
   try {
     const procedureWorkspaceRoot = path.join(procedureInspectionRoot, 'workspace');

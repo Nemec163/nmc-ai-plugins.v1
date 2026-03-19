@@ -557,12 +557,53 @@ function selectCompetenceSection(claim) {
 }
 
 function tokenize(value) {
+  const stopwords = new Set([
+    'the',
+    'and',
+    'for',
+    'with',
+    'from',
+    'into',
+    'onto',
+    'this',
+    'that',
+    'these',
+    'those',
+    'user',
+    'users',
+    'their',
+    'they',
+    'them',
+    'after',
+    'before',
+    'during',
+    'through',
+    'while',
+    'when',
+    'where',
+    'which',
+    'what',
+    'does',
+    'want',
+    'wants',
+    'work',
+    'works',
+    'working',
+    'current',
+    'currently',
+    'full',
+    'manual',
+    'today',
+    'also',
+    'instead',
+  ]);
+
   return new Set(
     String(value || '')
       .toLowerCase()
       .split(/[^a-z0-9]+/i)
       .map((token) => token.trim())
-      .filter((token) => token.length >= 3)
+      .filter((token) => token.length >= 3 && !stopwords.has(token))
   );
 }
 
@@ -574,6 +615,47 @@ function sharedTokenCount(left, right) {
     }
   }
   return count;
+}
+
+function normalizedTagSet(tags) {
+  return new Set(
+    (Array.isArray(tags) ? tags : [])
+      .map((tag) => String(tag || '').toLowerCase().trim())
+      .filter((tag) => tag.length >= 3)
+  );
+}
+
+function claimsAreRelated(left, right) {
+  const leftSession = String(left.source_session || '').trim();
+  const rightSession = String(right.source_session || '').trim();
+  if (leftSession && rightSession && leftSession !== rightSession) {
+    return false;
+  }
+
+  const sharedTokens = sharedTokenCount(tokenize(left.claim), tokenize(right.claim));
+  const sharedTags = sharedTokenCount(normalizedTagSet(left.tags), normalizedTagSet(right.tags));
+
+  return sharedTokens >= 2 || sharedTags >= 2 || (sharedTokens >= 1 && sharedTags >= 1);
+}
+
+function groupMatchesClaim(group, claim) {
+  return group.some((member) => claimsAreRelated(member, claim));
+}
+
+function clusterClaims(claims) {
+  const groups = [];
+
+  for (const claim of claims) {
+    const group = groups.find((candidate) => groupMatchesClaim(candidate, claim));
+    if (group) {
+      group.push(claim);
+      continue;
+    }
+
+    groups.push([claim]);
+  }
+
+  return groups;
 }
 
 function groupAcceptedClaims(claims) {
@@ -605,7 +687,6 @@ function groupAcceptedClaims(claims) {
         continue;
       }
 
-      const eventTokens = tokenize(eventClaim.claim);
       const group = [eventClaim];
       assigned.add(eventClaim.claim_id);
 
@@ -614,16 +695,7 @@ function groupAcceptedClaims(claims) {
           continue;
         }
 
-        const candidateTokens = tokenize(candidate.claim);
-        const sameHour =
-          Math.abs(parseTimestamp(candidate.observed_at) - parseTimestamp(eventClaim.observed_at)) <=
-          2 * 60 * 60 * 1000;
-        const related =
-          sharedTokenCount(eventTokens, candidateTokens) > 0 ||
-          sharedTokenCount(new Set(eventClaim.tags || []), new Set(candidate.tags || [])) > 0 ||
-          sameHour;
-
-        if (related) {
+        if (claimsAreRelated(eventClaim, candidate)) {
           group.push(candidate);
           assigned.add(candidate.claim_id);
         }
@@ -634,8 +706,15 @@ function groupAcceptedClaims(claims) {
 
     const leftovers = agentClaims.filter((claim) => !assigned.has(claim.claim_id));
     if (leftovers.length > 0) {
-      leftovers.forEach((claim) => assigned.add(claim.claim_id));
-      groups.push(leftovers);
+      const clusteredLeftovers = clusterClaims(leftovers);
+      for (const cluster of clusteredLeftovers) {
+        cluster.forEach((claim) => assigned.add(claim.claim_id));
+        groups.push(
+          cluster.sort(
+            (left, right) => parseTimestamp(left.observed_at) - parseTimestamp(right.observed_at)
+          )
+        );
+      }
     }
   }
 
@@ -896,6 +975,99 @@ function movePendingBatch(memoryRoot, pendingRelativePath) {
   };
 }
 
+function listJsonFiles(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(dirPath, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+    .map((entry) => path.join(dirPath, entry.name))
+    .sort();
+}
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function writeJson(filePath, value) {
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+function reconcileHandoffReceipts(memoryRoot, options = {}) {
+  const batchDate = String(options.batchDate || '').trim();
+  const pendingRelativePath = String(options.pendingRelativePath || '').trim();
+  const processedRelativePath = String(options.processedRelativePath || '').trim();
+  const appliedAt = String(options.appliedAt || '').trim() || new Date().toISOString();
+  const promotionResult = options.promotionResult || null;
+
+  if (!batchDate || !processedRelativePath) {
+    return { proposalsUpdated: 0, jobsUpdated: 0 };
+  }
+
+  const proposalsDir = path.join(memoryRoot, 'intake/proposals');
+  const jobsDir = path.join(memoryRoot, 'intake/jobs');
+  let proposalsUpdated = 0;
+  let jobsUpdated = 0;
+
+  for (const filePath of listJsonFiles(proposalsDir)) {
+    const proposal = readJson(filePath);
+    const matchesBatch =
+      proposal.batch_date === batchDate &&
+      (proposal.pending_batch_path === pendingRelativePath ||
+        proposal.processed_batch_path === processedRelativePath);
+    if (!matchesBatch) {
+      continue;
+    }
+
+    proposal.status = 'applied';
+    proposal.updated_at = appliedAt;
+    proposal.applied_at = appliedAt;
+    proposal.processed_batch_path = processedRelativePath;
+    if (proposal.pending_batch_path === pendingRelativePath) {
+      proposal.pending_batch_path = null;
+    }
+    writeJson(filePath, proposal);
+    proposalsUpdated += 1;
+  }
+
+  for (const filePath of listJsonFiles(jobsDir)) {
+    const job = readJson(filePath);
+    const matchesBatch =
+      job.batch_date === batchDate &&
+      (job.pending_batch_path === pendingRelativePath ||
+        job.processed_batch_path === processedRelativePath);
+    if (!matchesBatch) {
+      continue;
+    }
+
+    job.status = 'applied';
+    job.updated_at = appliedAt;
+    job.applied_at = appliedAt;
+    job.processed_batch_path = processedRelativePath;
+    if (job.pending_batch_path === pendingRelativePath) {
+      job.pending_batch_path = null;
+    }
+    if (promotionResult) {
+      job.promotion_result = {
+        implementation: promotionResult.implementation,
+        batchDate: promotionResult.batchDate,
+        processedBatchPath: promotionResult.processedBatchPath,
+        filesTouched: promotionResult.filesTouched,
+        recordsWritten: promotionResult.recordsWritten,
+      };
+    }
+    writeJson(filePath, job);
+    jobsUpdated += 1;
+  }
+
+  return {
+    proposalsUpdated,
+    jobsUpdated,
+  };
+}
+
 function promoteCanonBatch(request) {
   const memoryRoot = path.resolve(request.memory_root);
   const batchDate = String(request.batch_date || '').trim();
@@ -932,10 +1104,19 @@ function promoteCanonBatch(request) {
   const eventByClaimId = new Map();
 
   groups.forEach((group) => {
+    const eventEvidenceClaims = group.filter(
+      (claim) => !['competence', 'procedure'].includes(inferClaimType(claim))
+    );
+    if (eventEvidenceClaims.length === 0) {
+      return;
+    }
+
     const updatedAt = group.reduce((latest, claim) => {
       return parseTimestamp(claim.observed_at) > parseTimestamp(latest) ? claim.observed_at : latest;
     }, group[0].observed_at || request.updated_at || new Date().toISOString());
-    const eventClaim = group.find((claim) => claim.target_layer === 'L2' || claim.target_domain === 'timeline') || group[0];
+    const eventClaim =
+      group.find((claim) => claim.target_layer === 'L2' || claim.target_domain === 'timeline') ||
+      eventEvidenceClaims[0];
     const eventId =
       eventClaim.draft_record_id ||
       `evt-${batchDate}-${String(++nextIds.evt).padStart(3, '0')}`;
@@ -943,9 +1124,7 @@ function promoteCanonBatch(request) {
       record_id: eventId,
       type: 'event',
       summary: buildEventSummary(group),
-      evidence: group
-        .filter((claim) => !['competence', 'procedure'].includes(inferClaimType(claim)))
-        .map((claim) => `intake/pending/${batchDate}.md#${claim.claim_id}`),
+      evidence: eventEvidenceClaims.map((claim) => `intake/pending/${batchDate}.md#${claim.claim_id}`),
       confidence: strongestConfidence(group),
       status: 'active',
       updated_at: updatedAt,
@@ -1142,7 +1321,7 @@ function promoteCanonBatch(request) {
     fs.rmSync(checkpointPath);
   }
 
-  return {
+  const result = {
     implementation: 'core-promoter',
     batchDate,
     pendingBatchPath: pendingRelativePath,
@@ -1155,6 +1334,21 @@ function promoteCanonBatch(request) {
       record_id: entry.record.record_id,
       type: entry.record.type,
     })),
+  };
+
+  const receiptUpdates = movedBatch
+    ? reconcileHandoffReceipts(memoryRoot, {
+        batchDate,
+        pendingRelativePath,
+        processedRelativePath: movedBatch.processedRelativePath,
+        appliedAt: new Date().toISOString(),
+        promotionResult: result,
+      })
+    : { proposalsUpdated: 0, jobsUpdated: 0 };
+
+  return {
+    ...result,
+    receiptUpdates,
   };
 }
 

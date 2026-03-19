@@ -76,13 +76,15 @@ function getInterventionAction(actionId) {
 
 function buildAvailableActionsForProposal(proposal) {
   const actionIds = ['inspect-proposal'];
+  const pendingBatchNeedsReconcile =
+    proposal.pendingBatchPath && !proposal.pendingBatchExists && !proposal.processedBatchExists;
   if (proposal.status === 'proposed' || proposal.status === 'feedback-recorded') {
     actionIds.push('request-curator-review');
   }
   if (
     proposal.status === 'ready-for-apply' ||
     proposal.status === 'ready-for-handoff' ||
-    (proposal.pendingBatchPath && !proposal.pendingBatchExists) ||
+    pendingBatchNeedsReconcile ||
     (proposal.jobPath && !proposal.jobExists)
   ) {
     actionIds.push('request-handoff-reconcile');
@@ -93,7 +95,9 @@ function buildAvailableActionsForProposal(proposal) {
 
 function buildAvailableActionsForJob(job) {
   const actionIds = ['inspect-job'];
-  if (job.status === 'ready-for-handoff' || (job.pendingBatchPath && !job.pendingBatchExists)) {
+  const pendingBatchNeedsReconcile =
+    job.pendingBatchPath && !job.pendingBatchExists && !job.processedBatchExists;
+  if (job.status === 'ready-for-handoff' || pendingBatchNeedsReconcile) {
     actionIds.push('request-handoff-reconcile');
   }
 
