@@ -334,6 +334,14 @@ function main() {
       'control-plane'
     );
     assert.equal(
+      snapshot.releaseQualification.standaloneAppSurface.package,
+      'memoryos-app'
+    );
+    assert.equal(
+      snapshot.releaseQualification.standaloneAppSurface.cli,
+      'memoryos'
+    );
+    assert.equal(
       snapshot.releaseQualification.directAdapterSurface.package,
       'adapter-openclaw'
     );
@@ -351,7 +359,16 @@ function main() {
     );
     assert.equal(
       snapshot.releaseQualification.packageMatrix.packageCount,
-      15
+      16
+    );
+    assert.equal(
+      snapshot.releaseQualification.packageMatrix.entries.some(
+        (entry) =>
+          entry.package === 'memoryos-app' &&
+          entry.status === 'production' &&
+          entry.surface === 'supported-standalone-app-surface'
+      ),
+      true
     );
     assert.equal(
       snapshot.releaseQualification.packageMatrix.entries.some(

@@ -220,7 +220,7 @@ function main() {
 
   const cliHelp = runSetupCli(["--help"], ADAPTER_ROOT);
   assert.equal(cliHelp.exitCode, 0);
-  assert.match(cliHelp.stdout, /Usage: node scripts\/setup-openclaw\.js/);
+  assert.match(cliHelp.stdout, /Usage: node \.\/packages\/adapter-openclaw\/lib\/setup-cli\.js/);
   const shellCliHelp = spawnSync(
     process.execPath,
     [ADAPTER_SETUP_SCRIPT_PATH, "--help"],

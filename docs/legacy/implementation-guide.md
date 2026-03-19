@@ -1,18 +1,22 @@
 # Implementation Guide: MemoryOS.v1
 
 Current-state implementation and operations guide for the independent
-`MemoryOS.v1` core plus its currently supported OpenClaw connector/install
-surface.
+`MemoryOS.v1` core, its standalone app surface, and its supported optional
+OpenClaw connector/install surface.
 
-Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), the package/status matrix lives in [../supported-surfaces.md](../supported-surfaces.md), the release gate lives in [../release-readiness.md](../release-readiness.md), and OpenClaw-adapter details live in [../../packages/adapter-openclaw/README.md](../../packages/adapter-openclaw/README.md).
+Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), the package/status matrix lives in [../supported-surfaces.md](../supported-surfaces.md), the release gate lives in [../release-readiness.md](../release-readiness.md), standalone app details live in [../../packages/memoryos-app/README.md](../../packages/memoryos-app/README.md), and OpenClaw-adapter details live in [../../packages/adapter-openclaw/README.md](../../packages/adapter-openclaw/README.md).
 
 The completed release-cutover and bridge-retirement planning work is preserved in [deliberate-migration-release-plan.md](./deliberate-migration-release-plan.md) as a historical archive rather than the live source of truth.
 
 ## Scope
 
 The current repository is centered on the autonomous, connector-agnostic
-`MemoryOS.v1` core and supports direct OpenClaw installation through
+`MemoryOS.v1` core and supports direct standalone use through
+`packages/memoryos-app`, plus optional OpenClaw installation through
 `packages/adapter-openclaw`:
+
+- `packages/memoryos-app` owns the standalone `memoryos` CLI, local bootstrap,
+  and app-facing wrappers over gateway, control-plane, and pipeline surfaces.
 
 - `packages/adapter-openclaw/openclaw.plugin.json` owns the direct install manifest and config schema.
 - `packages/adapter-openclaw/plugin.js` is the direct plugin entrypoint.
@@ -21,14 +25,16 @@ The current repository is centered on the autonomous, connector-agnostic
 - `packages/adapter-openclaw/templates/workspace-memory/` and `packages/adapter-openclaw/templates/workspace-system/` provide the managed scaffold.
 - `packages/adapter-openclaw/skills/` bundles the memory pipeline, maintenance scripts, and kanban operator.
 
-`packages/adapter-openclaw` is the supported production OpenClaw
-install/setup connector. The legacy `nmc-memory-plugin` shell has been retired
-and removed from the repository, but the product boundary remains `MemoryOS.v1`
-rather than the connector itself.
+`packages/memoryos-app` is the supported production standalone app/install
+surface. `packages/adapter-openclaw` remains the supported production OpenClaw
+connector. The legacy `nmc-memory-plugin` shell has been retired and removed
+from the repository, but the product boundary remains `MemoryOS.v1` rather than
+either host surface.
 
 Connector framing for this repository:
 
 - `packages/adapter-openclaw` is the production OpenClaw install/setup connector surface.
+- `packages/memoryos-app` is the production standalone install/run surface.
 - `packages/adapter-codex` is a bounded Codex connector surface with shared-pipeline `extract` and `curate` execution plus gateway-mediated handoff.
 - `packages/adapter-claude` is a bounded Claude connector surface over existing gateway and handoff contracts and is not part of the current direct-install production release boundary.
 - `packages/memory-os-gateway` is the supported programmatic surface.
@@ -36,6 +42,33 @@ Connector framing for this repository:
 - shared `@nmc/*` packages plus `memory-os-runtime` remain internal product-boundary packages rather than direct install or operator surfaces.
 
 The deprecated `memory-os-gateway ops-snapshot` bridge is retired and is not part of the supported operator contract.
+
+### Supported Standalone App Surface
+
+Typical standalone usage against the managed workspace:
+
+```bash
+node ./packages/memoryos-app/bin/memoryos.js init
+node ./packages/memoryos-app/bin/memoryos.js run --phase verify --once
+node ./packages/memoryos-app/bin/memoryos.js status
+node ./packages/memoryos-app/bin/memoryos.js verify
+node ./packages/memoryos-app/bin/memoryos.js health
+node ./packages/memoryos-app/bin/memoryos.js pipeline 2026-03-20 --phase verify
+```
+
+Default standalone paths:
+
+- `~/.memoryos/system/`
+- `~/.memoryos/system/memory/`
+- `~/.memoryos/agents/<role>/`
+- `~/.memoryos/<role>/`
+- `~/.memoryos/memoryos.json`
+
+The app surface preserves the current `system/` layout and canon boundaries
+while removing the OpenClaw runtime requirement for local usage.
+`memoryos run` is the app-owned persistent host loop and keeps its own
+lock/state/run receipts under `runtime/host/` without widening runtime or canon
+authority.
 
 ### Supported Operator Surface
 
@@ -94,7 +127,12 @@ For installed programmatic access, prefer the adapter-owned wrapper directories:
 
 ## Managed Bootstrap
 
-The plugin supports two setup paths:
+The repository now supports two primary setup paths:
+
+1. Standalone app bootstrap via `memoryos init`.
+2. OpenClaw runtime bootstrap on plugin load or explicit `openclaw memoryos setup`.
+
+The OpenClaw plugin supports two setup paths of its own:
 
 1. Runtime auto-bootstrap on plugin load, controlled by `config.autoSetup`.
 2. Explicit setup via `openclaw memoryos setup`.
@@ -122,6 +160,13 @@ Setup also manages `~/.openclaw/openclaw.json` by writing:
 - optional routing bindings
 
 ### CLI And Script Entry Points
+
+Standalone app command:
+
+```bash
+node ./packages/memoryos-app/bin/memoryos.js init --state-dir ~/.memoryos
+node ./packages/memoryos-app/bin/memoryos.js run --phase verify --interval-seconds 1800
+```
 
 OpenClaw command:
 
@@ -236,6 +281,7 @@ The consolidation flow still has four phases with narrow responsibilities:
 The operational entry point is:
 
 ```bash
+node ./packages/memoryos-app/bin/memoryos.js pipeline YYYY-MM-DD --phase verify
 ./packages/adapter-openclaw/skills/memory-pipeline/pipeline.sh YYYY-MM-DD
 ./packages/adapter-openclaw/skills/memory-pipeline/pipeline.sh YYYY-MM-DD --phase verify
 ```
@@ -348,4 +394,5 @@ For a live workspace, the smallest post-install verification is:
 - [../../README.md](../../README.md) is the repository entry point.
 - [memory-design-v2.md](./memory-design-v2.md) captures the conceptual model and storage design.
 - [human-memory.md](./human-memory.md) captures the higher-level memory abstraction.
+- [../../packages/memoryos-app/README.md](../../packages/memoryos-app/README.md) is the package-level reference for standalone installation and local CLI usage.
 - [../../packages/adapter-openclaw/README.md](../../packages/adapter-openclaw/README.md) is the package-level reference for OpenClaw installation and bundled assets.

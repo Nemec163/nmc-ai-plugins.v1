@@ -18,6 +18,7 @@ internal, or retired.
 
 | Package | Class | Surface | Notes |
 |---|---|---|---|
+| `memoryos-app` | `production` | standalone app surface | Supported standalone install/run surface with app-owned bootstrap, persistent `memoryos run` host loop, and local CLI over the independent MemoryOS core |
 | `adapter-openclaw` | `production` | OpenClaw install/setup connector | Supported `openclaw memoryos setup` surface and owner of installed-artifact wrappers for `control-plane` and `memory-os-gateway`; it is a connector over the independent MemoryOS core, not the product boundary itself |
 | `control-plane` | `production` | read-only operator surface | Supported operator SDK/CLI for snapshot, health, queues, analytics, audits, interventions, and runtime inspection |
 | `memory-os-gateway` | `production` | programmatic surface | Supported SDK/CLI for read, bootstrap, query, status, verify, runtime, and safe write orchestration; installed artifacts should prefer adapter-owned wrapper paths |

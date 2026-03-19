@@ -1,0 +1,1335 @@
+{
+  "kind": "read-index",
+  "authoritative": false,
+  "namespace": {
+    "kind": "memory-namespace",
+    "schemaVersion": "1.0",
+    "mode": "single-tenant-default",
+    "defaultNamespace": true,
+    "namespaceKey": "default/default/default",
+    "actorKey": "default/default",
+    "tenantId": "default",
+    "spaceId": "default",
+    "userId": "default",
+    "canonicalScope": {
+      "tenantId": "default",
+      "spaceId": "default",
+      "userId": "default"
+    },
+    "actor": {
+      "userId": "default",
+      "agentId": null,
+      "roleId": null
+    },
+    "scope": {
+      "tenantId": "default",
+      "spaceId": "default",
+      "userId": "default",
+      "agentId": null,
+      "roleId": null
+    },
+    "pathing": {
+      "canonicalRoot": "core",
+      "canonicalPathMode": "workspace-root-default",
+      "layout": "single-tenant-default",
+      "scopedPathsSupported": true,
+      "derivedReadIndexPath": "core/meta/read-index.json",
+      "runtimeShadowRoot": "runtime/shadow",
+      "runtimeRunsRoot": "runtime/shadow/runs",
+      "runtimeManifestPath": "runtime/shadow/manifest.json",
+      "runtimePathMode": "workspace-shadow-default"
+    },
+    "memoryRoot": "/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/fixtures/workspace",
+    "surface": "derived-read-index",
+    "authorityBoundary": {
+      "runtimeAuthoritative": false,
+      "canonicalPromotionPath": "single-promoter"
+    }
+  },
+  "schemaVersion": "1",
+  "builtAt": "2026-03-19T21:45:11.278Z",
+  "source": {
+    "namespaceKey": "default/default/default",
+    "manifestLastUpdated": "2026-03-19T00:00:00Z",
+    "manifestPath": "core/meta/manifest.json",
+    "recordFiles": {
+      "core/agents/_index.md": {
+        "checksum": "839446680ac6e8e8744e7f13e811c26e36ccbc07503aa9c4ac2217e19711b13d"
+      },
+      "core/agents/mnemo/COURSE.md": {
+        "checksum": "45dfed539cf109343ad22b5183f01816273739df7c7843385ee9924962725bc7"
+      },
+      "core/agents/mnemo/DECISIONS.md": {
+        "checksum": "fe6e07a3bdbe7ec9353913d2cd2f7b3fadcca943a58d914f88bf5c6b7f1d0314"
+      },
+      "core/agents/mnemo/PITFALLS.md": {
+        "checksum": "84c9c9c2848cf8d2ff3ac44e205fd9b91f554e52220297c5c7c0c2e3bbc42909"
+      },
+      "core/agents/mnemo/PLAYBOOK.md": {
+        "checksum": "65ea58d2aed9cb7f6b58db427809d9b3ffce4e9bc6ea95e64c97bd78b84ae237"
+      },
+      "core/agents/trader/COURSE.md": {
+        "checksum": "52489826f7c56f91fff9cb9cf6b9ba735e6e2216f05036c630a4eac91246aac0"
+      },
+      "core/agents/trader/DECISIONS.md": {
+        "checksum": "23ac0f0aaa0e6412dd134980307eceae901e83e91c2d93c9f55f73cd75416434"
+      },
+      "core/agents/trader/PITFALLS.md": {
+        "checksum": "c11337fa4e50737d213368456449966cbd29fca4bec0ab17fa8dd1b60a3ae564"
+      },
+      "core/agents/trader/PLAYBOOK.md": {
+        "checksum": "e57a97a44ce2504c3eb8f3c03cbfe658d2c172b5522072dab318ee7a10238b87"
+      },
+      "core/user/identity/changelog.md": {
+        "checksum": "0e12944839e9ad4c74b2cb3ea2f17935a45511da1d8ef077a1e9a1e688b30b8d"
+      },
+      "core/user/identity/current.md": {
+        "checksum": "ed8fae96fd918fc4d77f39ea4707d91817ddd05ee35eeec953226481fde84bc6"
+      },
+      "core/user/knowledge/preferences.md": {
+        "checksum": "4228632d4bfa49d949a7b4661f606b3ffb6d9ae6999900a228e8e4e68c1090d3"
+      },
+      "core/user/knowledge/work.md": {
+        "checksum": "66699c387212aad41010f4804f9d14ff08de3b0b7f2f765c1bb84710cc565abd"
+      },
+      "core/user/state/current.md": {
+        "checksum": "cb6cc0e64d2daf07b8f605d0f32f54407f47f509398f4d6782ee74b9ca2e2d0e"
+      },
+      "core/user/timeline/2026/03/05.md": {
+        "checksum": "8f1edbabfe7df592d410ebfaa82fccc2408a7049b48f5885bc9b6a1acd0a80bc"
+      }
+    },
+    "contentFingerprint": "056fc5a13bd7948f4327af78ed0b2d94f004b5d892f8c2df86d286f509ee1ba3",
+    "reconciliation": {
+      "strategy": "content-addressed-graph-rebuild",
+      "recordFileCount": 15,
+      "recordChecksumDigest": "056fc5a13bd7948f4327af78ed0b2d94f004b5d892f8c2df86d286f509ee1ba3",
+      "edgesDigest": "2c8e445d6fbdf3865fd70d355fe85ab1e1895d7e5a518b5a5a7bbfe7929704c5"
+    },
+    "reconciliationFresh": true
+  },
+  "stats": {
+    "recordCount": 7,
+    "fileCount": 15,
+    "tokenCount": 149
+  },
+  "records": [
+    {
+      "recordId": "cmp-2026-03-05-001",
+      "anchorId": "cmp-2026-03-05-001",
+      "heading": "cmp-2026-03-05-001",
+      "type": "competence",
+      "status": "active",
+      "summary": "Avoid treating momentum breakouts as a default play during high-volatility opens.",
+      "relativePath": "core/agents/trader/PITFALLS.md",
+      "snippet": "Avoid treating momentum breakouts as a default play during high-volatility opens.",
+      "tokens": [
+        "cmp",
+        "2026",
+        "03",
+        "05",
+        "001",
+        "avoid",
+        "treating",
+        "momentum",
+        "breakouts",
+        "as",
+        "default",
+        "play",
+        "during",
+        "high",
+        "volatility",
+        "opens",
+        "competence",
+        "active",
+        "for",
+        "this",
+        "role",
+        "early",
+        "entries",
+        "after",
+        "fakeouts",
+        "in",
+        "volatile",
+        "markets",
+        "should",
+        "be",
+        "treated",
+        "recurring",
+        "pitfall",
+        "rather",
+        "than",
+        "standard",
+        "setup",
+        "core",
+        "agents",
+        "trader",
+        "pitfalls",
+        "md"
+      ],
+      "namespace": {
+        "kind": "memory-namespace",
+        "schemaVersion": "1.0",
+        "mode": "single-tenant-default",
+        "defaultNamespace": true,
+        "namespaceKey": "default/default/default",
+        "actorKey": "default/default",
+        "tenantId": "default",
+        "spaceId": "default",
+        "userId": "default",
+        "canonicalScope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default"
+        },
+        "actor": {
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "scope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "pathing": {
+          "canonicalRoot": "core",
+          "canonicalPathMode": "workspace-root-default",
+          "layout": "single-tenant-default",
+          "scopedPathsSupported": true,
+          "derivedReadIndexPath": "core/meta/read-index.json",
+          "runtimeShadowRoot": "runtime/shadow",
+          "runtimeRunsRoot": "runtime/shadow/runs",
+          "runtimeManifestPath": "runtime/shadow/manifest.json",
+          "runtimePathMode": "workspace-shadow-default"
+        },
+        "memoryRoot": "/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/fixtures/workspace",
+        "surface": "derived-read-index",
+        "authorityBoundary": {
+          "runtimeAuthoritative": false,
+          "canonicalPromotionPath": "single-promoter"
+        }
+      }
+    },
+    {
+      "recordId": "evt-2026-03-05-001",
+      "anchorId": "evt-2026-03-05-001",
+      "heading": "evt-2026-03-05-001",
+      "type": "event",
+      "status": "active",
+      "summary": "Trading session surfaced repeated momentum-strategy failures during high volatility.",
+      "relativePath": "core/user/timeline/2026/03/05.md",
+      "snippet": "Trading session surfaced repeated momentum-strategy failures during high volatility.",
+      "tokens": [
+        "evt",
+        "2026",
+        "03",
+        "05",
+        "001",
+        "trading",
+        "session",
+        "surfaced",
+        "repeated",
+        "momentum",
+        "strategy",
+        "failures",
+        "during",
+        "high",
+        "volatility",
+        "event",
+        "active",
+        "the",
+        "user",
+        "described",
+        "volatile",
+        "openings",
+        "and",
+        "connected",
+        "that",
+        "pattern",
+        "to",
+        "planned",
+        "change",
+        "in",
+        "execution",
+        "approach",
+        "core",
+        "timeline",
+        "md"
+      ],
+      "namespace": {
+        "kind": "memory-namespace",
+        "schemaVersion": "1.0",
+        "mode": "single-tenant-default",
+        "defaultNamespace": true,
+        "namespaceKey": "default/default/default",
+        "actorKey": "default/default",
+        "tenantId": "default",
+        "spaceId": "default",
+        "userId": "default",
+        "canonicalScope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default"
+        },
+        "actor": {
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "scope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "pathing": {
+          "canonicalRoot": "core",
+          "canonicalPathMode": "workspace-root-default",
+          "layout": "single-tenant-default",
+          "scopedPathsSupported": true,
+          "derivedReadIndexPath": "core/meta/read-index.json",
+          "runtimeShadowRoot": "runtime/shadow",
+          "runtimeRunsRoot": "runtime/shadow/runs",
+          "runtimeManifestPath": "runtime/shadow/manifest.json",
+          "runtimePathMode": "workspace-shadow-default"
+        },
+        "memoryRoot": "/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/fixtures/workspace",
+        "surface": "derived-read-index",
+        "authorityBoundary": {
+          "runtimeAuthoritative": false,
+          "canonicalPromotionPath": "single-promoter"
+        }
+      }
+    },
+    {
+      "recordId": "evt-2026-03-05-002",
+      "anchorId": "evt-2026-03-05-002",
+      "heading": "evt-2026-03-05-002",
+      "type": "event",
+      "status": "active",
+      "summary": "The user decided to switch future interface design work from Figma to Sketch.",
+      "relativePath": "core/user/timeline/2026/03/05.md",
+      "snippet": "The user decided to switch future interface design work from Figma to Sketch.",
+      "tokens": [
+        "evt",
+        "2026",
+        "03",
+        "05",
+        "002",
+        "the",
+        "user",
+        "decided",
+        "to",
+        "switch",
+        "future",
+        "interface",
+        "design",
+        "work",
+        "from",
+        "figma",
+        "sketch",
+        "event",
+        "active",
+        "made",
+        "an",
+        "explicit",
+        "dated",
+        "decision",
+        "use",
+        "for",
+        "new",
+        "concept",
+        "while",
+        "retaining",
+        "legacy",
+        "files",
+        "core",
+        "timeline",
+        "md"
+      ],
+      "namespace": {
+        "kind": "memory-namespace",
+        "schemaVersion": "1.0",
+        "mode": "single-tenant-default",
+        "defaultNamespace": true,
+        "namespaceKey": "default/default/default",
+        "actorKey": "default/default",
+        "tenantId": "default",
+        "spaceId": "default",
+        "userId": "default",
+        "canonicalScope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default"
+        },
+        "actor": {
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "scope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "pathing": {
+          "canonicalRoot": "core",
+          "canonicalPathMode": "workspace-root-default",
+          "layout": "single-tenant-default",
+          "scopedPathsSupported": true,
+          "derivedReadIndexPath": "core/meta/read-index.json",
+          "runtimeShadowRoot": "runtime/shadow",
+          "runtimeRunsRoot": "runtime/shadow/runs",
+          "runtimeManifestPath": "runtime/shadow/manifest.json",
+          "runtimePathMode": "workspace-shadow-default"
+        },
+        "memoryRoot": "/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/fixtures/workspace",
+        "surface": "derived-read-index",
+        "authorityBoundary": {
+          "runtimeAuthoritative": false,
+          "canonicalPromotionPath": "single-promoter"
+        }
+      }
+    },
+    {
+      "recordId": "fct-2026-03-05-001",
+      "anchorId": "fct-2026-03-05-001",
+      "heading": "fct-2026-03-05-001",
+      "type": "fact",
+      "status": "active",
+      "summary": "Momentum strategies tend to fail for the user in high-volatility regimes.",
+      "relativePath": "core/user/knowledge/work.md",
+      "snippet": "Momentum strategies tend to fail for the user in high-volatility regimes.",
+      "tokens": [
+        "fct",
+        "2026",
+        "03",
+        "05",
+        "001",
+        "momentum",
+        "strategies",
+        "tend",
+        "to",
+        "fail",
+        "for",
+        "the",
+        "user",
+        "in",
+        "high",
+        "volatility",
+        "regimes",
+        "fact",
+        "active",
+        "reliably",
+        "reports",
+        "poor",
+        "results",
+        "when",
+        "applying",
+        "breakout",
+        "logic",
+        "during",
+        "conditions",
+        "core",
+        "knowledge",
+        "work",
+        "md"
+      ],
+      "namespace": {
+        "kind": "memory-namespace",
+        "schemaVersion": "1.0",
+        "mode": "single-tenant-default",
+        "defaultNamespace": true,
+        "namespaceKey": "default/default/default",
+        "actorKey": "default/default",
+        "tenantId": "default",
+        "spaceId": "default",
+        "userId": "default",
+        "canonicalScope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default"
+        },
+        "actor": {
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "scope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "pathing": {
+          "canonicalRoot": "core",
+          "canonicalPathMode": "workspace-root-default",
+          "layout": "single-tenant-default",
+          "scopedPathsSupported": true,
+          "derivedReadIndexPath": "core/meta/read-index.json",
+          "runtimeShadowRoot": "runtime/shadow",
+          "runtimeRunsRoot": "runtime/shadow/runs",
+          "runtimeManifestPath": "runtime/shadow/manifest.json",
+          "runtimePathMode": "workspace-shadow-default"
+        },
+        "memoryRoot": "/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/fixtures/workspace",
+        "surface": "derived-read-index",
+        "authorityBoundary": {
+          "runtimeAuthoritative": false,
+          "canonicalPromotionPath": "single-promoter"
+        }
+      }
+    },
+    {
+      "recordId": "fct-2026-03-05-002",
+      "anchorId": "fct-2026-03-05-002",
+      "heading": "fct-2026-03-05-002",
+      "type": "fact",
+      "status": "active",
+      "summary": "Sketch is the preferred primary tool for new interface design work.",
+      "relativePath": "core/user/knowledge/preferences.md",
+      "snippet": "Sketch is the preferred primary tool for new interface design work.",
+      "tokens": [
+        "fct",
+        "2026",
+        "03",
+        "05",
+        "002",
+        "sketch",
+        "is",
+        "the",
+        "preferred",
+        "primary",
+        "tool",
+        "for",
+        "new",
+        "interface",
+        "design",
+        "work",
+        "fact",
+        "active",
+        "user",
+        "has",
+        "switched",
+        "their",
+        "forward",
+        "looking",
+        "workflow",
+        "to",
+        "while",
+        "leaving",
+        "legacy",
+        "files",
+        "in",
+        "figma",
+        "as",
+        "needed",
+        "core",
+        "knowledge",
+        "preferences",
+        "md"
+      ],
+      "namespace": {
+        "kind": "memory-namespace",
+        "schemaVersion": "1.0",
+        "mode": "single-tenant-default",
+        "defaultNamespace": true,
+        "namespaceKey": "default/default/default",
+        "actorKey": "default/default",
+        "tenantId": "default",
+        "spaceId": "default",
+        "userId": "default",
+        "canonicalScope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default"
+        },
+        "actor": {
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "scope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "pathing": {
+          "canonicalRoot": "core",
+          "canonicalPathMode": "workspace-root-default",
+          "layout": "single-tenant-default",
+          "scopedPathsSupported": true,
+          "derivedReadIndexPath": "core/meta/read-index.json",
+          "runtimeShadowRoot": "runtime/shadow",
+          "runtimeRunsRoot": "runtime/shadow/runs",
+          "runtimeManifestPath": "runtime/shadow/manifest.json",
+          "runtimePathMode": "workspace-shadow-default"
+        },
+        "memoryRoot": "/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/fixtures/workspace",
+        "surface": "derived-read-index",
+        "authorityBoundary": {
+          "runtimeAuthoritative": false,
+          "canonicalPromotionPath": "single-promoter"
+        }
+      }
+    },
+    {
+      "recordId": "prc-2026-03-05-001",
+      "anchorId": "prc-2026-03-05-001",
+      "heading": "prc-2026-03-05-001",
+      "type": "procedure",
+      "status": "active",
+      "summary": "Use a confirmation-first checklist before suggesting momentum entries on volatile mornings.",
+      "relativePath": "core/agents/trader/PLAYBOOK.md",
+      "snippet": "Use a confirmation-first checklist before suggesting momentum entries on volatile mornings.",
+      "tokens": [
+        "prc",
+        "2026",
+        "03",
+        "05",
+        "001",
+        "use",
+        "confirmation",
+        "first",
+        "checklist",
+        "before",
+        "suggesting",
+        "momentum",
+        "entries",
+        "on",
+        "volatile",
+        "mornings",
+        "procedure",
+        "active",
+        "open",
+        "play",
+        "run",
+        "acceptance",
+        "criteria",
+        "wait",
+        "for",
+        "after",
+        "the",
+        "initial",
+        "fakeout",
+        "calling",
+        "entry",
+        "prefer",
+        "slower",
+        "based",
+        "during",
+        "opens",
+        "core",
+        "agents",
+        "trader",
+        "playbook",
+        "md"
+      ],
+      "namespace": {
+        "kind": "memory-namespace",
+        "schemaVersion": "1.0",
+        "mode": "single-tenant-default",
+        "defaultNamespace": true,
+        "namespaceKey": "default/default/default",
+        "actorKey": "default/default",
+        "tenantId": "default",
+        "spaceId": "default",
+        "userId": "default",
+        "canonicalScope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default"
+        },
+        "actor": {
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "scope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "pathing": {
+          "canonicalRoot": "core",
+          "canonicalPathMode": "workspace-root-default",
+          "layout": "single-tenant-default",
+          "scopedPathsSupported": true,
+          "derivedReadIndexPath": "core/meta/read-index.json",
+          "runtimeShadowRoot": "runtime/shadow",
+          "runtimeRunsRoot": "runtime/shadow/runs",
+          "runtimeManifestPath": "runtime/shadow/manifest.json",
+          "runtimePathMode": "workspace-shadow-default"
+        },
+        "memoryRoot": "/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/fixtures/workspace",
+        "surface": "derived-read-index",
+        "authorityBoundary": {
+          "runtimeAuthoritative": false,
+          "canonicalPromotionPath": "single-promoter"
+        }
+      }
+    },
+    {
+      "recordId": "st-2026-03-05-001",
+      "anchorId": "st-2026-03-05-001",
+      "heading": "st-2026-03-05-001",
+      "type": "state",
+      "status": "active",
+      "summary": "The current trading approach is shifting toward confirmation-based entries on volatile mornings.",
+      "relativePath": "core/user/state/current.md",
+      "snippet": "The current trading approach is shifting toward confirmation-based entries on volatile mornings.",
+      "tokens": [
+        "st",
+        "2026",
+        "03",
+        "05",
+        "001",
+        "the",
+        "current",
+        "trading",
+        "approach",
+        "is",
+        "shifting",
+        "toward",
+        "confirmation",
+        "based",
+        "entries",
+        "on",
+        "volatile",
+        "mornings",
+        "state",
+        "active",
+        "user",
+        "stance",
+        "to",
+        "wait",
+        "for",
+        "slower",
+        "or",
+        "reduce",
+        "participation",
+        "when",
+        "price",
+        "discovery",
+        "unstable",
+        "core",
+        "md"
+      ],
+      "namespace": {
+        "kind": "memory-namespace",
+        "schemaVersion": "1.0",
+        "mode": "single-tenant-default",
+        "defaultNamespace": true,
+        "namespaceKey": "default/default/default",
+        "actorKey": "default/default",
+        "tenantId": "default",
+        "spaceId": "default",
+        "userId": "default",
+        "canonicalScope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default"
+        },
+        "actor": {
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "scope": {
+          "tenantId": "default",
+          "spaceId": "default",
+          "userId": "default",
+          "agentId": null,
+          "roleId": null
+        },
+        "pathing": {
+          "canonicalRoot": "core",
+          "canonicalPathMode": "workspace-root-default",
+          "layout": "single-tenant-default",
+          "scopedPathsSupported": true,
+          "derivedReadIndexPath": "core/meta/read-index.json",
+          "runtimeShadowRoot": "runtime/shadow",
+          "runtimeRunsRoot": "runtime/shadow/runs",
+          "runtimeManifestPath": "runtime/shadow/manifest.json",
+          "runtimePathMode": "workspace-shadow-default"
+        },
+        "memoryRoot": "/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/fixtures/workspace",
+        "surface": "derived-read-index",
+        "authorityBoundary": {
+          "runtimeAuthoritative": false,
+          "canonicalPromotionPath": "single-promoter"
+        }
+      }
+    }
+  ],
+  "postings": {
+    "2026": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "001": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "fct-2026-03-05-001",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "002": [
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-002"
+    ],
+    "03": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "05": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "acceptance": [
+      "prc-2026-03-05-001"
+    ],
+    "active": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "after": [
+      "cmp-2026-03-05-001",
+      "prc-2026-03-05-001"
+    ],
+    "agents": [
+      "cmp-2026-03-05-001",
+      "prc-2026-03-05-001"
+    ],
+    "an": [
+      "evt-2026-03-05-002"
+    ],
+    "and": [
+      "evt-2026-03-05-001"
+    ],
+    "applying": [
+      "fct-2026-03-05-001"
+    ],
+    "approach": [
+      "evt-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "as": [
+      "cmp-2026-03-05-001",
+      "fct-2026-03-05-002"
+    ],
+    "avoid": [
+      "cmp-2026-03-05-001"
+    ],
+    "based": [
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "be": [
+      "cmp-2026-03-05-001"
+    ],
+    "before": [
+      "prc-2026-03-05-001"
+    ],
+    "breakout": [
+      "fct-2026-03-05-001"
+    ],
+    "breakouts": [
+      "cmp-2026-03-05-001"
+    ],
+    "calling": [
+      "prc-2026-03-05-001"
+    ],
+    "change": [
+      "evt-2026-03-05-001"
+    ],
+    "checklist": [
+      "prc-2026-03-05-001"
+    ],
+    "cmp": [
+      "cmp-2026-03-05-001"
+    ],
+    "competence": [
+      "cmp-2026-03-05-001"
+    ],
+    "concept": [
+      "evt-2026-03-05-002"
+    ],
+    "conditions": [
+      "fct-2026-03-05-001"
+    ],
+    "confirmation": [
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "connected": [
+      "evt-2026-03-05-001"
+    ],
+    "core": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "criteria": [
+      "prc-2026-03-05-001"
+    ],
+    "current": [
+      "st-2026-03-05-001"
+    ],
+    "dated": [
+      "evt-2026-03-05-002"
+    ],
+    "decided": [
+      "evt-2026-03-05-002"
+    ],
+    "decision": [
+      "evt-2026-03-05-002"
+    ],
+    "default": [
+      "cmp-2026-03-05-001"
+    ],
+    "described": [
+      "evt-2026-03-05-001"
+    ],
+    "design": [
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-002"
+    ],
+    "discovery": [
+      "st-2026-03-05-001"
+    ],
+    "during": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "fct-2026-03-05-001",
+      "prc-2026-03-05-001"
+    ],
+    "early": [
+      "cmp-2026-03-05-001"
+    ],
+    "entries": [
+      "cmp-2026-03-05-001",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "entry": [
+      "prc-2026-03-05-001"
+    ],
+    "event": [
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002"
+    ],
+    "evt": [
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002"
+    ],
+    "execution": [
+      "evt-2026-03-05-001"
+    ],
+    "explicit": [
+      "evt-2026-03-05-002"
+    ],
+    "fact": [
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002"
+    ],
+    "fail": [
+      "fct-2026-03-05-001"
+    ],
+    "failures": [
+      "evt-2026-03-05-001"
+    ],
+    "fakeout": [
+      "prc-2026-03-05-001"
+    ],
+    "fakeouts": [
+      "cmp-2026-03-05-001"
+    ],
+    "fct": [
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002"
+    ],
+    "figma": [
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-002"
+    ],
+    "files": [
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-002"
+    ],
+    "first": [
+      "prc-2026-03-05-001"
+    ],
+    "for": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "forward": [
+      "fct-2026-03-05-002"
+    ],
+    "from": [
+      "evt-2026-03-05-002"
+    ],
+    "future": [
+      "evt-2026-03-05-002"
+    ],
+    "has": [
+      "fct-2026-03-05-002"
+    ],
+    "high": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "fct-2026-03-05-001"
+    ],
+    "in": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002"
+    ],
+    "initial": [
+      "prc-2026-03-05-001"
+    ],
+    "interface": [
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-002"
+    ],
+    "is": [
+      "fct-2026-03-05-002",
+      "st-2026-03-05-001"
+    ],
+    "knowledge": [
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002"
+    ],
+    "leaving": [
+      "fct-2026-03-05-002"
+    ],
+    "legacy": [
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-002"
+    ],
+    "logic": [
+      "fct-2026-03-05-001"
+    ],
+    "looking": [
+      "fct-2026-03-05-002"
+    ],
+    "made": [
+      "evt-2026-03-05-002"
+    ],
+    "markets": [
+      "cmp-2026-03-05-001"
+    ],
+    "md": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "momentum": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "fct-2026-03-05-001",
+      "prc-2026-03-05-001"
+    ],
+    "mornings": [
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "needed": [
+      "fct-2026-03-05-002"
+    ],
+    "new": [
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-002"
+    ],
+    "on": [
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "open": [
+      "prc-2026-03-05-001"
+    ],
+    "openings": [
+      "evt-2026-03-05-001"
+    ],
+    "opens": [
+      "cmp-2026-03-05-001",
+      "prc-2026-03-05-001"
+    ],
+    "or": [
+      "st-2026-03-05-001"
+    ],
+    "participation": [
+      "st-2026-03-05-001"
+    ],
+    "pattern": [
+      "evt-2026-03-05-001"
+    ],
+    "pitfall": [
+      "cmp-2026-03-05-001"
+    ],
+    "pitfalls": [
+      "cmp-2026-03-05-001"
+    ],
+    "planned": [
+      "evt-2026-03-05-001"
+    ],
+    "play": [
+      "cmp-2026-03-05-001",
+      "prc-2026-03-05-001"
+    ],
+    "playbook": [
+      "prc-2026-03-05-001"
+    ],
+    "poor": [
+      "fct-2026-03-05-001"
+    ],
+    "prc": [
+      "prc-2026-03-05-001"
+    ],
+    "prefer": [
+      "prc-2026-03-05-001"
+    ],
+    "preferences": [
+      "fct-2026-03-05-002"
+    ],
+    "preferred": [
+      "fct-2026-03-05-002"
+    ],
+    "price": [
+      "st-2026-03-05-001"
+    ],
+    "primary": [
+      "fct-2026-03-05-002"
+    ],
+    "procedure": [
+      "prc-2026-03-05-001"
+    ],
+    "rather": [
+      "cmp-2026-03-05-001"
+    ],
+    "recurring": [
+      "cmp-2026-03-05-001"
+    ],
+    "reduce": [
+      "st-2026-03-05-001"
+    ],
+    "regimes": [
+      "fct-2026-03-05-001"
+    ],
+    "reliably": [
+      "fct-2026-03-05-001"
+    ],
+    "repeated": [
+      "evt-2026-03-05-001"
+    ],
+    "reports": [
+      "fct-2026-03-05-001"
+    ],
+    "results": [
+      "fct-2026-03-05-001"
+    ],
+    "retaining": [
+      "evt-2026-03-05-002"
+    ],
+    "role": [
+      "cmp-2026-03-05-001"
+    ],
+    "run": [
+      "prc-2026-03-05-001"
+    ],
+    "session": [
+      "evt-2026-03-05-001"
+    ],
+    "setup": [
+      "cmp-2026-03-05-001"
+    ],
+    "shifting": [
+      "st-2026-03-05-001"
+    ],
+    "should": [
+      "cmp-2026-03-05-001"
+    ],
+    "sketch": [
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-002"
+    ],
+    "slower": [
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "st": [
+      "st-2026-03-05-001"
+    ],
+    "stance": [
+      "st-2026-03-05-001"
+    ],
+    "standard": [
+      "cmp-2026-03-05-001"
+    ],
+    "state": [
+      "st-2026-03-05-001"
+    ],
+    "strategies": [
+      "fct-2026-03-05-001"
+    ],
+    "strategy": [
+      "evt-2026-03-05-001"
+    ],
+    "suggesting": [
+      "prc-2026-03-05-001"
+    ],
+    "surfaced": [
+      "evt-2026-03-05-001"
+    ],
+    "switch": [
+      "evt-2026-03-05-002"
+    ],
+    "switched": [
+      "fct-2026-03-05-002"
+    ],
+    "tend": [
+      "fct-2026-03-05-001"
+    ],
+    "than": [
+      "cmp-2026-03-05-001"
+    ],
+    "that": [
+      "evt-2026-03-05-001"
+    ],
+    "the": [
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "their": [
+      "fct-2026-03-05-002"
+    ],
+    "this": [
+      "cmp-2026-03-05-001"
+    ],
+    "timeline": [
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002"
+    ],
+    "to": [
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002",
+      "st-2026-03-05-001"
+    ],
+    "tool": [
+      "fct-2026-03-05-002"
+    ],
+    "toward": [
+      "st-2026-03-05-001"
+    ],
+    "trader": [
+      "cmp-2026-03-05-001",
+      "prc-2026-03-05-001"
+    ],
+    "trading": [
+      "evt-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "treated": [
+      "cmp-2026-03-05-001"
+    ],
+    "treating": [
+      "cmp-2026-03-05-001"
+    ],
+    "unstable": [
+      "st-2026-03-05-001"
+    ],
+    "use": [
+      "evt-2026-03-05-002",
+      "prc-2026-03-05-001"
+    ],
+    "user": [
+      "evt-2026-03-05-001",
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002",
+      "st-2026-03-05-001"
+    ],
+    "volatile": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "volatility": [
+      "cmp-2026-03-05-001",
+      "evt-2026-03-05-001",
+      "fct-2026-03-05-001"
+    ],
+    "wait": [
+      "prc-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "when": [
+      "fct-2026-03-05-001",
+      "st-2026-03-05-001"
+    ],
+    "while": [
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-002"
+    ],
+    "work": [
+      "evt-2026-03-05-002",
+      "fct-2026-03-05-001",
+      "fct-2026-03-05-002"
+    ],
+    "workflow": [
+      "fct-2026-03-05-002"
+    ]
+  }
+}

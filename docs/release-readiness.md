@@ -13,10 +13,11 @@ boundary.
 - `@nmc/memory-contracts`, `@nmc/memory-ingest`, `@nmc/memory-canon`,
   `@nmc/memory-maintainer`, `@nmc/memory-workspace`, `@nmc/memory-agents`,
   `@nmc/memory-pipeline`, and `memory-os-runtime`: independent MemoryOS core
+- `packages/memoryos-app`: production standalone install/run surface
 - `packages/memory-os-gateway`: production programmatic surface
 - `packages/control-plane`: production read-only operator surface
-- `packages/adapter-openclaw`: production connector/install surface over that
-  independent core
+- `packages/adapter-openclaw`: production optional OpenClaw connector/install
+  surface over that independent core
 
 The following packages remain intentionally bounded rather than general
 production connectors:
@@ -38,11 +39,14 @@ true:
 3. The managed workspace layout under `system/` remains unchanged.
 4. Runtime remains non-authoritative and cannot write canon directly.
 5. Canon writes stay behind the single promotion path.
-6. The supported connector/install path keeps `openclaw memoryos setup`,
+6. The supported standalone app path works without OpenClaw while preserving the
+   existing `system/` layout, canon boundaries, and app-owned `memoryos run`
+   host loop.
+7. The supported OpenClaw connector path keeps `openclaw memoryos setup`,
    auto-bootstrap behavior, and `openclaw.plugin.json` intact without becoming
    the product boundary.
-7. The contract and integration baselines are green.
-8. The production-readiness gate is green.
+8. The contract and integration baselines are green.
+9. The production-readiness gate is green.
 
 ## Production Gate
 
@@ -67,6 +71,9 @@ For a release candidate, these manual spot checks are still worth doing after
 the automated gate is green:
 
 - install the packed `adapter-openclaw` artifact in a temp OpenClaw project
+- run `node ./packages/memoryos-app/bin/memoryos.js init`
+- run `node ./packages/memoryos-app/bin/memoryos.js run --phase verify --once`
+- run `node ./packages/memoryos-app/bin/memoryos.js status`
 - run `openclaw memoryos setup`
 - confirm the managed workspace appears under `system/`
 - run `memory-control-plane snapshot`

@@ -18,7 +18,21 @@ const DIRECT_ADAPTER_CONTRACTS = Object.freeze([
   'system workspace layout',
 ]);
 
+const STANDALONE_APP_CONTRACTS = Object.freeze([
+  'memoryos init',
+  'memoryos run',
+  'standalone system workspace bootstrap',
+  'system workspace layout',
+  'canon promotion boundary',
+]);
+
 const PACKAGE_MATRIX = Object.freeze([
+  {
+    package: 'memoryos-app',
+    layer: 'app',
+    status: 'production',
+    surface: 'supported-standalone-app-surface',
+  },
   {
     package: '@nmc/memory-contracts',
     layer: 'core',
@@ -178,6 +192,12 @@ function getControlPlaneReleaseQualification(snapshot) {
       cli: 'memory-control-plane',
       status: 'supported-migration-release-surface',
       commands: SUPPORTED_CONTROL_PLANE_COMMANDS,
+    },
+    standaloneAppSurface: {
+      package: 'memoryos-app',
+      cli: 'memoryos',
+      status: 'supported-standalone-app-surface',
+      preservedContracts: STANDALONE_APP_CONTRACTS,
     },
     directAdapterSurface: {
       package: 'adapter-openclaw',

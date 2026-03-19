@@ -1,0 +1,76 @@
+{
+  "kind": "verification-receipt",
+  "schemaVersion": "1.0",
+  "authoritative": false,
+  "surface": "derived-read-index",
+  "action": "verify",
+  "status": "ok",
+  "reason": "gateway.verify.read-index-check",
+  "refreshedAt": "2026-03-19T21:45:11.278Z",
+  "namespace": {
+    "kind": "memory-namespace",
+    "schemaVersion": "1.0",
+    "mode": "single-tenant-default",
+    "defaultNamespace": true,
+    "namespaceKey": "default/default/default",
+    "actorKey": "default/default",
+    "tenantId": "default",
+    "spaceId": "default",
+    "userId": "default",
+    "canonicalScope": {
+      "tenantId": "default",
+      "spaceId": "default",
+      "userId": "default"
+    },
+    "actor": {
+      "userId": "default",
+      "agentId": null,
+      "roleId": null
+    },
+    "scope": {
+      "tenantId": "default",
+      "spaceId": "default",
+      "userId": "default",
+      "agentId": null,
+      "roleId": null
+    },
+    "pathing": {
+      "canonicalRoot": "core",
+      "canonicalPathMode": "workspace-root-default",
+      "layout": "single-tenant-default",
+      "scopedPathsSupported": true,
+      "derivedReadIndexPath": "core/meta/read-index.json",
+      "runtimeShadowRoot": "runtime/shadow",
+      "runtimeRunsRoot": "runtime/shadow/runs",
+      "runtimeManifestPath": "runtime/shadow/manifest.json",
+      "runtimePathMode": "workspace-shadow-default"
+    },
+    "memoryRoot": "/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/fixtures/workspace",
+    "surface": "verification-provenance",
+    "authorityBoundary": {
+      "runtimeAuthoritative": false,
+      "canonicalPromotionPath": "single-promoter"
+    }
+  },
+  "rebuildableFrom": [
+    "canon"
+  ],
+  "authorityBoundary": {
+    "runtimeAuthoritative": false,
+    "canonicalPromotionPath": "single-promoter"
+  },
+  "evidence": {
+    "sourceFresh": true,
+    "recordCount": 7,
+    "fileCount": 15,
+    "tokenCount": 149,
+    "sourceContentFingerprint": "056fc5a13bd7948f4327af78ed0b2d94f004b5d892f8c2df86d286f509ee1ba3",
+    "manifestRecordChecksumDigest": "056fc5a13bd7948f4327af78ed0b2d94f004b5d892f8c2df86d286f509ee1ba3",
+    "manifestAligned": true,
+    "reasonCodes": []
+  },
+  "outputs": {
+    "outputPath": "core/meta/read-index.json",
+    "outputDigest": "4c171634679868a9576b21e5f49012242b29387c13877fe94b7c49c4668de11d"
+  }
+}

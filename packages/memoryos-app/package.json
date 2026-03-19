@@ -1,0 +1,31 @@
+{
+  "name": "memoryos-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone CLI application surface for MemoryOS.v1.",
+  "type": "commonjs",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./cli": "./lib/cli.js",
+    "./runtime-host": "./lib/runtime-host.js",
+    "./setup": "./lib/setup.js"
+  },
+  "files": [
+    "bin/",
+    "index.js",
+    "lib/",
+    "README.md"
+  ],
+  "bin": {
+    "memoryos": "./bin/memoryos.js"
+  },
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  },
+  "dependencies": {
+    "@nmc/memory-workspace": "0.0.0",
+    "control-plane": "0.0.0",
+    "memory-os-gateway": "0.0.0"
+  }
+}

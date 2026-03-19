@@ -6,9 +6,14 @@
 ## Progress Snapshot
 
 - completed: `connector-neutral extract and curate execution contract — define how peer adapters perform extract and curate without OpenClaw-shaped skill assumptions while preserving the shared pipeline UX, role bundle intake, and core-owned promotion boundary`
+- recent additive work: `standalone app runtime host loop — add app-owned \`memoryos run\` over the existing standalone CLI with lock/state/run receipts under runtime/host/ while preserving gateway/runtime/promoter authority boundaries`
 - next: `adapter-owned source intake and execution receipt hardening — make peer-adapter Phase A/B inputs and run receipts more machine-readable without widening canon authority or reintroducing OpenClaw-first assumptions`
 - last verified on: `2026-03-20`
 - verified in this slice:
+  - `node packages/memoryos-app/test/validate-fixtures.js`
+  - `node -e "const cp=require('./packages/control-plane'); const snap=cp.getControlPlaneSnapshot({memoryRoot:'./tests/fixtures/workspace',systemRoot:'./packages/adapter-openclaw/templates/workspace-system'}); if (!snap.releaseQualification.standaloneAppSurface.preservedContracts.includes('memoryos run')) throw new Error('missing memoryos run'); console.log('ok');"`
+  - `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+  - `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/memory-pipeline/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/adapter-codex/test/validate-fixtures.js`

@@ -1,12 +1,12 @@
 # MemoryOS.v1
 
-Monorepo for MemoryOS.v1: an autonomous, self-sufficient memory operating system with optional connector packages for external LLM and agent runtimes.
+Monorepo for MemoryOS.v1: an autonomous, self-sufficient memory operating system with a standalone app surface and optional connector packages for external LLM and agent runtimes.
 
-The product boundary is the independent Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `adapter-openclaw` is one production connector surface, while `adapter-codex` and `adapter-claude` are bounded connector packages over the same core.
+The product boundary is the independent Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `memoryos-app` is the primary standalone install/run surface, `adapter-openclaw` is an optional production connector surface, and `adapter-codex` plus `adapter-claude` are bounded connector packages over the same core.
 
-`packages/adapter-openclaw` is the supported OpenClaw adapter/plugin surface for MemoryOS.v1. The old `nmc-memory-plugin` mirror has been retired and removed from the repository.
+`packages/memoryos-app` is the supported standalone app surface for MemoryOS.v1. `packages/adapter-openclaw` remains the supported OpenClaw adapter/plugin surface. The old `nmc-memory-plugin` mirror has been retired and removed from the repository.
 
-Use this document as the entry point. Use [adapter README](./packages/adapter-openclaw/README.md) for the OpenClaw adapter surface, [supported surfaces](./docs/supported-surfaces.md) for the package matrix, [implementation guide](./docs/legacy/implementation-guide.md) for day-2 operations, [release readiness](./docs/release-readiness.md) for the current production gate, and [deliberate migration release plan](./docs/legacy/deliberate-migration-release-plan.md) for historical release-cutover context.
+Use this document as the entry point. Use [standalone app README](./packages/memoryos-app/README.md) for the primary local runtime surface, [adapter README](./packages/adapter-openclaw/README.md) for the OpenClaw connector surface, [supported surfaces](./docs/supported-surfaces.md) for the package matrix, [implementation guide](./docs/legacy/implementation-guide.md) for day-2 operations, [release readiness](./docs/release-readiness.md) for the current production gate, and [deliberate migration release plan](./docs/legacy/deliberate-migration-release-plan.md) for historical release-cutover context.
 
 ## What It Provides
 
@@ -18,7 +18,23 @@ Use this document as the entry point. Use [adapter README](./packages/adapter-op
 
 ## Quick Start
 
-Install the optional OpenClaw adapter from this repository:
+Run MemoryOS.v1 directly from this repository without OpenClaw:
+
+```bash
+node ./packages/memoryos-app/bin/memoryos.js init
+node ./packages/memoryos-app/bin/memoryos.js run --phase verify --once
+node ./packages/memoryos-app/bin/memoryos.js status
+```
+
+Run maintenance against the standalone workspace:
+
+```bash
+node ./packages/memoryos-app/bin/memoryos.js verify
+node ./packages/memoryos-app/bin/memoryos.js health
+node ./packages/memoryos-app/bin/memoryos.js pipeline 2026-03-05 --phase verify
+```
+
+Install the optional OpenClaw adapter from this repository when you want the OpenClaw host/runtime integration:
 
 ```bash
 openclaw plugins install ./packages/adapter-openclaw
@@ -30,16 +46,10 @@ The plugin auto-bootstraps on first runtime load by default. To run setup explic
 openclaw memoryos setup
 ```
 
-For local development without installing the package, use the standalone setup script:
+For local development without installing the OpenClaw package, use the adapter setup script:
 
 ```bash
 node ./packages/adapter-openclaw/lib/setup-cli.js --state-dir ~/.openclaw
-```
-
-Run the daily consolidation pipeline:
-
-```bash
-./packages/adapter-openclaw/skills/memory-pipeline/pipeline.sh 2026-03-05
 ```
 
 ## Architecture
@@ -58,11 +68,13 @@ MemoryOS.v1 centers on the extracted core packages:
 - `memory-os-gateway`
 - `memory-os-runtime`
 - `control-plane`
+- `memoryos-app`
 
-These packages define the memory system itself. Connectors are optional and sit on top.
+These packages define the standalone memory system and its stable operator/programmatic entrypoints. Connectors are optional and sit on top.
 
 ### Optional Connectors
 
+- `packages/memoryos-app` attaches MemoryOS.v1 to a standalone local CLI/runtime surface.
 - `packages/adapter-openclaw` attaches MemoryOS.v1 to the OpenClaw plugin/runtime model.
 - `packages/adapter-codex` attaches MemoryOS.v1 to Codex-oriented execution
   flows, including connector-neutral `extract` and `curate` execution through
@@ -199,14 +211,15 @@ Run the production readiness gate:
 For an already scaffolded workspace, the fastest operational spot-check is:
 
 ```bash
-./packages/adapter-openclaw/skills/memory-verify/verify.sh ~/.openclaw/workspace/system/memory
-./packages/adapter-openclaw/skills/memory-status/status.sh ~/.openclaw/workspace/system/memory
+node ./packages/memoryos-app/bin/memoryos.js verify
+node ./packages/memoryos-app/bin/memoryos.js status
 ```
 
 ## Documentation Map
 
 | Document | Role |
 |---|---|
+| [packages/memoryos-app/README.md](./packages/memoryos-app/README.md) | Package-level standalone install, bootstrap, and local runtime CLI reference. |
 | [packages/adapter-openclaw/README.md](./packages/adapter-openclaw/README.md) | Package-level install, setup, structure, and OpenClaw adapter reference. |
 | [docs/supported-surfaces.md](./docs/supported-surfaces.md) | Production, bounded, internal, and retired package matrix for the current product boundary. |
 | [docs/release-readiness.md](./docs/release-readiness.md) | Current production go/no-go gate and release checklist for the independent MemoryOS repository. |

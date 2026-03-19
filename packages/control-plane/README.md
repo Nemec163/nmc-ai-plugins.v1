@@ -71,7 +71,7 @@ Control-plane v3 stays intentionally careful:
 - manual interventions never mutate canon, proposal receipts, or job receipts directly
 - analytics and audit surfaces summarize queue, intervention, lock, and runtime history without becoming source-of-truth
 - runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
-- `snapshot` and `health` emit release-qualification metadata that marks `control-plane` as the supported operator surface and `adapter-openclaw` as the supported OpenClaw direct-install surface
+- `snapshot` and `health` emit release-qualification metadata that marks `control-plane` as the supported operator surface, `memoryos-app` as the supported standalone app surface, and `adapter-openclaw` as the supported OpenClaw connector surface
 - the same release-qualification metadata carries a package matrix for the current product boundary so consumers can inspect which packages are `production`, `bounded`, or `internal`
 - the same release qualification records `nmc-memory-plugin` as a retired legacy shell rather than an active production surface
 - `snapshot.gateway.procedures` now carries the canonical procedure catalog so operators can inspect lineage/version state without implying control-plane ownership of promotion or rollback
