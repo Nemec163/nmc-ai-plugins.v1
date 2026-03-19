@@ -78,6 +78,7 @@ function blankWritableCanon(memoryRoot) {
     'core/user/knowledge/work.md',
     'core/user/knowledge/preferences.md',
     'core/user/state/current.md',
+    'core/agents/trader/PLAYBOOK.md',
     'core/agents/trader/PITFALLS.md',
   ];
 
@@ -95,7 +96,7 @@ function blankWritableCanon(memoryRoot) {
 
   fs.writeFileSync(
     path.join(memoryRoot, 'core/meta/manifest.json'),
-    '{\n  "schema_version": "1.0",\n  "last_updated": null,\n  "record_counts": {\n    "events": 0,\n    "facts": 0,\n    "states": 0,\n    "identities": 0,\n    "competences": 0\n  },\n  "checksums": {},\n  "edges_count": 0\n}\n',
+    '{\n  "schema_version": "1.0",\n  "last_updated": null,\n  "record_counts": {\n    "events": 0,\n    "facts": 0,\n    "states": 0,\n    "identities": 0,\n    "competences": 0,\n    "procedures": 0\n  },\n  "checksums": {},\n  "edges_count": 0\n}\n',
     'utf8'
   );
   fs.writeFileSync(path.join(memoryRoot, 'core/meta/graph/edges.jsonl'), '', 'utf8');
@@ -105,10 +106,12 @@ function main() {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'memory-canon-fixture-'));
   const workspaceCopy = path.join(tempRoot, 'workspace');
   const promotionCopy = path.join(tempRoot, 'promotion-workspace');
+  const procedureUpdateCopy = path.join(tempRoot, 'procedure-update-workspace');
 
   try {
     copyDirectory(WORKSPACE_ROOT, workspaceCopy);
     copyDirectory(WORKSPACE_ROOT, promotionCopy);
+    copyDirectory(WORKSPACE_ROOT, procedureUpdateCopy);
 
     const verification = verifyCanonWorkspace({
       memoryRoot: workspaceCopy,
@@ -122,6 +125,7 @@ function main() {
       states: 1,
       identities: 0,
       competences: 1,
+      procedures: 1,
     });
     assert.equal(verification.edgesCount, 6);
     assert.equal(verification.warningCount, 0);
@@ -239,6 +243,7 @@ function main() {
       'core/user/knowledge/work.md',
       'core/user/knowledge/preferences.md',
       'core/user/state/current.md',
+      'core/agents/trader/PLAYBOOK.md',
       'core/agents/trader/PITFALLS.md',
     ];
 
@@ -268,8 +273,63 @@ function main() {
       fs.readFileSync(path.join(workspaceCopy, 'core/meta/graph/edges.jsonl'), 'utf8')
     );
 
+    fs.writeFileSync(
+      path.join(procedureUpdateCopy, 'intake/pending/2026-03-19.md'),
+      [
+        '---',
+        'batch_date: "2026-03-19"',
+        'schema_version: "1.0"',
+        'generated_by: "procedure-version-fixture"',
+        'updated_at: "2026-03-19T09:30:00Z"',
+        '---',
+        '# Extracted Claims - 2026-03-19',
+        '',
+        '## claim-20260319-001',
+        '- source_session: "trader-2026-03-19-xyz"',
+        '- source_agent: "trader"',
+        '- observed_at: "2026-03-19T09:30:00Z"',
+        '- confidence: "high"',
+        '- tags: ["trading", "playbook", "procedure"]',
+        '- target_layer: "agent"',
+        '- target_domain: "trader"',
+        '- target_type: "procedure"',
+        '- procedure_key: "volatile-open-confirmation-checklist"',
+        '- acceptance: ["Wait for fakeout confirmation before calling momentum continuation.", "Escalate to confirmation-first guidance when the open is volatile."]',
+        '- feedback_refs: ["runtime/shadow/runs/trader-2026-03-19-xyz.json#procedureFeedback/pf-002"]',
+        '- claim: "Tighten the confirmation-first checklist so volatile opens require an explicit fakeout check before momentum guidance."',
+        '- curator_decision: "accept"',
+        '- curator_notes: "Promote runtime feedback into v2 of the playbook procedure."',
+        '',
+      ].join('\n'),
+      'utf8'
+    );
+
+    promoter.promote({
+      type: 'canon-write',
+      memory_root: procedureUpdateCopy,
+      writer: CANON_SINGLE_WRITER,
+      holder: 'fixture-procedure-promoter',
+      operation: 'core-promoter',
+      batch_date: '2026-03-19',
+    });
+
+    const procedureRecords = parseProjectionRecords(
+      fs.readFileSync(path.join(procedureUpdateCopy, 'core/agents/trader/PLAYBOOK.md'), 'utf8')
+    ).map((record) => record.metadata);
+    const version1 = procedureRecords.find((record) => record.record_id === 'prc-2026-03-05-001');
+    const version2 = procedureRecords.find((record) => record.record_id === 'prc-2026-03-19-001');
+
+    assert.equal(version1.status, 'deprecated');
+    assert.equal(version2.type, 'procedure');
+    assert.equal(version2.procedure_key, 'volatile-open-confirmation-checklist');
+    assert.equal(version2.version, '2');
+    assert.equal(version2.supersedes, 'prc-2026-03-05-001');
+    assert.deepEqual(version2.feedback_refs, [
+      'runtime/shadow/runs/trader-2026-03-19-xyz.json#procedureFeedback/pf-002',
+    ]);
+
     console.log(
-      'Validated 6 canonical record fixtures and rebuilt 6 graph edges through @nmc/memory-canon.'
+      'Validated 7 canonical record fixtures and rebuilt 6 graph edges through @nmc/memory-canon.'
     );
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });

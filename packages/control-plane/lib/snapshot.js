@@ -46,6 +46,11 @@ function getControlPlaneSnapshot(options = {}) {
       memoryRoot,
     })
   );
+  const proceduresSection = readSection(() =>
+    gateway.listProcedures({
+      memoryRoot,
+    })
+  );
   const queues = getControlPlaneQueues({
     memoryRoot,
     skipVerify: options.skipVerify,
@@ -99,6 +104,9 @@ function getControlPlaneSnapshot(options = {}) {
       current: currentSection.ok
         ? currentSection.value
         : { status: 'error', error: currentSection.error.message },
+      procedures: proceduresSection.ok
+        ? proceduresSection.value
+        : { status: 'error', error: proceduresSection.error.message },
     },
     queues,
     handoff: {

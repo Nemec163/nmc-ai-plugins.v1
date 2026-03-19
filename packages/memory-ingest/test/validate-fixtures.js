@@ -167,7 +167,7 @@ function main() {
 
   assert.equal(transcriptFiles.length, 2, 'Expected two transcript fixture files');
   assert.equal(transcriptEventCount, 16, 'Expected sixteen transcript fixture events');
-  assert.equal(claims.length, 6, 'Expected six extracted claim fixtures');
+  assert.equal(claims.length, 7, 'Expected seven extracted claim fixtures');
 
   if (transcriptFailures.length > 0 || claimFailures.length > 0 || !frontmatterValidation.valid) {
     if (!frontmatterValidation.valid) {

@@ -49,6 +49,7 @@ function countRecordIdsByType(recordIds) {
     states: 0,
     identities: 0,
     competences: 0,
+    procedures: 0,
   };
 
   for (const recordId of recordIds) {
@@ -62,6 +63,8 @@ function countRecordIdsByType(recordIds) {
       counts.identities += 1;
     } else if (recordId.startsWith(`${RECORD_TYPE_PREFIXES.competence}-`)) {
       counts.competences += 1;
+    } else if (recordId.startsWith(`${RECORD_TYPE_PREFIXES.procedure}-`)) {
+      counts.procedures += 1;
     }
   }
 
@@ -88,7 +91,8 @@ function serializeManifestSnapshot(manifest) {
     `    "facts": ${manifest.record_counts.facts},`,
     `    "states": ${manifest.record_counts.states},`,
     `    "identities": ${manifest.record_counts.identities},`,
-    `    "competences": ${manifest.record_counts.competences}`,
+    `    "competences": ${manifest.record_counts.competences},`,
+    `    "procedures": ${manifest.record_counts.procedures}`,
     '  },',
     '  "checksums": {',
   ];

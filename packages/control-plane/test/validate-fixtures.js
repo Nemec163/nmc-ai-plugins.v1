@@ -266,6 +266,12 @@ function main() {
     assert.equal(snapshot.operatorSurface.handoffVisibility, 'control-plane-owned');
     assert.equal(snapshot.runtime.authoritative, false);
     assert.equal(snapshot.gateway.current.projections.state.records[0].recordId, 'st-2026-03-05-001');
+    assert.equal(snapshot.gateway.procedures.kind, 'procedure-catalog');
+    assert.equal(snapshot.gateway.procedures.summary.lineageCount, 1);
+    assert.equal(
+      snapshot.gateway.procedures.procedures[0].procedureKey,
+      'volatile-open-confirmation-checklist'
+    );
     assert.equal(snapshot.queues.proposals.count, 1);
     assert.equal(snapshot.queues.jobs.count, 2);
     assert.equal(snapshot.queues.lock.exists, true);

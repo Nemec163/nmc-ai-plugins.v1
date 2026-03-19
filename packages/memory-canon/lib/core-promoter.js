@@ -29,6 +29,13 @@ function titleCase(value) {
     .join(' ');
 }
 
+function slugify(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -53,6 +60,36 @@ function parseArrayValue(value) {
   } catch (error) {
     return [];
   }
+}
+
+function parsePositiveInteger(value) {
+  const trimmed = String(value == null ? '' : value).trim();
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(trimmed, 10);
+  return parsed > 0 ? parsed : null;
+}
+
+function parseYamlStringArray(lines, startIndex) {
+  const items = [];
+  let index = startIndex;
+
+  while (index < lines.length) {
+    const itemMatch = lines[index].match(/^  - (.*)$/);
+    if (!itemMatch) {
+      break;
+    }
+
+    items.push(stripQuotes(itemMatch[1]));
+    index += 1;
+  }
+
+  return {
+    items,
+    nextIndex: index,
+  };
 }
 
 function parsePendingBatch(content) {
@@ -92,14 +129,20 @@ function parsePendingBatch(content) {
 
       const key = match[1];
       const rawValue = match[2];
-      if (key === 'tags') {
-        claim.tags = parseArrayValue(rawValue);
+      if (key === 'tags' || key === 'acceptance' || key === 'feedback_refs') {
+        claim[key] = parseArrayValue(rawValue);
+      } else if (key === 'procedure_version') {
+        claim.procedure_version = parsePositiveInteger(rawValue);
+      } else if (key === 'version') {
+        claim.version = parsePositiveInteger(rawValue);
       } else {
         claim[key] = stripQuotes(rawValue);
       }
     }
 
     claim.tags = Array.isArray(claim.tags) ? claim.tags : [];
+    claim.acceptance = Array.isArray(claim.acceptance) ? claim.acceptance : [];
+    claim.feedback_refs = Array.isArray(claim.feedback_refs) ? claim.feedback_refs : [];
     claims.push(claim);
   }
 
@@ -134,18 +177,10 @@ function parseRecordMetadata(block) {
     const key = match[1];
     const rawValue = match[2] || '';
 
-    if (key === 'evidence') {
-      const evidence = [];
-      index += 1;
-      while (index < lines.length) {
-        const itemMatch = lines[index].match(/^  - (.*)$/);
-        if (!itemMatch) {
-          break;
-        }
-        evidence.push(stripQuotes(itemMatch[1]));
-        index += 1;
-      }
-      metadata.evidence = evidence;
+    if (key === 'evidence' || key === 'acceptance' || key === 'feedback_refs') {
+      const parsed = parseYamlStringArray(lines, index + 1);
+      metadata[key] = parsed.items;
+      index = parsed.nextIndex;
       continue;
     }
 
@@ -181,7 +216,13 @@ function parseRecordMetadata(block) {
       continue;
     }
 
-    metadata[key] = stripQuotes(rawValue);
+    if (key === 'tags') {
+      metadata.tags = parseArrayValue(rawValue);
+    } else if (key === 'version') {
+      metadata.version = parsePositiveInteger(rawValue);
+    } else {
+      metadata[key] = stripQuotes(rawValue);
+    }
     index += 1;
   }
 
@@ -352,6 +393,17 @@ function serializeScalar(value) {
   return JSON.stringify(value);
 }
 
+function serializeStringArray(lines, key, values) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return;
+  }
+
+  lines.push(`${key}:`);
+  for (const value of values) {
+    lines.push(`  - ${JSON.stringify(value)}`);
+  }
+}
+
 function serializeRecord(record) {
   const lines = [
     `<a id="${record.record_id}"></a>`,
@@ -383,12 +435,23 @@ function serializeRecord(record) {
     lines.push(`role: ${record.role}`);
   }
 
+  if (record.procedure_key) {
+    lines.push(`procedure_key: ${JSON.stringify(record.procedure_key)}`);
+  }
+
+  if (record.version) {
+    lines.push(`version: ${serializeScalar(record.version)}`);
+  }
+
   if (record.supersedes) {
     lines.push(`supersedes: ${JSON.stringify(record.supersedes)}`);
   }
 
+  serializeStringArray(lines, 'acceptance', record.acceptance);
+  serializeStringArray(lines, 'feedback_refs', record.feedback_refs);
+
+  lines.push('links:');
   if (Array.isArray(record.links) && record.links.length > 0) {
-    lines.push('links:');
     for (const link of record.links) {
       lines.push(`  - rel: ${link.rel}`);
       lines.push(`    target: ${JSON.stringify(link.target)}`);
@@ -418,13 +481,18 @@ function toSerializableRecord(parsedRecord) {
     as_of: parsedRecord.metadata.as_of || null,
     domain: parsedRecord.metadata.domain || null,
     role: parsedRecord.metadata.role || null,
+    procedure_key: parsedRecord.metadata.procedure_key || null,
+    version: parsedRecord.metadata.version || null,
     supersedes: parsedRecord.metadata.supersedes || null,
+    acceptance: [...(parsedRecord.metadata.acceptance || [])],
+    feedback_refs: [...(parsedRecord.metadata.feedback_refs || [])],
     links: [...(parsedRecord.metadata.links || [])],
+    tags: Array.isArray(parsedRecord.metadata.tags) ? [...parsedRecord.metadata.tags] : [],
     body: parsedRecord.body || '',
   };
 }
 
-function upsertRecordInFile(filePath, scaffold, record, options = {}) {
+function writeRecordsToFile(filePath, scaffold, records, options = {}) {
   ensureDir(path.dirname(filePath));
   const existingContent = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : scaffold;
   const firstRecordIndex = existingContent.indexOf('<a id="');
@@ -432,18 +500,7 @@ function upsertRecordInFile(filePath, scaffold, record, options = {}) {
     ? existingContent
     : existingContent.slice(0, firstRecordIndex)
   ).trimEnd();
-  const existingRecords = parseExistingRecords(existingContent).map(toSerializableRecord);
-  const matchingIndex = existingRecords.findIndex(
-    (candidate) => candidate.record_id === record.record_id
-  );
-
-  if (matchingIndex === -1) {
-    existingRecords.push(record);
-  } else {
-    existingRecords[matchingIndex] = record;
-  }
-
-  const serializedRecords = existingRecords.map((candidate) => serializeRecord(candidate).trimEnd());
+  const serializedRecords = records.map((candidate) => serializeRecord(candidate).trimEnd());
   let nextContent = header;
   if (serializedRecords.length > 0) {
     nextContent = `${header}\n\n${serializedRecords.join('\n\n')}\n`;
@@ -460,6 +517,29 @@ function upsertRecordInFile(filePath, scaffold, record, options = {}) {
   }
 
   fs.writeFileSync(filePath, nextContent, 'utf8');
+}
+
+function upsertRecordInFile(filePath, scaffold, record, options = {}) {
+  const existingContent = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : scaffold;
+  const existingRecords = parseExistingRecords(existingContent).map(toSerializableRecord);
+  const matchingIndex = existingRecords.findIndex(
+    (candidate) => candidate.record_id === record.record_id
+  );
+
+  if (matchingIndex === -1) {
+    existingRecords.push(record);
+  } else {
+    existingRecords[matchingIndex] = record;
+  }
+
+  writeRecordsToFile(filePath, scaffold, existingRecords, options);
+}
+
+function mutateRecordsInFile(filePath, scaffold, mutate, options = {}) {
+  const existingContent = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : scaffold;
+  const existingRecords = parseExistingRecords(existingContent).map(toSerializableRecord);
+  const nextRecords = mutate(existingRecords) || existingRecords;
+  writeRecordsToFile(filePath, scaffold, nextRecords, options);
 }
 
 function selectCompetenceSection(claim) {
@@ -636,6 +716,15 @@ function inferClaimType(claim) {
     return String(claim.target_type).toLowerCase();
   }
   if (claim.target_layer === 'agent') {
+    const tags = Array.isArray(claim.tags) ? claim.tags.map((tag) => String(tag).toLowerCase()) : [];
+    if (
+      tags.includes('playbook') ||
+      tags.includes('procedure') ||
+      isNonEmptyString(claim.procedure_key) ||
+      (Array.isArray(claim.acceptance) && claim.acceptance.length > 0)
+    ) {
+      return 'procedure';
+    }
     return 'competence';
   }
   if (claim.target_layer === 'L5' || claim.target_domain === 'state') {
@@ -663,8 +752,64 @@ function buildRecordSummary(claim, type) {
   return cleaned;
 }
 
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function buildProcedureAcceptance(claim) {
+  const acceptance = Array.isArray(claim.acceptance)
+    ? claim.acceptance.map((entry) => String(entry).trim()).filter(Boolean)
+    : [];
+
+  if (acceptance.length > 0) {
+    return acceptance;
+  }
+
+  return [sentenceCase(cleanSentence(claim.claim))];
+}
+
+function buildProcedureBody(claim, record) {
+  const lines = [
+    `${sentenceCase(cleanSentence(claim.claim))}.`,
+    '',
+    'Acceptance criteria:',
+  ];
+
+  for (const criterion of record.acceptance) {
+    lines.push(`- ${criterion}`);
+  }
+
+  return lines.join('\n');
+}
+
 function buildRecordBody(claim) {
   return `${sentenceCase(cleanSentence(claim.claim))}.`;
+}
+
+function resolveProcedureKey(claim) {
+  if (isNonEmptyString(claim.procedure_key)) {
+    return String(claim.procedure_key).trim();
+  }
+
+  return slugify(cleanSentence(claim.claim));
+}
+
+function getLatestProcedureRecord(filePath, procedureKey) {
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  const existingRecords = parseExistingRecords(fs.readFileSync(filePath, 'utf8'))
+    .map(toSerializableRecord)
+    .filter(
+      (record) =>
+        record.type === 'procedure' &&
+        record.procedure_key === procedureKey &&
+        typeof record.version === 'number'
+    )
+    .sort((left, right) => right.version - left.version || parseTimestamp(right.updated_at) - parseTimestamp(left.updated_at));
+
+  return existingRecords[0] || null;
 }
 
 function targetPathForRecord(memoryRoot, claim, type) {
@@ -696,6 +841,10 @@ function targetPathForRecord(memoryRoot, claim, type) {
     return path.join(memoryRoot, 'core/user/identity/current.md');
   }
 
+  if (type === 'procedure') {
+    return path.join(memoryRoot, 'core/agents', claim.target_domain, 'PLAYBOOK.md');
+  }
+
   const section = selectCompetenceSection(claim);
   return path.join(memoryRoot, 'core/agents', claim.target_domain, `${section}.md`);
 }
@@ -723,7 +872,7 @@ function buildScaffold(memoryRoot, filePath, claim, type, updatedAt) {
     return buildIdentityChangelogScaffold(updatedAt);
   }
 
-  if (type === 'competence') {
+  if (type === 'competence' || type === 'procedure') {
     return buildCompetenceScaffold(claim.target_domain, path.basename(filePath, '.md'), updatedAt);
   }
 
@@ -775,6 +924,7 @@ function promoteCanonBatch(request) {
     st: latestRecordSuffix(memoryRoot, 'st', batchDate),
     id: latestRecordSuffix(memoryRoot, 'id', batchDate),
     cmp: latestRecordSuffix(memoryRoot, 'cmp', batchDate),
+    prc: latestRecordSuffix(memoryRoot, 'prc', batchDate),
   };
 
   const filesTouched = new Set();
@@ -794,7 +944,7 @@ function promoteCanonBatch(request) {
       type: 'event',
       summary: buildEventSummary(group),
       evidence: group
-        .filter((claim) => inferClaimType(claim) !== 'competence')
+        .filter((claim) => !['competence', 'procedure'].includes(inferClaimType(claim)))
         .map((claim) => `intake/pending/${batchDate}.md#${claim.claim_id}`),
       confidence: strongestConfidence(group),
       status: 'active',
@@ -833,6 +983,7 @@ function promoteCanonBatch(request) {
       state: 'st',
       identity: 'id',
       competence: 'cmp',
+      procedure: 'prc',
     }[type];
     const eventInfo = eventByClaimId.get(claim.claim_id) || null;
     const recordId =
@@ -846,7 +997,7 @@ function promoteCanonBatch(request) {
       confidence: strongestConfidence(eventInfo ? eventInfo.group : [claim]),
       status: 'active',
       updated_at: claim.observed_at || request.updated_at || new Date().toISOString(),
-      links: eventInfo
+      links: eventInfo && type !== 'procedure'
         ? [
             {
               rel: 'derived_from',
@@ -867,9 +1018,61 @@ function promoteCanonBatch(request) {
       record.role = claim.target_domain;
       record.domain = claim.tags && claim.tags[0] ? String(claim.tags[0]) : claim.target_domain;
     }
+    if (type === 'procedure') {
+      const filePath = targetPathForRecord(memoryRoot, { ...claim, batch_date: batchDate }, type);
+      const procedureKey = resolveProcedureKey(claim);
+      const previousVersion = getLatestProcedureRecord(filePath, procedureKey);
+      const procedureVersion =
+        claim.procedure_version ||
+        claim.version ||
+        (previousVersion ? previousVersion.version + 1 : 1);
+
+      record.role = claim.target_domain;
+      record.procedure_key = procedureKey;
+      record.version = procedureVersion;
+      record.acceptance = buildProcedureAcceptance(claim);
+      record.feedback_refs = Array.isArray(claim.feedback_refs)
+        ? claim.feedback_refs.map((entry) => String(entry)).filter(Boolean)
+        : [];
+      if (claim.supersedes) {
+        record.supersedes = String(claim.supersedes);
+      } else if (previousVersion && previousVersion.record_id !== record.record_id) {
+        record.supersedes = previousVersion.record_id;
+      }
+      if (record.supersedes) {
+        record.links.push({
+          rel: 'supersedes',
+          target: record.supersedes,
+        });
+      }
+      record.body = buildProcedureBody(claim, record);
+    }
 
     const filePath = targetPathForRecord(memoryRoot, { ...claim, batch_date: batchDate }, type);
     const scaffold = buildScaffold(memoryRoot, filePath, { ...claim, batch_date: batchDate }, type, record.updated_at);
+
+    if (type === 'procedure' && record.supersedes) {
+      mutateRecordsInFile(
+        filePath,
+        scaffold,
+        (existingRecords) =>
+          existingRecords.map((existingRecord) => {
+            if (existingRecord.record_id !== record.supersedes) {
+              return existingRecord;
+            }
+
+            return {
+              ...existingRecord,
+              status: 'deprecated',
+              updated_at: record.updated_at,
+            };
+          }),
+        {
+          updatedAt: record.updated_at,
+        }
+      );
+    }
+
     upsertRecordInFile(filePath, scaffold, record, {
       updatedAt: record.updated_at,
       asOf: record.as_of,

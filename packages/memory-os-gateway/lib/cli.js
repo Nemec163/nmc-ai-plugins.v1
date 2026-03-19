@@ -8,6 +8,11 @@ const {
   getRoleBundle,
 } = require('./bootstrap');
 const { getHealth } = require('./health');
+const {
+  compareProcedureVersions,
+  inspectProcedure,
+  listProcedures,
+} = require('./procedures');
 const { query } = require('./query');
 const { buildReadIndex, verifyReadIndex } = require('./read-index');
 const {
@@ -74,6 +79,9 @@ function printUsage() {
   console.error('  read-record --memory-root <path> --record-id <id>');
   console.error('  get-projection --memory-root <path> --projection-path <path>');
   console.error('  get-canonical-current --memory-root <path>');
+  console.error('  list-procedures --memory-root <path> [--role-id <id>]');
+  console.error('  inspect-procedure --memory-root <path> [--role-id <id>] [--procedure-key <key>] [--record-id <id>]');
+  console.error('  compare-procedure-versions --memory-root <path> [--role-id <id>] [--procedure-key <key>] [--record-id <id>] [--from-version <n>|--from-record-id <id>] [--to-version <n>|--to-record-id <id>]');
   console.error('  get-role-bundle --role-id <id> [--install-date <date>] [--memory-path <path>] [--system-path <path>]');
   console.error('  get-recall-bundle --memory-root <path> [--role-id <id>] [--install-date <date>] [--memory-path <path>] [--system-path <path>] [--text <query>] [--limit <n>] [--include-pending]');
   console.error('  bootstrap-role --role-id <id> --workspace-dir <path> --shared-skills-root <path> --system-root <path> --memory-root <path> [--state-dir <path>] [--install-date <date>] [--overwrite]');
@@ -122,6 +130,32 @@ function runCli(argv) {
     case 'get-canonical-current':
       result = getCanonicalCurrent({
         memoryRoot: requireFlag(flags, 'memory-root'),
+      });
+      break;
+    case 'list-procedures':
+      result = listProcedures({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        roleId: flags['role-id'],
+      });
+      break;
+    case 'inspect-procedure':
+      result = inspectProcedure({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        roleId: flags['role-id'],
+        procedureKey: flags['procedure-key'],
+        recordId: flags['record-id'],
+      });
+      break;
+    case 'compare-procedure-versions':
+      result = compareProcedureVersions({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        roleId: flags['role-id'],
+        procedureKey: flags['procedure-key'],
+        recordId: flags['record-id'],
+        fromVersion: flags['from-version'] ? Number(flags['from-version']) : undefined,
+        fromRecordId: flags['from-record-id'],
+        toVersion: flags['to-version'] ? Number(flags['to-version']) : undefined,
+        toRecordId: flags['to-record-id'],
       });
       break;
     case 'get-role-bundle':

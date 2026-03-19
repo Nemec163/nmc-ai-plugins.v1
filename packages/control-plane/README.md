@@ -59,6 +59,7 @@ Control-plane v3 stays intentionally careful:
 - runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
 - `snapshot` and `health` now emit release-qualification metadata that marks `control-plane` as the supported operator surface and `adapter-openclaw` as the supported OpenClaw direct-install surface
 - the same release qualification records `nmc-memory-plugin` as a retired legacy shell rather than an active production surface
+- `snapshot.gateway.procedures` now carries the canonical procedure catalog so operators can inspect lineage/version state without implying control-plane ownership of promotion or rollback
 
 Packaging note:
 

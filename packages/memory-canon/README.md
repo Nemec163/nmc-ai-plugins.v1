@@ -7,6 +7,7 @@ This slice owns:
 
 - canon layout helpers for `core/system`, `core/user`, `core/agents`, and `core/meta`
 - manifest and graph edge contract helpers used by verification
+- versioned procedural canon promotion under `core/agents/*/PLAYBOOK.md` with bounded feedback lineage
 - lock semantics plus promoter-interface validation and lock lifecycle helpers
   for the future canonical write boundary
 

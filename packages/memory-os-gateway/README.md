@@ -7,6 +7,9 @@ Current v1 surface:
 - `readRecord` / `read_record`
 - `getProjection` / `get_projection`
 - `getCanonicalCurrent` / `get_canonical_current`
+- `listProcedures` / `list_procedures`
+- `inspectProcedure` / `inspect_procedure`
+- `compareProcedureVersions` / `compare_procedure_versions`
 - `buildReadIndex` / `build_read_index`
 - `readReadIndex` / `read_read_index`
 - `verifyReadIndex` / `verify_read_index`
@@ -46,6 +49,7 @@ Write orchestration stays non-authoritative in this slice:
 - `propose` stores structured proposal payloads under `intake/proposals/`
 - `feedback` merges curator decisions and materializes `intake/pending/YYYY-MM-DD.md` when the batch is fully reviewed
 - `complete-job` writes a non-canonical job receipt under `intake/jobs/` and exposes the single-writer lock scaffold and promotion request for the legacy apply path without writing canon directly
+- procedure-oriented proposal claims may carry `target_type: "procedure"`, `procedure_key`, `acceptance`, and `feedback_refs` so runtime feedback can move through the existing reviewed promotion path instead of bypassing canon
 
 Shadow runtime stays separate from canon in this slice:
 
@@ -65,5 +69,12 @@ Retrieval semantics stay bounded and explainable in this slice:
 
 - `query` returns weighted ranking reasons for canonical hits and keeps pending runtime delta explicit instead of blending it into canonical results
 - `getRecallBundle` separates `canonicalRecall`, `pendingRecall`, and `runtimeRecall`, then exposes normalized `topHits` over those bounded sources
+
+Procedure inspection stays canonical and read-only in this slice:
+
+- `listProcedures` exposes version-aware canonical procedure lineage grouped by `procedure_key` and role
+- `inspectProcedure` returns the canonical version history plus diff-safe views over metadata, acceptance criteria, feedback references, and body lines
+- `compareProcedureVersions` emits a structured diff between two canonical procedure versions without introducing a rollback writer or runtime authority
+- the gateway CLI now exposes `list-procedures`, `inspect-procedure`, and `compare-procedure-versions` for operator-facing inspection paths
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan and phase sequencing.

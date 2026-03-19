@@ -24,7 +24,7 @@ Every canonical record must be stable, anchored, and machine-readable.
 | Field | Required | Meaning |
 |------|----------|---------|
 | `record_id` | yes | Stable record identifier |
-| `type` | yes | `event`, `fact`, `state`, `identity`, or `competence` |
+| `type` | yes | `event`, `fact`, `state`, `identity`, `competence`, or `procedure` |
 | `summary` | yes | One-line human summary |
 | `evidence` | yes | YAML array of anchored references |
 | `confidence` | yes | `low`, `medium`, or `high` |
@@ -32,14 +32,18 @@ Every canonical record must be stable, anchored, and machine-readable.
 | `updated_at` | yes | Last canonical write timestamp in UTC |
 
 ### Type-Specific Fields
-| Field | event | fact | state | identity | competence |
-|------|-------|------|-------|----------|------------|
-| `as_of` | no | no | required | required | no |
-| `supersedes` | no | optional | optional | optional | optional |
-| `domain` | optional | required | optional | no | required |
-| `links` | optional | optional | recommended | recommended | optional |
-| `tags` | optional | optional | optional | optional | optional |
-| `role` | no | no | no | no | required |
+| Field | event | fact | state | identity | competence | procedure |
+|------|-------|------|-------|----------|------------|-----------|
+| `as_of` | no | no | required | required | no | no |
+| `supersedes` | no | optional | optional | optional | optional | optional, recommended from v2+ |
+| `domain` | optional | required | optional | no | required | no |
+| `links` | optional | optional | recommended | recommended | optional | optional |
+| `tags` | optional | optional | optional | optional | optional | optional |
+| `role` | no | no | no | no | required | required |
+| `procedure_key` | no | no | no | no | no | required |
+| `version` | no | no | no | no | no | required |
+| `acceptance` | no | no | no | no | no | required |
+| `feedback_refs` | no | no | no | no | no | optional |
 
 ### Record ID Prefixes
 - `evt-` for `event`
@@ -47,6 +51,7 @@ Every canonical record must be stable, anchored, and machine-readable.
 - `st-` for `state`
 - `id-` for `identity`
 - `cmp-` for `competence`
+- `prc-` for `procedure`
 
 Required format: `{prefix}-{YYYY-MM-DD}-{NNN}`
 
@@ -56,6 +61,7 @@ Examples:
 - `st-2026-03-05-002`
 - `id-2026-03-05-001`
 - `cmp-2026-03-05-003`
+- `prc-2026-03-05-001`
 
 Published identifiers are stable and must never be silently reassigned.
 
@@ -68,7 +74,7 @@ Confidence is assigned by Mnemo and may be revised when new evidence appears.
 
 ### Status
 Allowed `event` statuses: `active`, `corrected`, `retracted`.
-Allowed `fact`, `state`, `identity`, `competence` statuses: `active`, `deprecated`, `retracted`.
+Allowed `fact`, `state`, `identity`, `competence`, `procedure` statuses: `active`, `deprecated`, `retracted`.
 Status changes preserve history; they do not erase prior canonical records.
 
 ### Field Semantics
@@ -77,6 +83,10 @@ Status changes preserve history; they do not erase prior canonical records.
 - `supersedes` points to the record replaced by the current one
 - `domain` groups stable knowledge by area such as `work` or `health`
 - `role` binds competence memory to an agent role
+- `procedure_key` is the stable lineage key across procedure versions
+- `version` is the canonical procedure version number for a given `procedure_key`
+- `acceptance` lists concrete checks that keep a procedure bounded and reviewable
+- `feedback_refs` preserves non-authoritative runtime feedback lineage without making runtime the source of truth
 - `links` declares typed graph relationships
 - `tags` are optional labels, not a substitute for `domain`
 

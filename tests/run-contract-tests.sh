@@ -255,14 +255,31 @@ expected_order = [
     "curator_decision",
     "curator_notes",
 ]
+procedure_order = [
+    "source_session",
+    "source_agent",
+    "observed_at",
+    "confidence",
+    "tags",
+    "target_layer",
+    "target_domain",
+    "target_type",
+    "procedure_key",
+    "acceptance",
+    "feedback_refs",
+    "claim",
+    "curator_decision",
+    "curator_notes",
+]
 
-if len(matches) != 6:
-    raise SystemExit(f"expected 6 claims, found {len(matches)}")
+if len(matches) != 7:
+    raise SystemExit(f"expected 7 claims, found {len(matches)}")
 
 for match in matches:
     claim_id, body = match.group(1), match.group(2)
     keys = re.findall(r"^- ([a-z_]+):", body, re.M)
-    if keys != expected_order:
+    allowed_order = procedure_order if "target_type" in keys else expected_order
+    if keys != allowed_order:
         raise SystemExit(f"{claim_id} keys mismatch: {keys}")
 PY
   then
@@ -312,8 +329,8 @@ for subdir in ("core/user", "core/agents"):
                     f"{path.relative_to(root)} anchor/heading mismatch: anchor={anchor_id}, heading={heading_id}, record_id={record_id}"
                 )
 
-if record_count != 6:
-    raise SystemExit(f"expected 6 canonical records, found {record_count}")
+if record_count != 7:
+    raise SystemExit(f"expected 7 canonical records, found {record_count}")
 PY
   then
     pass "canonical record envelope fields"
@@ -338,7 +355,7 @@ test_shared_contracts_package_fixture_validation() {
     return
   fi
 
-  if grep -q "Validated 6 fixture record envelopes through @nmc/memory-contracts." "$LAST_STDOUT"; then
+  if grep -q "Validated 7 fixture record envelopes through @nmc/memory-contracts." "$LAST_STDOUT"; then
     pass "shared contracts fixture validation"
   else
     fail "shared contracts fixture validation" "Fixture validation output did not confirm the expected record count"
@@ -361,7 +378,7 @@ test_shared_ingest_package_fixture_validation() {
     return
   fi
 
-  if grep -q "Validated 16 fixture transcript events and 6 claim envelopes through @nmc/memory-ingest." "$LAST_STDOUT"; then
+  if grep -q "Validated 16 fixture transcript events and 7 claim envelopes through @nmc/memory-ingest." "$LAST_STDOUT"; then
     pass "shared ingest fixture validation"
   else
     fail "shared ingest fixture validation" "Fixture validation output did not confirm the expected ingest counts"
@@ -384,7 +401,7 @@ test_shared_canon_package_fixture_validation() {
     return
   fi
 
-  if grep -q "Validated 6 canonical record fixtures and rebuilt 6 graph edges through @nmc/memory-canon." "$LAST_STDOUT"; then
+  if grep -q "Validated 7 canonical record fixtures and rebuilt 6 graph edges through @nmc/memory-canon." "$LAST_STDOUT"; then
     pass "shared canon fixture validation"
   else
     fail "shared canon fixture validation" "Fixture validation output did not confirm the expected canon counts"
@@ -662,6 +679,7 @@ expected_counts = {
     "states": 1,
     "identities": 0,
     "competences": 1,
+    "procedures": 1,
 }
 if data.get("record_counts") != expected_counts:
     raise SystemExit(f"unexpected record counts: {data.get('record_counts')}")
@@ -693,6 +711,7 @@ entries = [
     "record_counts.states\tnumber",
     "record_counts.identities\tnumber",
     "record_counts.competences\tnumber",
+    "record_counts.procedures\tnumber",
     "checksums\tobject",
     "edges_count\tnumber",
 ]

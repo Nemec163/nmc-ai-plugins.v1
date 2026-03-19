@@ -9,6 +9,7 @@ const { spawnSync } = require('node:child_process');
 const {
   bootstrap,
   buildReadIndex,
+  compareProcedureVersions,
   captureRuntime,
   completeJob,
   feedback,
@@ -19,6 +20,8 @@ const {
   getRuntimeDelta,
   getRoleBundle,
   getStatus,
+  inspectProcedure,
+  listProcedures,
   propose,
   query,
   readReadIndex,
@@ -26,7 +29,7 @@ const {
   verify,
   verifyReadIndex,
 } = require('..');
-const { acquireCanonWriteLock } = require('../../memory-canon');
+const { acquireCanonWriteLock, createPromoterInterface } = require('../../memory-canon');
 
 const WORKSPACE_FIXTURE = path.resolve(
   __dirname,
@@ -65,6 +68,39 @@ function hashCanonTree(memoryRoot) {
   }
 
   return snapshot;
+}
+
+function writeProcedureUpdateBatch(memoryRoot) {
+  fs.writeFileSync(
+    path.join(memoryRoot, 'intake/pending/2026-03-19.md'),
+    [
+      '---',
+      'batch_date: "2026-03-19"',
+      'schema_version: "1.0"',
+      'generated_by: "gateway-procedure-fixture"',
+      'updated_at: "2026-03-19T09:30:00Z"',
+      '---',
+      '# Extracted Claims - 2026-03-19',
+      '',
+      '## claim-20260319-001',
+      '- source_session: "trader-2026-03-19-xyz"',
+      '- source_agent: "trader"',
+      '- observed_at: "2026-03-19T09:30:00Z"',
+      '- confidence: "high"',
+      '- tags: ["trading", "playbook", "procedure"]',
+      '- target_layer: "agent"',
+      '- target_domain: "trader"',
+      '- target_type: "procedure"',
+      '- procedure_key: "volatile-open-confirmation-checklist"',
+      '- acceptance: ["Wait for fakeout confirmation before calling momentum continuation.", "Escalate to confirmation-first guidance when the open is volatile."]',
+      '- feedback_refs: ["runtime/shadow/runs/trader-2026-03-19-xyz.json#procedureFeedback/pf-002"]',
+      '- claim: "Tighten the confirmation-first checklist so volatile opens require an explicit fakeout check before momentum guidance."',
+      '- curator_decision: "accept"',
+      '- curator_notes: "Promote runtime feedback into v2 of the playbook procedure."',
+      '',
+    ].join('\n'),
+    'utf8'
+  );
 }
 
 function main() {
@@ -114,8 +150,48 @@ function main() {
     memoryRoot: FIXTURE_MEMORY_ROOT,
   });
   assert.equal(current.manifest.record_counts.events, 2);
+  assert.equal(current.manifest.record_counts.procedures, 1);
   assert.equal(current.projections.identity.records.length, 0);
   assert.equal(current.projections.state.records[0].recordId, 'st-2026-03-05-001');
+
+  const procedures = listProcedures({
+    memoryRoot: FIXTURE_MEMORY_ROOT,
+  });
+  assert.equal(procedures.kind, 'procedure-catalog');
+  assert.equal(procedures.summary.lineageCount, 1);
+  assert.equal(procedures.summary.recordCount, 1);
+  assert.equal(procedures.summary.activeCount, 1);
+  assert.equal(procedures.procedures[0].procedureKey, 'volatile-open-confirmation-checklist');
+  assert.equal(procedures.procedures[0].currentVersion.recordId, 'prc-2026-03-05-001');
+
+  const procedureInspection = inspectProcedure({
+    memoryRoot: FIXTURE_MEMORY_ROOT,
+    roleId: 'trader',
+    procedureKey: 'volatile-open-confirmation-checklist',
+  });
+  assert.equal(procedureInspection.kind, 'procedure-inspection');
+  assert.equal(procedureInspection.versionCount, 1);
+  assert.equal(procedureInspection.currentVersion.recordId, 'prc-2026-03-05-001');
+  assert.deepEqual(procedureInspection.versions[0].diffView.acceptance, [
+    'Wait for confirmation after the initial fakeout before calling a momentum entry.',
+    'Prefer slower confirmation-based entries during volatile opens.',
+  ]);
+  assert.equal(
+    inspectProcedure({
+      memoryRoot: FIXTURE_MEMORY_ROOT,
+      recordId: 'prc-2026-03-05-001',
+    }).procedureKey,
+    'volatile-open-confirmation-checklist'
+  );
+  assert.throws(
+    () =>
+      inspectProcedure({
+        memoryRoot: FIXTURE_MEMORY_ROOT,
+        recordId: 'prc-2026-03-05-001',
+        procedureKey: 'wrong-procedure-key',
+      }),
+    /belongs to procedure_key/
+  );
 
   const roleBundle = getRoleBundle({
     roleId: 'mnemo',
@@ -149,6 +225,7 @@ function main() {
     memoryRoot: FIXTURE_MEMORY_ROOT,
   });
   assert.equal(status.manifest.recordCounts.events, 2);
+  assert.equal(status.manifest.recordCounts.procedures, 1);
   assert.equal(status.intake.pendingFiles, 1);
   assert.equal(status.intake.backlogAlert, false);
   assert.equal(status.runtime.shadowExists, false);
@@ -173,6 +250,7 @@ function main() {
     assert.equal(verification.status, 'ok');
     assert.equal(verification.edgesCount, 6);
     assert.equal(verification.manifest.record_counts.facts, 2);
+    assert.equal(verification.manifest.record_counts.procedures, 1);
   } finally {
     fs.rmSync(verifyRoot, { recursive: true, force: true });
   }
@@ -388,14 +466,14 @@ function main() {
       builtAt: '2026-03-18T15:00:00Z',
     });
     assert.equal(fs.existsSync(builtIndex.path), true);
-    assert.equal(builtIndex.stats.recordCount, 6);
+    assert.equal(builtIndex.stats.recordCount, 7);
     assert.equal(readReadIndex({ memoryRoot: readIndexWorkspaceRoot }).builtAt, '2026-03-18T15:00:00Z');
 
     const verifiedIndex = verifyReadIndex({
       memoryRoot: readIndexWorkspaceRoot,
     });
     assert.equal(verifiedIndex.status, 'ok');
-    assert.equal(verifiedIndex.stats.recordCount, 6);
+    assert.equal(verifiedIndex.stats.recordCount, 7);
 
     const indexedQuery = query({
       memoryRoot: readIndexWorkspaceRoot,
@@ -411,7 +489,7 @@ function main() {
       memoryRoot: readIndexWorkspaceRoot,
     });
     assert.equal(indexedStatus.readIndex.status, 'ok');
-    assert.equal(indexedStatus.readIndex.recordCount, 6);
+    assert.equal(indexedStatus.readIndex.recordCount, 7);
 
     fs.appendFileSync(
       path.join(readIndexWorkspaceRoot, 'core/user/knowledge/work.md'),
@@ -560,6 +638,122 @@ function main() {
 
   } finally {
     fs.rmSync(orchestrationRoot, { recursive: true, force: true });
+  }
+
+  const procedureInspectionRoot = makeTempRoot();
+  try {
+    const procedureWorkspaceRoot = path.join(procedureInspectionRoot, 'workspace');
+    fs.cpSync(WORKSPACE_FIXTURE, procedureWorkspaceRoot, { recursive: true });
+    writeProcedureUpdateBatch(procedureWorkspaceRoot);
+
+    const promoter = createPromoterInterface();
+    promoter.promote({
+      type: 'canon-write',
+      memory_root: procedureWorkspaceRoot,
+      writer: promoter.single_writer,
+      holder: 'gateway-procedure-fixture',
+      operation: 'core-promoter',
+      batch_date: '2026-03-19',
+    });
+
+    const updatedInspection = inspectProcedure({
+      memoryRoot: procedureWorkspaceRoot,
+      roleId: 'trader',
+      procedureKey: 'volatile-open-confirmation-checklist',
+    });
+    assert.equal(updatedInspection.versionCount, 2);
+    assert.equal(updatedInspection.currentVersion.version, 2);
+    assert.equal(updatedInspection.latestVersion.recordId, 'prc-2026-03-19-001');
+    assert.equal(updatedInspection.versions[0].status, 'deprecated');
+    assert.equal(updatedInspection.versions[1].feedbackRefs[0].includes('pf-002'), true);
+
+    const comparison = compareProcedureVersions({
+      memoryRoot: procedureWorkspaceRoot,
+      roleId: 'trader',
+      procedureKey: 'volatile-open-confirmation-checklist',
+      fromVersion: 1,
+      toVersion: 2,
+    });
+    assert.equal(comparison.kind, 'procedure-comparison');
+    assert.equal(comparison.comparison.direction, 'forward');
+    assert.equal(
+      comparison.comparison.metadata.some(
+        (change) => change.field === 'version' && change.from === 1 && change.to === 2
+      ),
+      true
+    );
+    assert.equal(
+      comparison.comparison.acceptance.some(
+        (change) =>
+          change.type === 'added' &&
+          change.value === 'Escalate to confirmation-first guidance when the open is volatile.'
+      ),
+      true
+    );
+    assert.equal(
+      comparison.comparison.bodyLines.some(
+        (change) =>
+          change.type === 'added' &&
+          change.value ===
+            '- Wait for fakeout confirmation before calling momentum continuation.'
+      ),
+      true
+    );
+    assert.equal(
+      compareProcedureVersions({
+        memoryRoot: procedureWorkspaceRoot,
+        roleId: 'trader',
+        procedureKey: 'volatile-open-confirmation-checklist',
+        fromVersion: 2,
+        toVersion: 2,
+      }).comparison.direction,
+      'same'
+    );
+    assert.equal(
+      compareProcedureVersions({
+        memoryRoot: procedureWorkspaceRoot,
+        roleId: 'trader',
+        procedureKey: 'volatile-open-confirmation-checklist',
+        fromVersion: 2,
+        toVersion: 1,
+      }).comparison.direction,
+      'rollback-view'
+    );
+
+    const cliProcedureListResult = spawnSync(
+      process.execPath,
+      [CLI_PATH, 'list-procedures', '--memory-root', procedureWorkspaceRoot],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(cliProcedureListResult.status, 0, cliProcedureListResult.stderr);
+    assert.equal(JSON.parse(cliProcedureListResult.stdout).summary.recordCount, 2);
+
+    const cliProcedureCompareResult = spawnSync(
+      process.execPath,
+      [
+        CLI_PATH,
+        'compare-procedure-versions',
+        '--memory-root',
+        procedureWorkspaceRoot,
+        '--role-id',
+        'trader',
+        '--procedure-key',
+        'volatile-open-confirmation-checklist',
+        '--from-version',
+        '1',
+        '--to-version',
+        '2',
+      ],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(cliProcedureCompareResult.status, 0, cliProcedureCompareResult.stderr);
+    assert.equal(JSON.parse(cliProcedureCompareResult.stdout).diffVersion, '1');
+  } finally {
+    fs.rmSync(procedureInspectionRoot, { recursive: true, force: true });
   }
 
   const bootstrapRoot = makeTempRoot();

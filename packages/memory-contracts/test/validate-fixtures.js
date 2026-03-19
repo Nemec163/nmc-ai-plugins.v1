@@ -152,9 +152,9 @@ function parseRecord(block) {
     const key = match[1];
     const rawValue = match[2] || '';
 
-    if (key === 'evidence') {
+    if (key === 'evidence' || key === 'acceptance' || key === 'feedback_refs') {
       const parsed = parseStringArray(lines, index + 1);
-      record.evidence = parsed.items;
+      record[key] = parsed.items;
       index = parsed.nextIndex;
       continue;
     }
@@ -240,7 +240,7 @@ function main() {
     ),
     'openclaw skill run memory-extract --date 2026-03-05'
   );
-  assert.equal(validatedCount, 6, 'Expected six canonical record fixtures');
+  assert.equal(validatedCount, 7, 'Expected seven canonical record fixtures');
 
   if (failures.length > 0) {
     for (const failure of failures) {

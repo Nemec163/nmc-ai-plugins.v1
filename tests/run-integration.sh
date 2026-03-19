@@ -1450,6 +1450,7 @@ test_verify_success() {
      [ "$(json_query "$manifest_file" 'record_counts.states')" = "1" ] && \
      [ "$(json_query "$manifest_file" 'record_counts.identities')" = "0" ] && \
      [ "$(json_query "$manifest_file" 'record_counts.competences')" = "1" ] && \
+     [ "$(json_query "$manifest_file" 'record_counts.procedures')" = "1" ] && \
      [ "$(json_query "$manifest_file" 'edges_count')" = "6" ]; then
     pass "verify.sh manifest counts"
   else

@@ -10,6 +10,7 @@ const RECORD_TYPES = Object.freeze([
   'state',
   'identity',
   'competence',
+  'procedure',
 ]);
 
 const RECORD_TYPE_PREFIXES = Object.freeze({
@@ -18,6 +19,7 @@ const RECORD_TYPE_PREFIXES = Object.freeze({
   state: 'st',
   identity: 'id',
   competence: 'cmp',
+  procedure: 'prc',
 });
 
 const CONFIDENCE_LEVELS = Object.freeze([
@@ -32,6 +34,7 @@ const RECORD_STATUSES_BY_TYPE = Object.freeze({
   state: Object.freeze(['active', 'deprecated', 'retracted']),
   identity: Object.freeze(['active', 'deprecated', 'retracted']),
   competence: Object.freeze(['active', 'deprecated', 'retracted']),
+  procedure: Object.freeze(['active', 'deprecated', 'retracted']),
 });
 
 const REQUIRED_RECORD_FIELDS = Object.freeze([

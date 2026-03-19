@@ -5,6 +5,7 @@ Dependency-free shared contracts for the Memory OS migration.
 This package currently centralizes the narrow PR 1.1 boundary:
 
 - shared record envelope constants and validators
+- canonical record-type contracts, including versioned `procedure` records
 - schema-version compatibility helpers
 - shared exit-code semantics used by the existing scripts
 - pipeline adapter protocol helpers for LLM phase invocation boundaries

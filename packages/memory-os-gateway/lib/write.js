@@ -60,6 +60,19 @@ function normalizeClaimId(batchDate, value, index) {
   return `claim-${batchDate.replace(/-/g, '')}-${String(index + 1).padStart(3, '0')}`;
 }
 
+function normalizeOptionalPositiveInteger(value, fieldName) {
+  if (value == null || value === '') {
+    return null;
+  }
+
+  const parsed = Number.parseInt(String(value), 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${fieldName} must be a positive integer when provided`);
+  }
+
+  return parsed;
+}
+
 function normalizeClaims(batchDate, claims) {
   if (!Array.isArray(claims) || claims.length === 0) {
     throw new Error('claims must be a non-empty array');
@@ -84,6 +97,25 @@ function normalizeClaims(batchDate, claims) {
         claim.curator_decision == null ? null : String(claim.curator_decision).trim(),
       curator_notes:
         claim.curator_notes == null ? null : String(claim.curator_notes).trim(),
+      target_type: claim.target_type == null ? null : String(claim.target_type).trim(),
+      target_file: claim.target_file == null ? null : String(claim.target_file).trim(),
+      draft_record_id:
+        claim.draft_record_id == null ? null : String(claim.draft_record_id).trim(),
+      draft_summary:
+        claim.draft_summary == null ? null : String(claim.draft_summary).trim(),
+      procedure_key:
+        claim.procedure_key == null ? null : String(claim.procedure_key).trim(),
+      procedure_version: normalizeOptionalPositiveInteger(
+        claim.procedure_version,
+        `claims[${index}].procedure_version`
+      ),
+      acceptance: Array.isArray(claim.acceptance)
+        ? claim.acceptance.map((entry) => String(entry).trim()).filter(Boolean)
+        : [],
+      feedback_refs: Array.isArray(claim.feedback_refs)
+        ? claim.feedback_refs.map((entry) => String(entry).trim()).filter(Boolean)
+        : [],
+      supersedes: claim.supersedes == null ? null : String(claim.supersedes).trim(),
     };
 
     for (const field of [
@@ -209,6 +241,33 @@ function renderPendingBatch(proposal) {
     lines.push(`- tags: ${serializeArray(claim.tags)}`);
     lines.push(`- target_layer: ${serializeScalar(claim.target_layer)}`);
     lines.push(`- target_domain: ${serializeScalar(claim.target_domain)}`);
+    if (claim.target_type) {
+      lines.push(`- target_type: ${serializeScalar(claim.target_type)}`);
+    }
+    if (claim.target_file) {
+      lines.push(`- target_file: ${serializeScalar(claim.target_file)}`);
+    }
+    if (claim.draft_record_id) {
+      lines.push(`- draft_record_id: ${serializeScalar(claim.draft_record_id)}`);
+    }
+    if (claim.draft_summary) {
+      lines.push(`- draft_summary: ${serializeScalar(claim.draft_summary)}`);
+    }
+    if (claim.procedure_key) {
+      lines.push(`- procedure_key: ${serializeScalar(claim.procedure_key)}`);
+    }
+    if (Number.isInteger(claim.procedure_version) && claim.procedure_version > 0) {
+      lines.push(`- procedure_version: ${claim.procedure_version}`);
+    }
+    if (Array.isArray(claim.acceptance) && claim.acceptance.length > 0) {
+      lines.push(`- acceptance: ${serializeArray(claim.acceptance)}`);
+    }
+    if (Array.isArray(claim.feedback_refs) && claim.feedback_refs.length > 0) {
+      lines.push(`- feedback_refs: ${serializeArray(claim.feedback_refs)}`);
+    }
+    if (claim.supersedes) {
+      lines.push(`- supersedes: ${serializeScalar(claim.supersedes)}`);
+    }
     lines.push(`- claim: ${serializeScalar(claim.claim)}`);
     lines.push(`- curator_decision: ${serializeScalar(claim.curator_decision || '')}`);
     lines.push(`- curator_notes: ${serializeScalar(claim.curator_notes || '')}`);

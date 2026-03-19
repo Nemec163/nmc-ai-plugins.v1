@@ -6,5 +6,6 @@ record_counts.facts	number
 record_counts.states	number
 record_counts.identities	number
 record_counts.competences	number
+record_counts.procedures	number
 checksums	object
 edges_count	number

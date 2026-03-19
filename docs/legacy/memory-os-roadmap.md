@@ -5,15 +5,11 @@
 
 ## Progress Snapshot
 
-- completed: `retrieval semantics and recall quality — add bounded ranking and explainable recall over canonical and runtime memory`
-- next: `first-class procedural canon — promote procedures into a versioned canonical contract with feedback lineage`
+- completed: `procedure inspection and comparison surfaces — expose canonical procedure lineage, versions, and diff-safe read views without widening write authority`
+- next: `procedure-aware recall surfaces — distinguish canonical current procedures from runtime procedural artifacts in recall and operator views without widening write authority`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/adapter-conformance/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/adapter-codex/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/adapter-claude/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
@@ -2139,12 +2135,47 @@ Implementation note:
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 
+### first-class procedural canon
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- introduced canonical `procedure` records with stable `procedure_key`, integer `version`, bounded `acceptance` criteria, and optional `feedback_refs` so procedural learning no longer has to stay trapped in runtime buckets or generic competence notes
+- extended the core promoter and reviewed gateway write path so accepted procedure claims can promote into `core/agents/<role>/PLAYBOOK.md` through the existing single-writer canon boundary without adding a second writer
+- preserved history by versioning procedure updates into new records, deprecating superseded versions, and keeping runtime procedural artifacts explicitly non-authoritative until review and promotion
+- updated fixture canon, verification counts, manifest schema, and setup canon docs so the new procedure contract is part of the supported repository baseline
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-contracts/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-canon/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-conformance/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-codex/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-claude/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
+### procedure inspection and comparison surfaces
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- added read-only `memory-os-gateway` procedure surfaces for catalog, single-lineage inspection, and structured version comparison so operators can inspect canonical procedure history without touching the promotion path
+- exposed diff-safe procedure views over metadata, acceptance criteria, feedback references, and body lines while keeping canon markdown as the only authoritative source and avoiding rollback writers
+- extended `control-plane` snapshot visibility with the canonical procedure catalog so operator surfaces can understand current versus superseded procedure versions without implying new control-plane authority
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
 ## Immediate Next Step
 
-The next implementation step should promote procedural memory into a first-class canonical contract without weakening the existing source-of-truth and promotion invariants:
+The next implementation step should make recall and operator consumers distinguish canonical current procedures from runtime procedural artifacts without weakening the existing source-of-truth and promotion invariants:
 
-- define a versioned procedure record contract and a bounded promotion path from runtime feedback into canonical procedures
-- keep scope pinned to procedure schemas, lineage, feedback linkage, and verification rules; do not widen into free-form prompt storage or new direct canon writers
-- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while procedural memory is formalized
+- expose procedure-aware recall summaries that clearly separate canonical current guidance from runtime procedural observations and feedback
+- keep scope pinned to read/query visibility and freshness boundaries; do not widen into automatic promotion, rollback, or runtime authority
+- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while procedure-aware recall surfaces mature
 
-The read path and recall semantics are now materially stronger. The next risk is procedural learning remaining trapped in runtime buckets and competence notes instead of a versioned canonical contract.
+Procedure lineage is now inspectable and comparable. The next risk is recall and operator consumers blending canonical current procedures with non-authoritative runtime procedural artifacts even though the write boundary remains correct.

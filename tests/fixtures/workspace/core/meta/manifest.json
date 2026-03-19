@@ -1,12 +1,13 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-03-18T00:00:00Z",
+  "last_updated": "2026-03-19T00:00:00Z",
   "record_counts": {
     "events": 2,
     "facts": 2,
     "states": 1,
     "identities": 0,
-    "competences": 1
+    "competences": 1,
+    "procedures": 1
   },
   "checksums": {
     "core/agents/_index.md": "839446680ac6e8e8744e7f13e811c26e36ccbc07503aa9c4ac2217e19711b13d",
@@ -17,8 +18,8 @@
     "core/agents/trader/COURSE.md": "52489826f7c56f91fff9cb9cf6b9ba735e6e2216f05036c630a4eac91246aac0",
     "core/agents/trader/DECISIONS.md": "23ac0f0aaa0e6412dd134980307eceae901e83e91c2d93c9f55f73cd75416434",
     "core/agents/trader/PITFALLS.md": "c11337fa4e50737d213368456449966cbd29fca4bec0ab17fa8dd1b60a3ae564",
-    "core/agents/trader/PLAYBOOK.md": "62e3cfd709a9d00326409622082bc799c449d2793cc97f4612f7b40cbe26cf4c",
-    "core/system/CANON.md": "9e30448098d020e8f93e5f3e2c0853f202fdbe28e5cd6cee926c081c6332fa04",
+    "core/agents/trader/PLAYBOOK.md": "e57a97a44ce2504c3eb8f3c03cbfe658d2c172b5522072dab318ee7a10238b87",
+    "core/system/CANON.md": "359a0dfcba7e83099322e576f2f7f523d5be643184d57bbb5c62e0ce11fc2afa",
     "core/system/curator-runbook.md": "97b4b96039186f8185adaf1f649741f694ec1678b1589ae87416e1b235ef4c85",
     "core/user/identity/changelog.md": "0e12944839e9ad4c74b2cb3ea2f17935a45511da1d8ef077a1e9a1e688b30b8d",
     "core/user/identity/current.md": "ed8fae96fd918fc4d77f39ea4707d91817ddd05ee35eeec953226481fde84bc6",

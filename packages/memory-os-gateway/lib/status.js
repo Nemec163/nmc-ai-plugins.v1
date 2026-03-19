@@ -108,6 +108,7 @@ function getStatus(options) {
             states: 0,
             identities: 0,
             competences: 0,
+            procedures: 0,
           },
       edgesCount: manifest ? manifest.edges_count : 0,
     },

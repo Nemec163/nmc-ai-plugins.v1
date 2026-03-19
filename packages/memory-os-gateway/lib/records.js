@@ -116,9 +116,15 @@ function parseRecordMetadata(block) {
     const key = match[1];
     const rawValue = match[2] || '';
 
-    if (key === 'evidence') {
+    if (key === 'evidence' || key === 'acceptance' || key === 'feedback_refs') {
       const parsed = parseStringArray(lines, index + 1);
-      record.evidence = parsed.items;
+      if (key === 'acceptance') {
+        record.acceptance = parsed.items;
+      } else if (key === 'feedback_refs') {
+        record.feedback_refs = parsed.items;
+      } else {
+        record.evidence = parsed.items;
+      }
       index = parsed.nextIndex;
       continue;
     }

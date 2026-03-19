@@ -25,6 +25,18 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isPositiveIntegerLike(value) {
+  if (typeof value === 'number') {
+    return Number.isInteger(value) && value > 0;
+  }
+
+  if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
+    return Number.parseInt(value.trim(), 10) > 0;
+  }
+
+  return false;
+}
+
 function isKnownRecordType(value) {
   return RECORD_TYPES.includes(value);
 }
@@ -72,6 +84,79 @@ function validateLink(link, index) {
   }
 
   return issues;
+}
+
+function validateStringArrayField(record, fieldName, issues, options = {}) {
+  if (!(fieldName in record)) {
+    if (options.required) {
+      issues.push(
+        buildIssue(
+          VALIDATION_ERROR_CODES.MISSING_FIELD,
+          `Missing required field: ${fieldName}`,
+          fieldName
+        )
+      );
+    }
+    return;
+  }
+
+  if (!Array.isArray(record[fieldName]) || record[fieldName].length === 0) {
+    issues.push(
+      buildIssue(
+        VALIDATION_ERROR_CODES.INVALID_VALUE,
+        `${fieldName} must be a non-empty array.`,
+        fieldName
+      )
+    );
+    return;
+  }
+
+  record[fieldName].forEach((entry, index) => {
+    if (!isNonEmptyString(entry)) {
+      issues.push(
+        buildIssue(
+          VALIDATION_ERROR_CODES.INVALID_COLLECTION_ITEM,
+          `${fieldName} entries must be non-empty strings.`,
+          `${fieldName}[${index}]`
+        )
+      );
+    }
+  });
+}
+
+function validateProcedureRecord(record, issues) {
+  if (!isNonEmptyString(record.role)) {
+    issues.push(
+      buildIssue(
+        VALIDATION_ERROR_CODES.INVALID_VALUE,
+        'role is required for procedure records.',
+        'role'
+      )
+    );
+  }
+
+  if (!isNonEmptyString(record.procedure_key)) {
+    issues.push(
+      buildIssue(
+        VALIDATION_ERROR_CODES.INVALID_VALUE,
+        'procedure_key is required for procedure records.',
+        'procedure_key'
+      )
+    );
+  }
+
+  if (!isPositiveIntegerLike(record.version)) {
+    issues.push(
+      buildIssue(
+        VALIDATION_ERROR_CODES.INVALID_VALUE,
+        'version must be a positive integer for procedure records.',
+        'version'
+      )
+    );
+  }
+
+  validateStringArrayField(record, 'acceptance', issues, { required: true });
+  validateStringArrayField(record, 'feedback_refs', issues);
 }
 
 function validateRecordEnvelope(record) {
@@ -210,6 +295,10 @@ function validateRecordEnvelope(record) {
     record.links.forEach((link, index) => {
       issues.push(...validateLink(link, index));
     });
+  }
+
+  if (record.type === 'procedure') {
+    validateProcedureRecord(record, issues);
   }
 
   return {

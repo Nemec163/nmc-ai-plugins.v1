@@ -10,6 +10,7 @@
     "./bootstrap": "./lib/bootstrap.js",
     "./cli": "./lib/cli.js",
     "./health": "./lib/health.js",
+    "./procedures": "./lib/procedures.js",
     "./query": "./lib/query.js",
     "./read-index": "./lib/read-index.js",
     "./read": "./lib/read.js",

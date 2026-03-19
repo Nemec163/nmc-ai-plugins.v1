@@ -70,6 +70,13 @@ Gateway query and recall now expose bounded retrieval semantics:
 - `query` returns weighted canonical ranking reasons plus an explicit pending-runtime-delta section when freshness-oriented phrasing or `--include-pending` requests it.
 - `get-recall-bundle` separates `canonicalRecall`, `pendingRecall`, and `runtimeRecall`, and exposes normalized `topHits` without marking runtime memory authoritative.
 
+Procedural canon is now first-class on the write boundary:
+
+- canonical agent procedures live as `procedure` records under `core/agents/<role>/PLAYBOOK.md`
+- each procedure record carries `procedure_key`, `version`, `acceptance`, and optional `feedback_refs`
+- runtime `procedural` and `procedureFeedback` artifacts remain non-authoritative under `runtime/shadow/` until they are reviewed and promoted through the existing `propose -> feedback -> complete-job -> core-promoter` path
+- promoting a new canonical procedure version preserves lineage by writing a new record and deprecating the superseded version instead of silently rewriting history
+
 For installed programmatic access, prefer the adapter-owned wrapper directories:
 
 - `~/.openclaw/extensions/memoryos-openclaw/control-plane/`
