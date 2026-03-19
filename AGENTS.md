@@ -6,8 +6,8 @@ This repository now treats `MemoryOS.v1` as the product boundary and uses the ro
 
 ## Current State
 
-- completed roadmap slice: `product boundary simplification and supported-surface alignment — reduce remaining doc drift between architecture, package docs, and shipped connector/operator surfaces without widening authority`
-- next roadmap slice: `TBD after Phase 7 completion — use the roadmap Immediate Next Step section to lock the next bounded change`
+- completed roadmap slice: `production readiness gate and release checklist — make the current OpenClaw-first release boundary reproducible through one explicit gate, aligned release docs, and CI-backed go/no-go checks`
+- next roadmap slice: `TBD after production-readiness hardening — use the roadmap Immediate Next Step section to lock the next bounded change`
 - regression baseline:
   - `./tests/run-contract-tests.sh`
   - `./tests/run-integration.sh`

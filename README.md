@@ -2,18 +2,18 @@
 
 Monorepo for MemoryOS.v1: an autonomous, self-sufficient memory operating system with optional connector packages for external LLM and agent runtimes.
 
-The product boundary is the Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `adapter-openclaw` and `adapter-codex` are implemented connector packages, and `adapter-claude` exists as an explicit scaffold package for the future Claude connector surface.
+The product boundary is the Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `adapter-openclaw` is the production connector surface, while `adapter-codex` and `adapter-claude` are bounded connector packages over the same core.
 
 `packages/adapter-openclaw` is the supported OpenClaw adapter/plugin surface for MemoryOS.v1. The old `nmc-memory-plugin` mirror has been retired and removed from the repository.
 
-Use this document as the entry point. Use [adapter README](./packages/adapter-openclaw/README.md) for the OpenClaw adapter surface, [implementation guide](./docs/implementation-guide.md) for day-2 operations, and [deliberate migration release plan](./docs/deliberate-migration-release-plan.md) for the current direct-install boundary.
+Use this document as the entry point. Use [adapter README](./packages/adapter-openclaw/README.md) for the OpenClaw adapter surface, [supported surfaces](./docs/supported-surfaces.md) for the package matrix, [implementation guide](./docs/legacy/implementation-guide.md) for day-2 operations, [release readiness](./docs/release-readiness.md) for the current production gate, and [deliberate migration release plan](./docs/legacy/deliberate-migration-release-plan.md) for the direct-install boundary.
 
 ## What It Provides
 
 - An autonomous Memory OS core with canonical memory, runtime shadow state, operator surfaces, and deterministic promotion boundaries.
 - A shared `system/` layer with memory, skills, tasks, policy, docs, and scripts.
 - A git-backed canonical memory workspace with extract -> curate -> apply -> verify flow.
-- Optional connector surfaces for OpenClaw and Codex, plus a scaffolded future Claude adapter that is not part of the current production release surface.
+- Optional connector surfaces for OpenClaw, Codex, and Claude, with only the OpenClaw surface currently in production scope.
 - A direct OpenClaw adapter surface with managed setup and bootstrap behavior.
 
 ## Quick Start
@@ -65,7 +65,7 @@ These packages define the memory system itself. Connectors are optional and sit 
 
 - `packages/adapter-openclaw` attaches MemoryOS.v1 to the OpenClaw plugin/runtime model.
 - `packages/adapter-codex` attaches MemoryOS.v1 to Codex-oriented execution flows.
-- `packages/adapter-claude` is the explicit scaffold package for the future Claude adapter surface.
+- `packages/adapter-claude` is a bounded Claude connector over gateway bootstrap, read, and handoff surfaces.
 
 ### OpenClaw Adapter
 
@@ -188,13 +188,13 @@ Example:
 
 ## Verification
 
-Run the bundled integration checks:
+Run the production readiness gate:
 
 ```bash
-./tests/run-integration.sh
+./tests/run-production-readiness.sh
 ```
 
-For an already scaffolded workspace, the fastest operational verification is:
+For an already scaffolded workspace, the fastest operational spot-check is:
 
 ```bash
 ./packages/adapter-openclaw/skills/memory-verify/verify.sh ~/.openclaw/workspace/system/memory
@@ -206,9 +206,11 @@ For an already scaffolded workspace, the fastest operational verification is:
 | Document | Role |
 |---|---|
 | [packages/adapter-openclaw/README.md](./packages/adapter-openclaw/README.md) | Package-level install, setup, structure, and OpenClaw adapter reference. |
-| [docs/implementation-guide.md](./docs/implementation-guide.md) | Current implementation and day-2 operations guide. |
-| [docs/deliberate-migration-release-plan.md](./docs/deliberate-migration-release-plan.md) | Current migration-release surface classification and repo-local bridge retirement sequence. |
-| [docs/memory-os-roadmap.md](./docs/memory-os-roadmap.md) | Repo-specific migration roadmap from the current plugin to a modular Memory OS. |
+| [docs/supported-surfaces.md](./docs/supported-surfaces.md) | Production, bounded, internal, and retired package matrix for the current product boundary. |
+| [docs/release-readiness.md](./docs/release-readiness.md) | Current production go/no-go gate and release checklist for the OpenClaw-first surface. |
+| [docs/legacy/implementation-guide.md](./docs/legacy/implementation-guide.md) | Current implementation and day-2 operations guide. |
+| [docs/legacy/deliberate-migration-release-plan.md](./docs/legacy/deliberate-migration-release-plan.md) | Current migration-release surface classification and repo-local bridge retirement sequence. |
+| [docs/legacy/memory-os-roadmap.md](./docs/legacy/memory-os-roadmap.md) | Repo-specific migration roadmap from the current plugin to a modular Memory OS. |
 | [docs/memory-design-v2.md](./docs/memory-design-v2.md) | Conceptual v2 design reference. |
 | [docs/human-memory.md](./docs/human-memory.md) | High-level memory model note. |
 | [docs/legacy/README.md](./docs/legacy/README.md) | Historical v1 design archive. |

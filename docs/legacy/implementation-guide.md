@@ -2,7 +2,7 @@
 
 Current-state implementation and operations guide for MemoryOS.v1 and its supported direct-install OpenClaw adapter surface.
 
-Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), the package/status matrix lives in [../supported-surfaces.md](../supported-surfaces.md), and OpenClaw-adapter details live in [../packages/adapter-openclaw/README.md](../packages/adapter-openclaw/README.md).
+Use this document for installation, setup behavior, day-2 operations, and verification. The conceptual model lives in [memory-design-v2.md](./memory-design-v2.md), the package/status matrix lives in [../supported-surfaces.md](../supported-surfaces.md), the release gate lives in [../release-readiness.md](../release-readiness.md), and OpenClaw-adapter details live in [../packages/adapter-openclaw/README.md](../packages/adapter-openclaw/README.md).
 
 The current post-freeze cutover and repo-local bridge retirement sequence live in [deliberate-migration-release-plan.md](./deliberate-migration-release-plan.md).
 

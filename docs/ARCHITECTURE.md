@@ -986,8 +986,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: ./tests/run-contract-tests.sh
-      - run: ./tests/run-integration.sh
+      - run: ./tests/run-production-readiness.sh
 ```
 
 ---

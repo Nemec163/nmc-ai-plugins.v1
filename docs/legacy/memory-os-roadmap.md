@@ -5,13 +5,11 @@
 
 ## Progress Snapshot
 
-- completed: `product boundary simplification and supported-surface alignment — reduce remaining doc drift between architecture, package docs, and shipped connector/operator surfaces without widening authority`
-- next: `TBD after Phase 7 completion — use Immediate Next Step to choose the next bounded change`
+- completed: `production readiness gate and release checklist — make the current OpenClaw-first release boundary reproducible through one explicit gate, aligned release docs, and CI-backed go/no-go checks`
+- next: `TBD after production-readiness hardening — use Immediate Next Step to choose the next bounded change`
 - last verified on: `2026-03-19`
 - verified in this slice:
-  - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
-  - `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+  - `PATH="/usr/local/bin:$PATH" ./tests/run-production-readiness.sh`
 - verification baseline:
   - `./tests/run-contract-tests.sh`
   - `./tests/run-integration.sh`
@@ -2261,12 +2259,25 @@ Implementation note:
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 
+## Production Readiness Gate and Release Checklist
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- added [docs/release-readiness.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/release-readiness.md) as the release-facing go/no-go document for the current OpenClaw-first production boundary
+- added [tests/run-production-readiness.sh](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/tests/run-production-readiness.sh) so the repository now has one explicit production gate that checks live doc references, supported-surface metadata coverage, and the full contract/integration baselines
+- aligned [README.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/README.md) and [docs/ARCHITECTURE.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/docs/ARCHITECTURE.md) with the current production/bounded taxonomy, corrected stale doc links, and switched the documented CI path to the production gate instead of ad hoc separate commands
+- updated [/.github/workflows/nmc-memory-plugin-ci.yml](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/memory-os.v1/.github/workflows/nmc-memory-plugin-ci.yml) so CI now runs the same production-readiness gate that release candidates should pass locally
+- preserved the existing install/setup behavior, workspace layout, authority boundaries, and regression baseline while turning production-readiness from an inference into a reproducible command
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-production-readiness.sh`
+
 ## Immediate Next Step
 
-Phase 7 is now complete, so the next implementation step should lock the first post-boundary-cleanup slice explicitly before editing code again:
+The production gate now exists, so the next implementation step should lock the first post-readiness slice explicitly before editing code again:
 
 - choose one bounded follow-up slice and record it in the roadmap `Progress Snapshot` plus `AGENTS.md` before implementation starts
-- prefer a slice that reuses the now-explicit supported-surface matrix instead of reintroducing package taxonomy drift through one-off doc or wrapper changes
+- prefer a slice that builds on the new production gate instead of bypassing it with one-off release checks or doc-only claims
 - keep `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, verify/provenance visibility, and the single promotion path unchanged while that next slice is defined
 
-The product-boundary story is now explicit in both docs and machine-readable release metadata. The next risk is starting a new change without first locking its scope, which would reopen the same taxonomy drift this slice just removed.
+The current release boundary is now explicit and reproducible. The next risk is letting future slices drift away from the gate or reintroduce stale release-facing docs that the new command is meant to freeze.

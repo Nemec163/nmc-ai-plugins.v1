@@ -19,8 +19,5 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Run contract tests
-        run: ./tests/run-contract-tests.sh
-
-      - name: Run integration tests
-        run: ./tests/run-integration.sh
+      - name: Run production readiness gate
+        run: ./tests/run-production-readiness.sh
