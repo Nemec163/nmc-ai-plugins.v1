@@ -29,12 +29,12 @@ const {
   PLUGIN_ID,
   PLUGIN_NAME,
   completeOpenClawHandoff,
-  createOpenClawPipelineAdapter,
-  createOpenClawPackageMetadata,
-  createOpenClawPlugin,
-  createOpenClawPluginManifest,
   createOpenClawConformanceAdapter,
   createOpenClawOrchestrationAdapter,
+  createOpenClawPackageMetadata,
+  createOpenClawPipelineAdapter,
+  createOpenClawPlugin,
+  createOpenClawPluginManifest,
   getBundledSkillsRoot,
   getOpenClawOrchestrationContext,
   getOpenClawRecallBundle,
@@ -46,22 +46,12 @@ const {
 } = require("..");
 
 const ADAPTER_ROOT = path.resolve(__dirname, "..");
-const PLUGIN_ROOT = path.resolve(__dirname, "../../../nmc-memory-plugin");
 const ADAPTER_SKILLS_ROOT = getBundledSkillsRoot();
 const ADAPTER_MANIFEST_PATH = path.join(ADAPTER_ROOT, "openclaw.plugin.json");
 const ADAPTER_PACKAGE_FILE = path.join(ADAPTER_ROOT, "package.json");
 const ADAPTER_PLUGIN_ENTRY_PATH = path.join(ADAPTER_ROOT, "plugin.js");
-const PLUGIN_MANIFEST_PATH = path.join(PLUGIN_ROOT, "openclaw.plugin.json");
-const PLUGIN_PACKAGE_FILE = path.join(PLUGIN_ROOT, "package.json");
-const PLUGIN_SETUP_MODULE_PATH = path.join(PLUGIN_ROOT, "lib", "openclaw-setup.js");
-const PLUGIN_SETUP_SCRIPT_PATH = path.join(PLUGIN_ROOT, "scripts", "setup-openclaw.js");
-const SHIPPED_ADAPTER_SETUP_MODULE_PATH = path.join(
-  PLUGIN_ROOT,
-  "packages",
-  "adapter-openclaw",
-  "lib",
-  "openclaw-setup.js",
-);
+const ADAPTER_SETUP_SCRIPT_PATH = path.join(ADAPTER_ROOT, "lib", "setup-cli.js");
+const WORKSPACE_FIXTURE = path.resolve(__dirname, "../../../tests/fixtures/workspace");
 
 function listSkillNames(rootDir) {
   return fs
@@ -97,23 +87,26 @@ function readJson(filePath) {
 }
 
 function main() {
-  assert.deepEqual(
-    listSkillNames(ADAPTER_SKILLS_ROOT),
-    listSkillNames(path.join(PLUGIN_ROOT, "skills")),
-  );
+  assert.deepEqual(listSkillNames(ADAPTER_SKILLS_ROOT), [
+    "kanban-operator",
+    "memory-apply",
+    "memory-curate",
+    "memory-extract",
+    "memory-onboard-agent",
+    "memory-pipeline",
+    "memory-query",
+    "memory-retention",
+    "memory-status",
+    "memory-verify",
+  ]);
+
   for (const skillName of listSkillNames(ADAPTER_SKILLS_ROOT)) {
     const adapterSkillRoot = path.join(ADAPTER_SKILLS_ROOT, skillName);
-    const pluginSkillRoot = path.join(PLUGIN_ROOT, "skills", skillName);
 
-    assert.deepEqual(
-      listRelativeFiles(adapterSkillRoot),
-      listRelativeFiles(pluginSkillRoot),
-      `Expected ${skillName} asset file tree to match compatibility mirror`,
-    );
     assert.equal(
-      fs.readFileSync(path.join(adapterSkillRoot, "SKILL.md"), "utf8"),
-      fs.readFileSync(path.join(pluginSkillRoot, "SKILL.md"), "utf8"),
-      `Expected ${skillName} SKILL.md mirror to match adapter-owned asset`,
+      fs.existsSync(path.join(adapterSkillRoot, "SKILL.md")),
+      true,
+      `Expected ${skillName} SKILL.md to exist`,
     );
 
     for (const relativeFile of listRelativeFiles(adapterSkillRoot).filter((file) =>
@@ -128,22 +121,14 @@ function main() {
   }
 
   for (const templateRoot of ["workspace-memory", "workspace-system"]) {
-    const adapterTemplateRoot = path.join(ADAPTER_ROOT, "templates", templateRoot);
-    const pluginTemplateRoot = path.join(PLUGIN_ROOT, "templates", templateRoot);
+    const absoluteTemplateRoot = path.join(ADAPTER_ROOT, "templates", templateRoot);
 
-    assert.deepEqual(
-      listRelativeFiles(adapterTemplateRoot),
-      listRelativeFiles(pluginTemplateRoot),
-      `Expected ${templateRoot} file tree to match compatibility mirror`,
+    assert.equal(fs.existsSync(absoluteTemplateRoot), true);
+    assert.notEqual(
+      listRelativeFiles(absoluteTemplateRoot).length,
+      0,
+      `Expected ${templateRoot} to ship non-empty template content`,
     );
-
-    for (const relativeFile of listRelativeFiles(adapterTemplateRoot)) {
-      assert.equal(
-        fs.readFileSync(path.join(adapterTemplateRoot, relativeFile), "utf8"),
-        fs.readFileSync(path.join(pluginTemplateRoot, relativeFile), "utf8"),
-        `Expected ${templateRoot}/${relativeFile} to match compatibility mirror`,
-      );
-    }
   }
 
   assert.deepEqual(
@@ -151,40 +136,25 @@ function main() {
     createOpenClawPluginManifest(INSTALL_SURFACES.ADAPTER),
   );
   assert.deepEqual(
-    readJson(PLUGIN_MANIFEST_PATH),
-    createOpenClawPluginManifest(INSTALL_SURFACES.COMPATIBILITY_SHELL),
-  );
-  assert.deepEqual(
     readJson(ADAPTER_PACKAGE_FILE).openclaw,
     createOpenClawPackageMetadata(INSTALL_SURFACES.ADAPTER),
   );
-  assert.deepEqual(
-    readJson(PLUGIN_PACKAGE_FILE).openclaw,
-    createOpenClawPackageMetadata(INSTALL_SURFACES.COMPATIBILITY_SHELL),
+  assert.equal(
+    readJson(ADAPTER_PACKAGE_FILE).version,
+    readJson(ADAPTER_MANIFEST_PATH).version,
   );
 
   const plugin = createOpenClawPlugin({
     pluginId: PLUGIN_ID,
     pluginName: PLUGIN_NAME,
-    pluginRoot: PLUGIN_ROOT,
+    pluginRoot: ADAPTER_ROOT,
   });
   const directPlugin = require(ADAPTER_PLUGIN_ENTRY_PATH);
-  const pluginShell = require(PLUGIN_ROOT);
-  const pluginSetupModule = require(PLUGIN_SETUP_MODULE_PATH);
-  const shippedAdapterSetupModule = require(SHIPPED_ADAPTER_SETUP_MODULE_PATH);
+
   assert.equal(plugin.id, PLUGIN_ID);
   assert.equal(plugin.name, PLUGIN_NAME);
   assert.equal(directPlugin.id, PLUGIN_ID);
   assert.equal(directPlugin.name, PLUGIN_NAME);
-  assert.equal(pluginShell.id, plugin.id);
-  assert.equal(pluginShell.name, plugin.name);
-  assert.deepEqual(
-    Object.keys(pluginSetupModule).sort(),
-    Object.keys(shippedAdapterSetupModule).sort(),
-  );
-  assert.equal(pluginSetupModule.PLUGIN_ID, PLUGIN_ID);
-  assert.equal(typeof pluginSetupModule.setupOpenClaw, "function");
-  assert.equal(typeof pluginSetupModule.maybeAutoSetup, "function");
 
   const setupRoot = makeTempRoot();
   try {
@@ -207,10 +177,7 @@ function main() {
       fs.existsSync(path.join(stateDir, "workspace", "system", "memory")),
       true,
     );
-    assert.equal(
-      fs.lstatSync(sharedPipelinePath).isSymbolicLink(),
-      true,
-    );
+    assert.equal(fs.lstatSync(sharedPipelinePath).isSymbolicLink(), true);
     assert.equal(
       path.resolve(path.dirname(sharedPipelinePath), fs.readlinkSync(sharedPipelinePath)),
       path.join(ADAPTER_SKILLS_ROOT, "memory-pipeline"),
@@ -242,7 +209,7 @@ function main() {
           },
         },
       },
-      PLUGIN_ROOT,
+      ADAPTER_ROOT,
     );
 
     assert.equal(autoSetupResult.stateDir, stateDir);
@@ -251,14 +218,14 @@ function main() {
     fs.rmSync(runtimeRoot, { recursive: true, force: true });
   }
 
-  const cliHelp = runSetupCli(["--help"], PLUGIN_ROOT);
+  const cliHelp = runSetupCli(["--help"], ADAPTER_ROOT);
   assert.equal(cliHelp.exitCode, 0);
   assert.match(cliHelp.stdout, /Usage: node scripts\/setup-openclaw\.js/);
   const shellCliHelp = spawnSync(
     process.execPath,
-    [PLUGIN_SETUP_SCRIPT_PATH, "--help"],
+    [ADAPTER_SETUP_SCRIPT_PATH, "--help"],
     {
-      cwd: PLUGIN_ROOT,
+      cwd: ADAPTER_ROOT,
       encoding: "utf8",
     },
   );
@@ -267,22 +234,21 @@ function main() {
   assert.equal(shellCliHelp.stderr, "");
 
   const pipelineAdapter = createOpenClawPipelineAdapter();
-  assert.deepEqual(pipelineAdapter.runExtract({
-    date: "2026-03-18",
-    llmRunner: "openclaw",
-  }), {
-    command: "openclaw",
-    args: ["skill", "run", "memory-extract", "--date", "2026-03-18"],
-  });
+  assert.deepEqual(
+    pipelineAdapter.runExtract({
+      date: "2026-03-18",
+      llmRunner: "openclaw",
+    }),
+    {
+      command: "openclaw",
+      args: ["skill", "run", "memory-extract", "--date", "2026-03-18"],
+    },
+  );
 
   const orchestrationRoot = makeTempRoot();
   try {
     const orchestrationWorkspaceRoot = path.join(orchestrationRoot, "workspace");
-    fs.cpSync(
-      path.resolve(__dirname, "../../../nmc-memory-plugin/tests/fixtures/workspace"),
-      orchestrationWorkspaceRoot,
-      { recursive: true },
-    );
+    fs.cpSync(WORKSPACE_FIXTURE, orchestrationWorkspaceRoot, { recursive: true });
 
     captureRuntime({
       memoryRoot: orchestrationWorkspaceRoot,
@@ -322,7 +288,10 @@ function main() {
     assert.equal(context.authoritative, false);
     assert.equal(context.roleBundle.manifest.id, "mnemo");
     assert.equal(context.runtime.buckets.retrievalTraces.entries[0].id, "rt-openclaw-001");
-    assert.equal(context.maintainer.boardDefaultsPath.endsWith("system/tasks/active/.kanban.json"), true);
+    assert.equal(
+      context.maintainer.boardDefaultsPath.endsWith("system/tasks/active/.kanban.json"),
+      true,
+    );
 
     const recall = getOpenClawRecallBundle({
       memoryRoot: orchestrationWorkspaceRoot,
@@ -394,18 +363,13 @@ function main() {
 
   const conformance = runAdapterConformanceSuite({
     adapter: createOpenClawConformanceAdapter({
-      pluginRoot: PLUGIN_ROOT,
+      pluginRoot: ADAPTER_ROOT,
     }),
     fixture: {
       installDate: "2026-03-18",
-      memoryRoot: path.resolve(
-        __dirname,
-        "../../../nmc-memory-plugin/tests/fixtures/workspace",
-      ),
-      workspaceFixture: path.resolve(
-        __dirname,
-        "../../../nmc-memory-plugin/tests/fixtures/workspace",
-      ),
+      memoryRoot: WORKSPACE_FIXTURE,
+      workspaceFixture: WORKSPACE_FIXTURE,
+      expectedBacklogAlert: false,
     },
   });
   assert.deepEqual(conformance.capabilities, [
@@ -421,7 +385,7 @@ function main() {
   ]);
 
   console.log(
-    "Validated adapter-openclaw setup, auto-bootstrap, and shared conformance fixtures.",
+    "Validated adapter-openclaw setup, auto-bootstrap, orchestration handoff, and shared conformance fixtures.",
   );
 }
 

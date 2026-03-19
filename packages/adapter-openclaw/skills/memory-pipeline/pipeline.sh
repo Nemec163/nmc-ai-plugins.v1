@@ -3,7 +3,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
-PIPELINE_BIN="$SCRIPT_DIR/../../../memory-pipeline/bin/run-pipeline.sh"
+PIPELINE_BIN="$PLUGIN_ROOT/memory-pipeline/bin/run-pipeline.sh"
+
+if [ ! -x "$PIPELINE_BIN" ]; then
+  PIPELINE_BIN="$PLUGIN_ROOT/../memory-pipeline/bin/run-pipeline.sh"
+fi
 
 if [ ! -x "$PIPELINE_BIN" ]; then
   echo "error: pipeline package not found or not executable: $PIPELINE_BIN" >&2

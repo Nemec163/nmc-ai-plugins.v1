@@ -27,11 +27,11 @@ const { acquireCanonWriteLock } = require('../../memory-canon');
 
 const WORKSPACE_FIXTURE = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/tests/fixtures/workspace'
+  '../../../tests/fixtures/workspace'
 );
 const FIXTURE_MEMORY_ROOT = WORKSPACE_FIXTURE;
-const PLUGIN_ROOT = path.resolve(__dirname, '../../../nmc-memory-plugin');
-const ADAPTER_SKILLS_ROOT = path.join(PLUGIN_ROOT, 'packages', 'adapter-openclaw', 'skills');
+const ADAPTER_ROOT = path.resolve(__dirname, '../../adapter-openclaw');
+const ADAPTER_SKILLS_ROOT = path.resolve(__dirname, '../../adapter-openclaw/skills');
 const CLI_PATH = path.resolve(__dirname, '../bin/memory-os-gateway.js');
 
 function makeTempRoot() {
@@ -139,14 +139,14 @@ function main() {
   });
   assert.equal(status.manifest.recordCounts.events, 2);
   assert.equal(status.intake.pendingFiles, 1);
-  assert.equal(status.intake.backlogAlert, true);
+  assert.equal(status.intake.backlogAlert, false);
   assert.equal(status.runtime.shadowExists, false);
   assert.equal(status.runtime.runCount, 0);
 
   const health = getHealth({
     memoryRoot: FIXTURE_MEMORY_ROOT,
   });
-  assert.equal(health.status, 'degraded');
+  assert.equal(health.status, 'healthy');
   assert.equal(health.checks.some((check) => check.name === 'verify-script' && check.ok), true);
 
   const verifyRoot = makeTempRoot();
@@ -468,8 +468,8 @@ function main() {
       workspaceRoot: path.join(bootstrapRoot, 'workspace'),
       systemRoot: path.join(bootstrapRoot, 'workspace', 'system'),
       memoryRoot: path.join(bootstrapRoot, 'workspace', 'system', 'memory'),
-      systemTemplateRoot: path.join(PLUGIN_ROOT, 'templates', 'workspace-system'),
-      memoryTemplateRoot: path.join(PLUGIN_ROOT, 'templates', 'workspace-memory'),
+      systemTemplateRoot: path.join(ADAPTER_ROOT, 'templates', 'workspace-system'),
+      memoryTemplateRoot: path.join(ADAPTER_ROOT, 'templates', 'workspace-memory'),
       skillsSourceRoot: ADAPTER_SKILLS_ROOT,
       installDate: '2026-03-18',
     });

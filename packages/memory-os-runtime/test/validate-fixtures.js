@@ -19,7 +19,7 @@ const {
 
 const WORKSPACE_FIXTURE = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/tests/fixtures/workspace'
+  '../../../tests/fixtures/workspace'
 );
 
 function makeTempRoot() {

@@ -1,7 +1,8 @@
 {
-  "name": "nmc-ai-plugins",
+  "name": "memoryos.v1",
   "version": "0.0.0",
   "private": true,
+  "description": "MemoryOS.v1 monorepo: autonomous memory core with optional connector packages.",
   "workspaces": [
     "packages/*"
   ]

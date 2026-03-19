@@ -24,12 +24,12 @@ const { parseProjectionRecords } = require('../../memory-os-gateway/lib/records'
 
 const FIXTURE_ROOT = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/tests/fixtures'
+  '../../../tests/fixtures'
 );
 const WORKSPACE_ROOT = path.join(FIXTURE_ROOT, 'workspace');
 const GOLDEN_ROOT = path.join(
   __dirname,
-  '../../../nmc-memory-plugin/tests/golden'
+  '../../../tests/golden'
 );
 
 function copyDirectory(sourceDir, targetDir) {

@@ -1,52 +1,77 @@
-# nmc-ai-plugins.v1
+# MemoryOS.v1
 
-Monorepo for the current NMC OpenClaw memory plugin and its bundled workspace scaffolding.
+Monorepo for MemoryOS.v1: an autonomous, self-sufficient memory operating system with optional connector packages for external LLM and agent runtimes.
 
-The repository currently ships one production plugin: `nmc-memory-plugin`. It remains the production OpenClaw install/setup shell for the current migration release, bootstraps a managed multi-agent OpenClaw workspace, provisions a shared `system/` layer, and bundles the memory, kanban, and maintenance skills that operate on that workspace.
+The product boundary is the Memory OS core: contracts, ingest, canon, maintainer, workspace, agents, gateway, runtime, pipeline, scripts, and control-plane packages. Connector packages attach that core to specific execution environments. In this repository, `adapter-openclaw` and `adapter-codex` are implemented connector packages, and `adapter-claude` exists as an explicit scaffold package for the future Claude connector surface.
 
-Use this document as the entry point. Use [plugin README](./nmc-memory-plugin/README.md) for package-level details, [implementation guide](./docs/implementation-guide.md) for day-2 operations, and [deliberate migration release plan](./docs/deliberate-migration-release-plan.md) for the current post-freeze cutover boundary.
+`packages/adapter-openclaw` is the supported OpenClaw adapter/plugin surface for MemoryOS.v1. The old `nmc-memory-plugin` mirror has been retired and removed from the repository.
+
+Use this document as the entry point. Use [adapter README](./packages/adapter-openclaw/README.md) for the OpenClaw adapter surface, [implementation guide](./docs/implementation-guide.md) for day-2 operations, and [deliberate migration release plan](./docs/deliberate-migration-release-plan.md) for the current direct-install boundary.
 
 ## What It Provides
 
-- A managed OpenClaw bootstrap for five predefined agents: `nyx`, `medea`, `arx`, `lev`, and `mnemo`.
+- An autonomous Memory OS core with canonical memory, runtime shadow state, operator surfaces, and deterministic promotion boundaries.
 - A shared `system/` layer with memory, skills, tasks, policy, docs, and scripts.
 - A git-backed canonical memory workspace with extract -> curate -> apply -> verify flow.
-- A file-first kanban contract for task routing, autonomy defaults, and git-flow decisions.
-- Retention and health scripts for ongoing maintenance.
+- Optional connector surfaces for OpenClaw and Codex, plus a scaffolded future Claude adapter that is not part of the current production release surface.
+- A direct OpenClaw adapter surface with managed setup and bootstrap behavior.
 
 ## Quick Start
 
-Install the plugin from this repository:
+Install the optional OpenClaw adapter from this repository:
 
 ```bash
-openclaw plugins install ./nmc-memory-plugin
+openclaw plugins install ./packages/adapter-openclaw
 ```
 
 The plugin auto-bootstraps on first runtime load by default. To run setup explicitly:
 
 ```bash
-openclaw nmc-memory setup
+openclaw memoryos setup
 ```
 
 For local development without installing the package, use the standalone setup script:
 
 ```bash
-node ./nmc-memory-plugin/scripts/setup-openclaw.js --state-dir ~/.openclaw
+node ./packages/adapter-openclaw/lib/setup-cli.js --state-dir ~/.openclaw
 ```
 
 Run the daily consolidation pipeline:
 
 ```bash
-./nmc-memory-plugin/skills/memory-pipeline/pipeline.sh 2026-03-05
+./packages/adapter-openclaw/skills/memory-pipeline/pipeline.sh 2026-03-05
 ```
 
 ## Architecture
 
-### Managed OpenClaw Bootstrap
+### Autonomous Core
 
-`nmc-memory-plugin` registers:
+MemoryOS.v1 centers on the extracted core packages:
 
-- a CLI command: `openclaw nmc-memory setup`
+- `@nmc/memory-contracts`
+- `@nmc/memory-ingest`
+- `@nmc/memory-canon`
+- `@nmc/memory-maintainer`
+- `@nmc/memory-workspace`
+- `@nmc/memory-agents`
+- `@nmc/memory-pipeline`
+- `memory-os-gateway`
+- `memory-os-runtime`
+- `control-plane`
+
+These packages define the memory system itself. Connectors are optional and sit on top.
+
+### Optional Connectors
+
+- `packages/adapter-openclaw` attaches MemoryOS.v1 to the OpenClaw plugin/runtime model.
+- `packages/adapter-codex` attaches MemoryOS.v1 to Codex-oriented execution flows.
+- `packages/adapter-claude` is the explicit scaffold package for the future Claude adapter surface.
+
+### OpenClaw Adapter
+
+`packages/adapter-openclaw` registers:
+
+- a CLI command: `openclaw memoryos setup`
 - a runtime bootstrap service that can scaffold the workspace automatically on plugin load
 
 The managed scaffold creates:
@@ -99,7 +124,7 @@ Shared infrastructure is scaffolded under `system/`:
 - `scripts/` contains local operational helpers such as `kanban.mjs`.
 - `docs/` contains system-level implementation notes for future tooling and UI layers.
 
-The shared task layer uses the contract from `nmc-memory-plugin/templates/workspace-system/tasks/README.md`:
+The shared task layer uses the contract from `packages/adapter-openclaw/templates/workspace-system/tasks/README.md`:
 
 - active tasks are `T-*.md`
 - board defaults live in `tasks/active/.kanban.json`
@@ -123,7 +148,7 @@ Operational helpers:
 
 ## Configuration
 
-The plugin manifest exposes these managed config knobs through `openclaw.plugin.json`:
+The adapter manifest exposes these managed config knobs through `openclaw.plugin.json`:
 
 | Key | Purpose |
 |---|---|
@@ -144,7 +169,7 @@ Example:
 {
   "plugins": {
     "entries": {
-      "nmc-memory-plugin": {
+      "memoryos-openclaw": {
         "enabled": true,
         "config": {
           "autoSetup": false,
@@ -166,21 +191,21 @@ Example:
 Run the bundled integration checks:
 
 ```bash
-./nmc-memory-plugin/tests/run-integration.sh
+./tests/run-integration.sh
 ```
 
 For an already scaffolded workspace, the fastest operational verification is:
 
 ```bash
-./nmc-memory-plugin/skills/memory-verify/verify.sh ~/.openclaw/workspace/system/memory
-./nmc-memory-plugin/skills/memory-status/status.sh ~/.openclaw/workspace/system/memory
+./packages/adapter-openclaw/skills/memory-verify/verify.sh ~/.openclaw/workspace/system/memory
+./packages/adapter-openclaw/skills/memory-status/status.sh ~/.openclaw/workspace/system/memory
 ```
 
 ## Documentation Map
 
 | Document | Role |
 |---|---|
-| [nmc-memory-plugin/README.md](./nmc-memory-plugin/README.md) | Package-level install, setup, structure, and skill reference. |
+| [packages/adapter-openclaw/README.md](./packages/adapter-openclaw/README.md) | Package-level install, setup, structure, and OpenClaw adapter reference. |
 | [docs/implementation-guide.md](./docs/implementation-guide.md) | Current implementation and day-2 operations guide. |
 | [docs/deliberate-migration-release-plan.md](./docs/deliberate-migration-release-plan.md) | Current migration-release surface classification and repo-local bridge retirement sequence. |
 | [docs/memory-os-roadmap.md](./docs/memory-os-roadmap.md) | Repo-specific migration roadmap from the current plugin to a modular Memory OS. |

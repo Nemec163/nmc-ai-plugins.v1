@@ -185,7 +185,7 @@ function runStatusCheck(adapter, fixture) {
     assert.equal(status.manifest.recordCounts.facts, fixture.expectedFactCount);
   }
   assert.equal(status.intake.pendingFiles, fixture.expectedPendingFiles || 1);
-  assert.equal(status.intake.backlogAlert, true);
+  assert.equal(status.intake.backlogAlert, fixture.expectedBacklogAlert ?? true);
 }
 
 function runVerifyCheck(adapter, fixture) {

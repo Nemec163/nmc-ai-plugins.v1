@@ -1,11 +1,10 @@
 "use strict";
 
-const PLUGIN_ID = "nmc-memory-plugin";
-const PLUGIN_NAME = "NMC Memory Plugin";
+const PLUGIN_ID = "memoryos-openclaw";
+const PLUGIN_NAME = "MemoryOS OpenClaw Adapter";
 
 const INSTALL_SURFACES = Object.freeze({
   ADAPTER: "adapter-package",
-  COMPATIBILITY_SHELL: "compatibility-shell",
 });
 
 const PLUGIN_MANIFEST_BASE = Object.freeze({
@@ -13,7 +12,7 @@ const PLUGIN_MANIFEST_BASE = Object.freeze({
   name: PLUGIN_NAME,
   version: "0.1.0",
   description:
-    "Persistent human-like memory system for OpenClaw with a git-backed canon, consolidation pipeline, and query skills.",
+    "OpenClaw connector surface for MemoryOS.v1 with managed bootstrap, canonical memory, and operational skills.",
   configSchema: {
     type: "object",
     additionalProperties: false,
@@ -86,10 +85,7 @@ function cloneJson(value) {
 }
 
 function normalizeSurface(surface) {
-  if (
-    surface === INSTALL_SURFACES.ADAPTER ||
-    surface === INSTALL_SURFACES.COMPATIBILITY_SHELL
-  ) {
+  if (surface === INSTALL_SURFACES.ADAPTER) {
     return surface;
   }
 
@@ -97,19 +93,13 @@ function normalizeSurface(surface) {
 }
 
 function getSkillRoot(surface) {
-  if (surface === INSTALL_SURFACES.ADAPTER) {
-    return "./skills";
-  }
-
-  return "packages/adapter-openclaw/skills";
+  normalizeSurface(surface);
+  return "./skills";
 }
 
 function getOpenClawExtensionEntry(surface) {
-  if (surface === INSTALL_SURFACES.ADAPTER) {
-    return "./plugin.js";
-  }
-
-  return "./index.js";
+  normalizeSurface(surface);
+  return "./plugin.js";
 }
 
 function createOpenClawPluginManifest(surface = INSTALL_SURFACES.ADAPTER) {

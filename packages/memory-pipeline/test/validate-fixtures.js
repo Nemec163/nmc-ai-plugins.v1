@@ -11,11 +11,11 @@ const BIN_PATH = path.join(ROOT_DIR, 'bin', 'run-pipeline.sh');
 const LLM_RUNNER_BIN_PATH = path.join(ROOT_DIR, 'bin', 'run-llm-phase.js');
 const WRAPPER_PATH = path.resolve(
   ROOT_DIR,
-  '../../nmc-memory-plugin/skills/memory-pipeline/pipeline.sh'
+  '../adapter-openclaw/skills/memory-pipeline/pipeline.sh'
 );
 const WORKSPACE_FIXTURE = path.resolve(
   ROOT_DIR,
-  '../../nmc-memory-plugin/tests/fixtures/workspace'
+  '../../tests/fixtures/workspace'
 );
 
 const {
@@ -88,8 +88,13 @@ function main() {
   ensureBashSyntax(WRAPPER_PATH);
 
   const wrapperContents = fs.readFileSync(WRAPPER_PATH, 'utf8');
-  if (!wrapperContents.includes('packages/memory-pipeline/bin/run-pipeline.sh')) {
-    throw new Error('Expected plugin wrapper to target packages/memory-pipeline/bin/run-pipeline.sh');
+  if (
+    !wrapperContents.includes('memory-pipeline/bin/run-pipeline.sh') ||
+    !wrapperContents.includes('../memory-pipeline/bin/run-pipeline.sh')
+  ) {
+    throw new Error(
+      'Expected adapter wrapper to support bundled and workspace memory-pipeline paths'
+    );
   }
 
   const binContents = fs.readFileSync(BIN_PATH, 'utf8');
@@ -97,6 +102,15 @@ function main() {
     if (!binContents.includes(title)) {
       throw new Error(`Expected package pipeline script to include phase title: ${title}`);
     }
+  }
+  if (binContents.includes('nmc-memory-plugin/skills/memory-verify/verify.sh')) {
+    throw new Error('Expected package pipeline script to avoid compatibility-shell verify defaults');
+  }
+  if (!binContents.includes('memory-scripts/bin/verify.sh')) {
+    throw new Error('Expected package pipeline script to default to the shared verify script package');
+  }
+  if (!binContents.includes('run-llm-phase.js')) {
+    throw new Error('Expected package pipeline script to resolve the sibling run-llm-phase.js helper');
   }
 
   assert.equal(

@@ -8,6 +8,7 @@ const path = require("node:path");
 const {
   getBundledSkillsRoot,
 } = require("./openclaw-setup");
+const { loadPackage, resolvePackagePath } = require("./load-package");
 
 const OPENCLAW_ADAPTER_CAPABILITIES = Object.freeze({
   roleBundle: true,
@@ -26,20 +27,11 @@ function loadMemoryGateway() {
     return cachedMemoryGateway;
   }
 
-  try {
-    cachedMemoryGateway = require("memory-os-gateway");
-    return cachedMemoryGateway;
-  } catch (error) {
-    if (
-      error.code !== "MODULE_NOT_FOUND" ||
-      !String(error.message || "").includes("memory-os-gateway")
-    ) {
-      throw error;
-    }
-
-    cachedMemoryGateway = require("../../memory-os-gateway");
-    return cachedMemoryGateway;
-  }
+  cachedMemoryGateway = loadPackage("memory-os-gateway", [
+    "../memory-os-gateway",
+    "../../memory-os-gateway",
+  ]);
+  return cachedMemoryGateway;
 }
 
 function createOpenClawConformanceAdapter(options = {}) {
@@ -51,7 +43,7 @@ function createOpenClawConformanceAdapter(options = {}) {
   const gateway = loadMemoryGateway();
   const gatewayCliPath =
     options.gatewayCliPath ||
-    path.resolve(__dirname, "..", "..", "memory-os-gateway", "bin", "memory-os-gateway.js");
+    resolvePackagePath("memory-os-gateway", "bin", "memory-os-gateway.js");
   const sharedSkillsRoot = options.sharedSkillsRoot || getBundledSkillsRoot();
 
   return {

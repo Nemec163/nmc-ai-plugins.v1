@@ -1,4 +1,4 @@
-name: nmc-memory-plugin CI
+name: MemoryOS.v1 CI
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
           node-version: '20'
 
       - name: Run contract tests
-        run: ./nmc-memory-plugin/tests/run-contract-tests.sh
+        run: ./tests/run-contract-tests.sh
 
       - name: Run integration tests
-        run: ./nmc-memory-plugin/tests/run-integration.sh
+        run: ./tests/run-integration.sh

@@ -21,11 +21,11 @@ const {
 
 const WORKSPACE_SYSTEM_ROOT = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/templates/workspace-system'
+  '../../adapter-openclaw/templates/workspace-system'
 );
 const KANBAN_SKILL = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/skills/kanban-operator/SKILL.md'
+  '../../adapter-openclaw/skills/kanban-operator/SKILL.md'
 );
 
 function read(relativePath) {

@@ -22,10 +22,11 @@ Current surfaces:
 - `describeAdapterInvocation(options)`
 - `runAdapterInvocation(options)`
 
-The shared pipeline package does not hardcode an engine adapter. LLM phase
-execution is resolved from an injected adapter module path, and the invocation
-shape is validated through `@nmc/memory-contracts`.
+The shared pipeline package treats connectors as optional. LLM phase execution
+is resolved from an injected adapter module path, and the invocation shape is
+validated through `@nmc/memory-contracts`. The package-local verify phase now
+defaults to `@nmc/memory-scripts` rather than the OpenClaw compatibility shell.
 
-The legacy OpenClaw plugin entrypoint remains at
-`nmc-memory-plugin/skills/memory-pipeline/pipeline.sh` as a thin wrapper over this
-package.
+The supported OpenClaw adapter entrypoint lives at
+`packages/adapter-openclaw/skills/memory-pipeline/pipeline.sh` as a thin wrapper
+over this package.

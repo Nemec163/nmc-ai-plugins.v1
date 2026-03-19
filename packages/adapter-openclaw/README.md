@@ -1,6 +1,6 @@
 # adapter-openclaw
 
-OpenClaw-specific adapter package for the Memory OS migration.
+Supported OpenClaw adapter package for MemoryOS.v1.
 
 Current responsibilities:
 
@@ -11,7 +11,7 @@ Current responsibilities:
 - bundled OpenClaw skill assets and `SKILL.md` packaging
 - `openclaw.json` mutation and managed bindings
 - managed `memorySearch.extraPaths` registration
-- gateway-backed scaffold bootstrap for the compatibility plugin
+- gateway-backed scaffold bootstrap for direct OpenClaw installs
 
 Runtime-backed orchestration surface:
 
@@ -26,21 +26,16 @@ The orchestration context stays explicitly non-authoritative:
 - runtime recall is labeled non-authoritative through the freshness boundary
 - maintainer references point at `system/tasks`, `system/policy`, and `system/scripts` instead of reintroducing adapter-owned tasking rules
 
-The compatibility shell remains in `nmc-memory-plugin/`, which also stays the
-current production install/setup surface for OpenClaw during the migration
-release. This package stays internal/private for now: OpenClaw-specific logic
-and bundled install assets should live here. It now owns the OpenClaw install
-manifest surface under `openclaw.plugin.json`, `package.json#openclaw`,
-`plugin.js`, `skills/`, and `templates/`, while the compatibility shell keeps
-mirror copies for the current production install path. Live installs in the
-compatibility shell still discover bundled skills through
-`packages/adapter-openclaw/skills`, and the legacy `nmc-memory-plugin/skills/`
-tree remains packaged only as a compatibility wrapper surface for stable direct
-script paths.
+This package is the supported OpenClaw install/setup surface for MemoryOS.v1.
+Install it directly with `openclaw plugins install ./packages/adapter-openclaw`
+and run setup with `openclaw memoryos setup`.
 
-The shell entrypoints in `nmc-memory-plugin/` now collapse to thin wrappers over
-this package. The remaining work is a later deliberate policy cutover about
-when to retire `nmc-memory-plugin` as the production install shell, not a
-missing adapter-owned packaging surface.
+Packed adapter artifacts also bundle the installed-artifact wrapper paths for
+`control-plane/`, `memory-os-gateway/`, `bin/memory-control-plane.js`, and
+`bin/memory-os-gateway.js` so operator and gateway entrypoints remain available
+after extract without a monorepo workspace layout.
+
+The legacy `nmc-memory-plugin/` shell is retired. This package is the only
+supported OpenClaw install/setup surface in the repository.
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan.

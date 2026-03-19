@@ -11,8 +11,8 @@ const SUPPORTED_CONTROL_PLANE_COMMANDS = Object.freeze([
   'record-intervention',
 ]);
 
-const COMPATIBILITY_SHELL_CONTRACTS = Object.freeze([
-  'openclaw nmc-memory setup',
+const DIRECT_ADAPTER_CONTRACTS = Object.freeze([
+  'openclaw memoryos setup',
   'plugin auto-bootstrap',
   'openclaw.plugin.json',
   'system workspace layout',
@@ -74,33 +74,7 @@ function getControlPlaneReleaseQualification(snapshot) {
     ),
   ];
 
-  const retirementGates = [
-    buildRetirementGate(
-      'install-manifest-surface',
-      'cleared',
-      'adapter-openclaw now owns the OpenClaw manifest, extension metadata, and bundled templates while nmc-memory-plugin keeps compatibility mirrors'
-    ),
-    buildRetirementGate(
-      'wrapper-convergence',
-      'cleared',
-      'nmc-memory-plugin runtime/setup entrypoints now delegate to adapter-openclaw wrappers'
-    ),
-    buildRetirementGate(
-      'skill-discovery-surface',
-      'cleared',
-      'live installs now discover bundled skills through packages/adapter-openclaw/skills'
-    ),
-    buildRetirementGate(
-      'shipped-artifact-layout',
-      'cleared',
-      'installed operator and programmatic paths now resolve through shell-owned wrappers instead of internal packages/ layout'
-    ),
-    buildRetirementGate(
-      'regression-cutover-coverage',
-      'cleared',
-      'the regression baseline now covers a synthetic direct adapter surface alongside compatibility-shell packaging'
-    ),
-  ];
+  const retirementGates = [];
 
   return {
     kind: 'control-plane-release-qualification',
@@ -112,15 +86,22 @@ function getControlPlaneReleaseQualification(snapshot) {
       status: 'supported-migration-release-surface',
       commands: SUPPORTED_CONTROL_PLANE_COMMANDS,
     },
-    compatibilityShell: {
+    directAdapterSurface: {
+      package: 'adapter-openclaw',
+      pluginId: 'memoryos-openclaw',
+      cli: 'memoryos',
+      status: 'supported-direct-install-surface',
+      preservedContracts: DIRECT_ADAPTER_CONTRACTS,
+    },
+    legacyShell: {
       package: 'nmc-memory-plugin',
-      status: 'compatibility-only-shell',
-      productionStatus: 'current-production-install-shell',
-      directAdapterInstall: 'not-supported',
-      preservedContracts: COMPATIBILITY_SHELL_CONTRACTS,
+      status: 'retired',
+      productionStatus: 'retired',
+      directAdapterInstall: 'supported',
+      removedFromRepository: true,
     },
     retirementPrerequisites: {
-      target: 'adapter-openclaw-direct-install',
+      target: 'nmc-memory-plugin-legacy-retirement',
       cutoverReady: retirementGates.every((gate) => gate.status === 'cleared'),
       pendingGateCount: retirementGates.filter((gate) => gate.status !== 'cleared').length,
       gates: retirementGates,

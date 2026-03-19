@@ -21,11 +21,11 @@ const { captureRuntime, completeJob, feedback, propose } = require('../../memory
 
 const MEMORY_FIXTURE = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/tests/fixtures/workspace'
+  '../../../tests/fixtures/workspace'
 );
 const SYSTEM_TEMPLATE = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/templates/workspace-system'
+  '../../adapter-openclaw/templates/workspace-system'
 );
 const CLI_PATH = path.resolve(__dirname, '../bin/memory-control-plane.js');
 
@@ -280,20 +280,24 @@ function main() {
       'control-plane'
     );
     assert.equal(
-      snapshot.releaseQualification.compatibilityShell.package,
-      'nmc-memory-plugin'
+      snapshot.releaseQualification.directAdapterSurface.package,
+      'adapter-openclaw'
     );
     assert.equal(
-      snapshot.releaseQualification.compatibilityShell.productionStatus,
-      'current-production-install-shell'
+      snapshot.releaseQualification.directAdapterSurface.pluginId,
+      'memoryos-openclaw'
     );
     assert.equal(
-      snapshot.releaseQualification.compatibilityShell.directAdapterInstall,
-      'not-supported'
+      snapshot.releaseQualification.legacyShell.productionStatus,
+      'retired'
+    );
+    assert.equal(
+      snapshot.releaseQualification.legacyShell.removedFromRepository,
+      true
     );
     assert.equal(
       snapshot.releaseQualification.retirementPrerequisites.target,
-      'adapter-openclaw-direct-install'
+      'nmc-memory-plugin-legacy-retirement'
     );
     assert.equal(
       snapshot.releaseQualification.retirementPrerequisites.cutoverReady,
@@ -303,36 +307,7 @@ function main() {
       snapshot.releaseQualification.retirementPrerequisites.pendingGateCount,
       0
     );
-    assert.deepEqual(
-      snapshot.releaseQualification.retirementPrerequisites.gates.map((gate) => gate.id),
-      [
-        'install-manifest-surface',
-        'wrapper-convergence',
-        'skill-discovery-surface',
-        'shipped-artifact-layout',
-        'regression-cutover-coverage',
-      ]
-    );
-    assert.equal(
-      snapshot.releaseQualification.retirementPrerequisites.gates[0].status,
-      'cleared'
-    );
-    assert.equal(
-      snapshot.releaseQualification.retirementPrerequisites.gates[1].status,
-      'cleared'
-    );
-    assert.equal(
-      snapshot.releaseQualification.retirementPrerequisites.gates[2].status,
-      'cleared'
-    );
-    assert.equal(
-      snapshot.releaseQualification.retirementPrerequisites.gates[3].status,
-      'cleared'
-    );
-    assert.equal(
-      snapshot.releaseQualification.retirementPrerequisites.gates[4].status,
-      'cleared'
-    );
+    assert.deepEqual(snapshot.releaseQualification.retirementPrerequisites.gates, []);
     assert.equal(snapshot.releaseQualification.bridgeStatus.gatewayOpsSnapshot, 'retired');
     assert.equal(
       snapshot.queues.conflicts.items.some((conflict) => conflict.code === 'orphan-job'),

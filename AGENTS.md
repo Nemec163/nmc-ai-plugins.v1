@@ -1,14 +1,16 @@
 # Repository Session Guide
 
-This repository is migrating from the current `nmc-memory-plugin` implementation to the target Memory OS described in [docs/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/memory-os-roadmap.md).
+This repository now treats `MemoryOS.v1` as the product boundary and uses the roadmap in [docs/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/memory-os-roadmap.md) to migrate remaining compatibility-first surfaces away from the old plugin-centric framing.
+
+`nmc-memory-plugin` has been retired. `packages/adapter-openclaw` is the supported OpenClaw install/setup surface inside that product boundary.
 
 ## Current State
 
-- completed roadmap slice: `compatibility-shell install manifest surface convergence — move OpenClaw install manifest ownership off nmc-memory-plugin`
-- next roadmap slice: `deliberate direct-install cutover decision — decide when to retire nmc-memory-plugin as the production install/setup shell now that the retirement prerequisites are cleared`
+- completed roadmap slice: `legacy-shell retirement cleanup — remove nmc-memory-plugin mirrors once fixtures and packaging checks no longer depend on them`
+- next roadmap slice: `adapter-claude runtime contract — turn the Claude adapter scaffold into a bounded supported connector contract`
 - regression baseline:
-  - `./nmc-memory-plugin/tests/run-contract-tests.sh`
-  - `./nmc-memory-plugin/tests/run-integration.sh`
+  - `./tests/run-contract-tests.sh`
+  - `./tests/run-integration.sh`
 - do not assume the roadmap is only aspirational; progress must be reflected back into the roadmap and this file after each completed slice
 
 ## Mandatory Session Start
@@ -31,8 +33,8 @@ Work one roadmap slice at a time. Treat each `PR x.y` heading in the roadmap as 
 4. Implement the smallest viable change that satisfies the roadmap acceptance criteria.
 5. Run targeted verification for the touched area.
 6. Run the regression baseline:
-   - `./nmc-memory-plugin/tests/run-contract-tests.sh`
-   - `./nmc-memory-plugin/tests/run-integration.sh`
+   - `./tests/run-contract-tests.sh`
+   - `./tests/run-integration.sh`
 7. If the change has regression risk, do a focused review pass before finalizing.
 8. Update [docs/memory-os-roadmap.md](/Users/nmc/Documents/WORK-NMC/GitHub/NMC/nmc-ai-plugins.v1/docs/memory-os-roadmap.md):
    - mark the completed roadmap slice as done
@@ -45,12 +47,12 @@ Work one roadmap slice at a time. Treat each `PR x.y` heading in the roadmap as 
 
 These rules stay in force for every phase unless the roadmap explicitly changes them:
 
-- do not break `openclaw nmc-memory setup`, auto-bootstrap, or `openclaw.plugin.json`
+- do not break `openclaw memoryos setup`, auto-bootstrap, or `openclaw.plugin.json`
 - do not change the default workspace layout under `system/`
 - do not change the canon on-disk format during extraction
 - do not let runtime memory write canon directly
 - do not bypass the single promotion path into canon
-- do not replace `./nmc-memory-plugin/tests/run-integration.sh` as the primary regression gate during extraction
+- do not replace `./tests/run-integration.sh` as the primary regression gate during extraction
 
 ## Phase 0 Guidance
 
@@ -97,7 +99,7 @@ Phase 0 is complete:
 - `compatibility-shell shipped artifact layout convergence` added shell-owned CLI and programmatic wrappers under `nmc-memory-plugin`, moved installed-artifact guidance and smoke coverage onto those wrapper paths, and cleared that retirement gate without widening scope into new operator capabilities
 - `compatibility-shell regression cutover coverage` added synthetic direct-surface regression coverage through `packages/adapter-openclaw`, cleared that retirement gate, and isolated `install-manifest-surface` as the final direct-install blocker
 - `compatibility-shell install manifest surface convergence` moved OpenClaw install manifest ownership and bundled scaffold templates onto `packages/adapter-openclaw`, kept compatibility-shell mirrors under `nmc-memory-plugin`, and cleared the final direct-install retirement gate without widening scope into new operator capabilities
-- the next slice is `deliberate direct-install cutover decision`, which should decide whether and when to retire `nmc-memory-plugin` as the production install/setup shell now that the retirement prerequisites are clear
+- the next slice is `adapter-claude runtime contract`, which should replace the current scaffold-only package with a bounded Claude connector contract over existing gateway and handoff surfaces
 
 ## Commit Convention
 

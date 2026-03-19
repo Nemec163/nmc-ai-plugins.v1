@@ -2,6 +2,8 @@
 
 const path = require("node:path");
 
+const { loadPackage } = require("./load-package");
+
 let cachedMemoryGateway = null;
 
 function loadMemoryGateway() {
@@ -9,20 +11,11 @@ function loadMemoryGateway() {
     return cachedMemoryGateway;
   }
 
-  try {
-    cachedMemoryGateway = require("memory-os-gateway");
-    return cachedMemoryGateway;
-  } catch (error) {
-    if (
-      error.code !== "MODULE_NOT_FOUND" ||
-      !String(error.message || "").includes("memory-os-gateway")
-    ) {
-      throw error;
-    }
-
-    cachedMemoryGateway = require("../../memory-os-gateway");
-    return cachedMemoryGateway;
-  }
+  cachedMemoryGateway = loadPackage("memory-os-gateway", [
+    "../memory-os-gateway",
+    "../../memory-os-gateway",
+  ]);
+  return cachedMemoryGateway;
 }
 
 function requireOption(options, key) {

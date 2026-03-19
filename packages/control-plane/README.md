@@ -57,16 +57,14 @@ Control-plane v3 stays intentionally careful:
 - manual interventions never mutate canon, proposal receipts, or job receipts directly
 - analytics and audit surfaces summarize queue, intervention, lock, and runtime history without becoming source-of-truth
 - runtime inspection stays a read-only view over `runtime/shadow/` and preserves the runtime freshness boundary
-- `snapshot` and `health` now emit release-qualification metadata that marks `control-plane` as the supported migration-release operator surface and `nmc-memory-plugin` as the compatibility shell
-- that release qualification also records that `nmc-memory-plugin` remains the current production install/setup shell and that direct installation of `adapter-openclaw` is not supported in this slice
-- the same release qualification now enumerates the remaining retirement prerequisites for any future direct-install cutover away from `nmc-memory-plugin`
+- `snapshot` and `health` now emit release-qualification metadata that marks `control-plane` as the supported operator surface and `adapter-openclaw` as the supported OpenClaw direct-install surface
+- the same release qualification records `nmc-memory-plugin` as a retired legacy shell rather than an active production surface
 
 Packaging note:
 
-- when the compatibility shell is shipped through `nmc-memory-plugin`, the supported operator surface is still implemented by `packages/control-plane/`
-- the supported installed-artifact CLI entrypoint is the shell-owned wrapper `node ~/.openclaw/extensions/nmc-memory-plugin/bin/memory-control-plane.js <command> ...`
-- the supported installed-artifact programmatic wrapper is `~/.openclaw/extensions/nmc-memory-plugin/control-plane/`
-- installed-artifact automation should prefer that shell-owned wrapper over nested `packages/control-plane/bin/` paths
+- when the OpenClaw adapter is installed directly, the supported installed-artifact CLI entrypoint is `node ~/.openclaw/extensions/memoryos-openclaw/bin/memory-control-plane.js <command> ...`
+- the supported installed-artifact programmatic wrapper is `~/.openclaw/extensions/memoryos-openclaw/control-plane/`
+- installed-artifact automation should prefer that adapter-owned wrapper over nested `packages/control-plane/bin/` paths
 
 Compatibility note:
 

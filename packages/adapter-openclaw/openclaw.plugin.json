@@ -1,8 +1,8 @@
 {
-  "id": "nmc-memory-plugin",
-  "name": "NMC Memory Plugin",
+  "id": "memoryos-openclaw",
+  "name": "MemoryOS OpenClaw Adapter",
   "version": "0.1.0",
-  "description": "Persistent human-like memory system for OpenClaw with a git-backed canon, consolidation pipeline, and query skills.",
+  "description": "OpenClaw connector surface for MemoryOS.v1 with managed bootstrap, canonical memory, and operational skills.",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

@@ -16,7 +16,7 @@ const {
 
 const FIXTURE_ROOT = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/tests/fixtures/workspace/core'
+  '../../../tests/fixtures/workspace/core'
 );
 
 const RECORD_FILE_ROOTS = [

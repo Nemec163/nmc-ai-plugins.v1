@@ -5,6 +5,7 @@ const os = require("os");
 const path = require("path");
 
 const { PLUGIN_ID, PLUGIN_NAME } = require("./install-surface");
+const { loadPackage } = require("./load-package");
 
 const DEFAULT_BINDINGS = [];
 const CANON_EXTRA_PATHS = [
@@ -24,20 +25,11 @@ function loadMemoryAgents() {
     return cachedMemoryAgents;
   }
 
-  try {
-    cachedMemoryAgents = require("@nmc/memory-agents");
-    return cachedMemoryAgents;
-  } catch (error) {
-    if (
-      error.code !== "MODULE_NOT_FOUND" ||
-      !String(error.message || "").includes("@nmc/memory-agents")
-    ) {
-      throw error;
-    }
-
-    cachedMemoryAgents = require("../../memory-agents");
-    return cachedMemoryAgents;
-  }
+  cachedMemoryAgents = loadPackage("@nmc/memory-agents", [
+    "../memory-agents",
+    "../../memory-agents",
+  ]);
+  return cachedMemoryAgents;
 }
 
 function loadMemoryGateway() {
@@ -45,20 +37,11 @@ function loadMemoryGateway() {
     return cachedMemoryGateway;
   }
 
-  try {
-    cachedMemoryGateway = require("memory-os-gateway");
-    return cachedMemoryGateway;
-  } catch (error) {
-    if (
-      error.code !== "MODULE_NOT_FOUND" ||
-      !String(error.message || "").includes("memory-os-gateway")
-    ) {
-      throw error;
-    }
-
-    cachedMemoryGateway = require("../../memory-os-gateway");
-    return cachedMemoryGateway;
-  }
+  cachedMemoryGateway = loadPackage("memory-os-gateway", [
+    "../memory-os-gateway",
+    "../../memory-os-gateway",
+  ]);
+  return cachedMemoryGateway;
 }
 
 function loadMemoryWorkspace() {
@@ -66,20 +49,11 @@ function loadMemoryWorkspace() {
     return cachedMemoryWorkspace;
   }
 
-  try {
-    cachedMemoryWorkspace = require("@nmc/memory-workspace");
-    return cachedMemoryWorkspace;
-  } catch (error) {
-    if (
-      error.code !== "MODULE_NOT_FOUND" ||
-      !String(error.message || "").includes("@nmc/memory-workspace")
-    ) {
-      throw error;
-    }
-
-    cachedMemoryWorkspace = require("../../memory-workspace");
-    return cachedMemoryWorkspace;
-  }
+  cachedMemoryWorkspace = loadPackage("@nmc/memory-workspace", [
+    "../memory-workspace",
+    "../../memory-workspace",
+  ]);
+  return cachedMemoryWorkspace;
 }
 
 function ensureDir(dirPath) {
@@ -641,7 +615,7 @@ function optionsFromCommander(options, pluginRoot) {
 
 function printSummary(result) {
   const lines = [
-    "NMC OpenClaw setup summary",
+    "MemoryOS OpenClaw setup summary",
     `State dir: ${result.stateDir}`,
     `Workspace root: ${result.workspaceRoot}`,
     `Shared system root: ${result.systemRoot}`,
@@ -690,28 +664,28 @@ function registerOpenClawPlugin(api, pluginRoot) {
   if (api && typeof api.registerCli === "function") {
     api.registerCli(
       ({ program }) => {
-        const nmcMemory = program
-          .command("nmc-memory")
-          .description("NMC memory and multi-agent workspace utilities");
+        const memoryos = program
+          .command("memoryos")
+          .description("MemoryOS OpenClaw adapter utilities");
 
         addCommanderOptions(
-          nmcMemory
+          memoryos
             .command("setup")
             .description(
-              "Scaffold OpenClaw multi-agent workspaces and shared memory canon",
+              "Scaffold MemoryOS shared system and OpenClaw agent workspaces",
             ),
         ).action((options) => {
           const result = setupOpenClaw(optionsFromCommander(options, pluginRoot));
           console.log(printSummary(result));
         });
       },
-      { commands: ["nmc-memory"] },
+      { commands: ["memoryos"] },
     );
   }
 
   if (api && typeof api.registerService === "function") {
     api.registerService({
-      name: "nmc-memory-bootstrap",
+      name: "memoryos-openclaw-bootstrap",
       start() {
         try {
           const result = maybeAutoSetup(api, pluginRoot);

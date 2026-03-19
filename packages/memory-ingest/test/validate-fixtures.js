@@ -16,7 +16,7 @@ const {
 
 const FIXTURE_ROOT = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/tests/fixtures'
+  '../../../tests/fixtures'
 );
 const TRANSCRIPT_ROOT = path.join(FIXTURE_ROOT, 'transcripts');
 const WORKSPACE_ROOT = path.join(FIXTURE_ROOT, 'workspace');

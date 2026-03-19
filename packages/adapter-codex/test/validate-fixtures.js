@@ -32,7 +32,7 @@ const {
 
 const WORKSPACE_FIXTURE = path.resolve(
   __dirname,
-  '../../../nmc-memory-plugin/tests/fixtures/workspace'
+  '../../../tests/fixtures/workspace'
 );
 
 function makeTempRoot() {
@@ -56,6 +56,7 @@ function main() {
         roleId: 'arx',
         recordId: 'fct-2026-03-05-001',
         projectionRecordId: 'st-2026-03-05-001',
+        expectedBacklogAlert: false,
       },
     });
 

@@ -13,10 +13,10 @@ const SCRIPT_MAP = {
   retention: 'retention.sh',
 };
 const WRAPPER_MAP = {
-  verify: path.resolve(ROOT_DIR, '../../nmc-memory-plugin/skills/memory-verify/verify.sh'),
-  status: path.resolve(ROOT_DIR, '../../nmc-memory-plugin/skills/memory-status/status.sh'),
-  onboard: path.resolve(ROOT_DIR, '../../nmc-memory-plugin/skills/memory-onboard-agent/onboard.sh'),
-  retention: path.resolve(ROOT_DIR, '../../nmc-memory-plugin/skills/memory-retention/retention.sh'),
+  verify: path.resolve(ROOT_DIR, '../adapter-openclaw/skills/memory-verify/verify.sh'),
+  status: path.resolve(ROOT_DIR, '../adapter-openclaw/skills/memory-status/status.sh'),
+  onboard: path.resolve(ROOT_DIR, '../adapter-openclaw/skills/memory-onboard-agent/onboard.sh'),
+  retention: path.resolve(ROOT_DIR, '../adapter-openclaw/skills/memory-retention/retention.sh'),
 };
 
 function ensureFile(pathname) {
@@ -43,16 +43,16 @@ function ensureBashSyntax(pathname) {
   }
 }
 
-function ensureWrapperTargets(pathname, relativeTarget) {
+function ensureWrapperTargets(pathname, bundledTarget, workspaceTarget) {
   const contents = fs.readFileSync(pathname, 'utf8');
 
   if (!contents.includes('exec ')) {
     throw new Error(`Expected wrapper to exec canonical script: ${pathname}`);
   }
 
-  if (!contents.includes(relativeTarget)) {
+  if (!contents.includes(bundledTarget) || !contents.includes(workspaceTarget)) {
     throw new Error(
-      `Expected wrapper ${pathname} to reference ${relativeTarget}, got:\n${contents}`,
+      `Expected wrapper ${pathname} to reference ${bundledTarget} and ${workspaceTarget}, got:\n${contents}`,
     );
   }
 }
@@ -81,7 +81,11 @@ function main() {
     ensureFile(wrapperPath);
     ensureExecutable(wrapperPath);
     ensureBashSyntax(wrapperPath);
-    ensureWrapperTargets(wrapperPath, `packages/memory-scripts/bin/${fileName}`);
+    ensureWrapperTargets(
+      wrapperPath,
+      `memory-scripts/bin/${fileName}`,
+      `../memory-scripts/bin/${fileName}`,
+    );
   }
 
   console.log('Validated 4 scripts and legacy wrappers through @nmc/memory-scripts.');

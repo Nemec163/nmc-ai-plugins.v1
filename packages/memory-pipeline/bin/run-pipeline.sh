@@ -37,6 +37,23 @@ resolve_node_bin() {
   return 1
 }
 
+runner_exists() {
+  local candidate="${1:-}"
+
+  if [ -z "$candidate" ]; then
+    return 1
+  fi
+
+  case "$candidate" in
+    */*)
+      [ -x "$candidate" ]
+      ;;
+    *)
+      command -v "$candidate" >/dev/null 2>&1
+      ;;
+  esac
+}
+
 log() {
   printf '[%s] %s\n' "$(timestamp_utc)" "$*"
 }
@@ -131,13 +148,38 @@ print_summary() {
 
 run_llm_phase() {
   local phase="$1"
-  local llm_runner="$2"
-  "$node_bin" "$llm_phase_runner" run \
-    --adapter-module "$pipeline_adapter_module" \
-    --phase "$phase" \
-    --date "$pipeline_date" \
-    --memory-root "$memory_root" \
-    --llm-runner "$llm_runner"
+  local llm_runner="${2:-}"
+  local args=(
+    "$node_bin" "$llm_phase_runner" run
+    --adapter-module "$pipeline_adapter_module"
+    --phase "$phase"
+    --date "$pipeline_date"
+    --memory-root "$memory_root"
+  )
+
+  if [ -n "$llm_runner" ]; then
+    args+=(--llm-runner "$llm_runner")
+  fi
+
+  "${args[@]}"
+}
+
+describe_llm_phase() {
+  local phase="$1"
+  local llm_runner="${2:-}"
+  local args=(
+    "$node_bin" "$llm_phase_runner" describe
+    --adapter-module "$pipeline_adapter_module"
+    --phase "$phase"
+    --date "$pipeline_date"
+    --memory-root "$memory_root"
+  )
+
+  if [ -n "$llm_runner" ]; then
+    args+=(--llm-runner "$llm_runner")
+  fi
+
+  "${args[@]}"
 }
 
 run_verify_phase() {
@@ -206,12 +248,12 @@ case "$selected_phase" in
 esac
 
 script_dir="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd -- "$script_dir/../../.." && pwd)"
-verify_script="${PIPELINE_VERIFY_CMD:-$repo_root/nmc-memory-plugin/skills/memory-verify/verify.sh}"
+package_neighbors_root="$(cd -- "$script_dir/../.." && pwd)"
+verify_script="${PIPELINE_VERIFY_CMD:-$package_neighbors_root/memory-scripts/bin/verify.sh}"
 memory_root="$(resolve_memory_root)"
-llm_runner="${PIPELINE_LLM_CMD:-${OPENCLAW_BIN:-openclaw}}"
+llm_runner="${PIPELINE_LLM_CMD:-${LLM_RUNNER:-${OPENCLAW_BIN:-}}}"
 node_bin="$(resolve_node_bin || true)"
-llm_phase_runner="$repo_root/packages/memory-pipeline/bin/run-llm-phase.js"
+llm_phase_runner="$script_dir/run-llm-phase.js"
 pipeline_adapter_module="${PIPELINE_ADAPTER_MODULE:-}"
 pipeline_date="$date_arg"
 pipeline_start_epoch="$(epoch_now)"
@@ -267,12 +309,12 @@ if [ "$need_llm_runner" -eq 1 ] && [ -z "$pipeline_adapter_module" ]; then
   exit 2
 fi
 
-if [ "$need_llm_runner" -eq 1 ] && ! command -v "$llm_runner" >/dev/null 2>&1; then
+if [ "$need_llm_runner" -eq 1 ] && [ -n "$llm_runner" ] && ! runner_exists "$llm_runner"; then
   log "INFO OpenClaw CLI not found; printing the commands that would be run."
   for phase in "${requested_phases[@]}"; do
     case "$phase" in
       extract|curate|apply)
-        printf 'would run: %s\n' "$("$node_bin" "$llm_phase_runner" describe --adapter-module "$pipeline_adapter_module" --phase "$phase" --date "$pipeline_date" --memory-root "$memory_root" --llm-runner "$llm_runner")"
+        printf 'would run: %s\n' "$(describe_llm_phase "$phase" "$llm_runner")"
         ;;
       verify)
         printf 'would run: %s %s\n' "$verify_script" "$memory_root"

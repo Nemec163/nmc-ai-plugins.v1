@@ -137,7 +137,7 @@ if (require.main === module) {
   const result = runSetupCli(
     process.argv.slice(2),
     process.env.OPENCLAW_PLUGIN_ROOT ||
-      path.resolve(__dirname, "../../../nmc-memory-plugin"),
+      path.resolve(__dirname, ".."),
   );
   if (result.stdout) {
     process.stdout.write(result.stdout);

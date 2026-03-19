@@ -2,25 +2,18 @@
 
 let cachedMemoryContracts = null;
 
+const { loadPackage } = require("./load-package");
+
 function loadMemoryContracts() {
   if (cachedMemoryContracts) {
     return cachedMemoryContracts;
   }
 
-  try {
-    cachedMemoryContracts = require("@nmc/memory-contracts");
-    return cachedMemoryContracts;
-  } catch (error) {
-    if (
-      error.code !== "MODULE_NOT_FOUND" ||
-      !String(error.message || "").includes("@nmc/memory-contracts")
-    ) {
-      throw error;
-    }
-
-    cachedMemoryContracts = require("../../memory-contracts");
-    return cachedMemoryContracts;
-  }
+  cachedMemoryContracts = loadPackage("@nmc/memory-contracts", [
+    "../memory-contracts",
+    "../../memory-contracts",
+  ]);
+  return cachedMemoryContracts;
 }
 
 function buildOpenClawInvocation(phase, options = {}) {

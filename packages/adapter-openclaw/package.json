@@ -1,10 +1,14 @@
 {
   "name": "adapter-openclaw",
-  "version": "0.0.0",
-  "private": true,
-  "description": "OpenClaw-specific adapter package over extracted Memory OS core modules.",
+  "version": "0.1.0",
+  "private": false,
+  "description": "OpenClaw connector package for MemoryOS.v1.",
   "type": "commonjs",
   "main": "./index.js",
+  "bin": {
+    "memory-control-plane": "./bin/memory-control-plane.js",
+    "memory-os-gateway": "./bin/memory-os-gateway.js"
+  },
   "openclaw": {
     "extensions": ["./plugin.js"]
   },
@@ -20,8 +24,19 @@
     "./setup-cli": "./lib/setup-cli.js"
   },
   "files": [
+    "bin/",
+    "control-plane/",
     "index.js",
     "lib/",
+    "memory-agents/",
+    "memory-canon/",
+    "memory-contracts/",
+    "memory-maintainer/",
+    "memory-os-gateway/",
+    "memory-os-runtime/",
+    "memory-pipeline/",
+    "memory-scripts/",
+    "memory-workspace/",
     "openclaw.plugin.json",
     "plugin.js",
     "skills/",
@@ -29,13 +44,8 @@
     "README.md"
   ],
   "scripts": {
-    "test": "node ./test/validate-fixtures.js"
-  },
-  "dependencies": {
-    "@nmc/memory-contracts": "0.0.0",
-    "@nmc/memory-agents": "0.0.0",
-    "@nmc/memory-workspace": "0.0.0",
-    "adapter-conformance": "0.0.0",
-    "memory-os-gateway": "0.0.0"
+    "test": "node ./test/validate-fixtures.js",
+    "prepack": "node ./scripts/prepare-bundle.js build",
+    "postpack": "node ./scripts/prepare-bundle.js clean"
   }
 }

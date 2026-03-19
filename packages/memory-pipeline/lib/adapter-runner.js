@@ -56,9 +56,43 @@ function loadPipelineAdapterModule(options = {}) {
   return require(moduleRef);
 }
 
+function instantiatePipelineAdapter(moduleExports) {
+  const contracts = loadMemoryContracts();
+
+  if (typeof moduleExports === 'function') {
+    return moduleExports();
+  }
+
+  if (moduleExports && typeof moduleExports.createPipelineAdapter === 'function') {
+    return moduleExports.createPipelineAdapter();
+  }
+
+  if (contracts.validatePipelineAdapter(moduleExports).valid) {
+    return moduleExports;
+  }
+
+  const candidateNames = Object.keys(moduleExports || {}).filter(
+    (name) =>
+      /^create[A-Z].*PipelineAdapter$/.test(name) &&
+      typeof moduleExports[name] === 'function'
+  );
+
+  if (candidateNames.length === 1) {
+    return moduleExports[candidateNames[0]]();
+  }
+
+  const availableExports = Object.keys(moduleExports || {}).sort();
+  const exportSuffix = availableExports.length
+    ? ` Available exports: ${availableExports.join(', ')}.`
+    : '';
+  throw new Error(
+    `adapterModule must export a pipeline adapter object or exactly one pipeline adapter factory.${exportSuffix}`
+  );
+}
+
 function getAdapterInvocation(options) {
   const contracts = loadMemoryContracts();
-  const adapter = loadPipelineAdapterModule(options).createOpenClawPipelineAdapter();
+  const adapter = instantiatePipelineAdapter(loadPipelineAdapterModule(options));
 
   return contracts.getPipelineInvocation(adapter, options.phase, {
     date: options.date,
@@ -108,5 +142,6 @@ function runAdapterInvocation(options) {
 module.exports = {
   describeAdapterInvocation,
   getAdapterInvocation,
+  instantiatePipelineAdapter,
   runAdapterInvocation,
 };
