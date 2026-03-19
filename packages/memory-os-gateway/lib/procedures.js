@@ -3,7 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { loadMemoryCanon } = require('./load-deps');
+const { loadMemoryCanon, loadMemoryRuntime } = require('./load-deps');
 const { parseProjectionRecords, toPosixRelative } = require('./records');
 
 const PROCEDURE_DIFF_VERSION = '1';
@@ -38,6 +38,230 @@ function sortStrings(values) {
 
 function compareNullable(left, right) {
   return String(left || '').localeCompare(String(right || ''));
+}
+
+function cloneJson(value) {
+  return value == null ? null : JSON.parse(JSON.stringify(value));
+}
+
+function countRuntimeArtifacts(artifacts) {
+  return Object.values(artifacts || {}).reduce((total, entries) => {
+    return total + (Array.isArray(entries) ? entries.length : 0);
+  }, 0);
+}
+
+function resolveRuntimeRunRelativePath(memoryRoot, runtime, runId) {
+  if (runtime && typeof runtime.resolveRuntimeRunPath === 'function') {
+    return toPosixRelative(memoryRoot, runtime.resolveRuntimeRunPath(memoryRoot, runId));
+  }
+
+  return `runtime/shadow/runs/${runId}.json`;
+}
+
+function createRuntimeRunSummary(memoryRoot, runtime, record) {
+  return {
+    authoritative: false,
+    sourceKind: 'runtime-shadow',
+    runId: record.runId,
+    source: normalizeString(record.source),
+    capturedAt: normalizeString(record.capturedAt),
+    relativePath: resolveRuntimeRunRelativePath(memoryRoot, runtime, record.runId),
+    runtimeInputsCount: Array.isArray(record.runtimeInputs) ? record.runtimeInputs.length : 0,
+    artifactCount:
+      record && typeof record.counts === 'object'
+        ? Object.values(record.counts).reduce((total, count) => total + (Number(count) || 0), 0)
+        : countRuntimeArtifacts(record.artifacts),
+    counts: cloneJson(record.counts || {}),
+  };
+}
+
+function createRuntimeArtifactSummary(runSummary, bucketName, entry) {
+  return {
+    authoritative: false,
+    sourceKind: 'runtime-shadow',
+    artifactKind: bucketName === 'procedureFeedback' ? 'feedback' : 'observation',
+    runtimeBucket: bucketName,
+    ref: `${runSummary.relativePath}#${bucketName}/${entry.id}`,
+    runId: runSummary.runId,
+    source: runSummary.source,
+    capturedAt: runSummary.capturedAt,
+    relativePath: runSummary.relativePath,
+    id: String(entry.id || ''),
+    summary: String(entry.summary || ''),
+    text: String(entry.text || entry.summary || ''),
+    observedAt: normalizeString(entry.observedAt || entry.observed_at),
+    tags: Array.isArray(entry.tags) ? entry.tags.map((tag) => String(tag)) : [],
+    metadata: cloneJson(entry.metadata),
+  };
+}
+
+function compareRuntimeArtifacts(left, right) {
+  return (
+    compareNullable(right.capturedAt, left.capturedAt) ||
+    compareNullable(left.runId, right.runId) ||
+    compareNullable(left.runtimeBucket, right.runtimeBucket) ||
+    compareNullable(left.id, right.id)
+  );
+}
+
+function compareRuntimeRuns(left, right) {
+  return compareNullable(right.capturedAt, left.capturedAt) || compareNullable(left.runId, right.runId);
+}
+
+function buildRuntimeEvidenceIndex(memoryRoot) {
+  const runtime = loadMemoryRuntime();
+  const artifactsByRef = new Map();
+  const proceduralByRunId = new Map();
+  const runsById = new Map();
+  const records =
+    runtime && typeof runtime.listRuntimeRecords === 'function'
+      ? runtime.listRuntimeRecords({ memoryRoot })
+      : [];
+
+  for (const record of records) {
+    const runSummary = createRuntimeRunSummary(memoryRoot, runtime, record);
+    runsById.set(record.runId, runSummary);
+
+    const proceduralArtifacts = [];
+    for (const [bucketName, bucketEntries] of Object.entries(record.artifacts || {})) {
+      if (!Array.isArray(bucketEntries)) {
+        continue;
+      }
+
+      for (const entry of bucketEntries) {
+        const artifactSummary = createRuntimeArtifactSummary(runSummary, bucketName, entry);
+        artifactsByRef.set(artifactSummary.ref, artifactSummary);
+        if (bucketName === 'procedural') {
+          proceduralArtifacts.push(artifactSummary);
+        }
+      }
+    }
+
+    proceduralByRunId.set(record.runId, proceduralArtifacts.sort(compareRuntimeArtifacts));
+  }
+
+  return {
+    available: records.length > 0,
+    runsById,
+    artifactsByRef,
+    proceduralByRunId,
+  };
+}
+
+function parseRuntimeArtifactRef(ref) {
+  const normalized = String(ref || '').trim();
+  const match = normalized.match(/^runtime\/shadow\/runs\/([^/#]+)\.json#([^/]+)\/(.+)$/);
+  if (!match) {
+    return {
+      ref: normalized,
+      valid: false,
+      error: 'invalid-runtime-ref',
+    };
+  }
+
+  return {
+    ref: normalized,
+    valid: true,
+    runId: match[1],
+    relativePath: `runtime/shadow/runs/${match[1]}.json`,
+    runtimeBucket: match[2],
+    artifactId: match[3],
+  };
+}
+
+function resolveProcedureFeedbackRef(ref, runtimeIndex) {
+  const parsed = parseRuntimeArtifactRef(ref);
+  if (!parsed.valid) {
+    return {
+      ...parsed,
+      authoritative: false,
+      runtimeAuthoritative: false,
+      resolved: false,
+      relatedProceduralArtifacts: [],
+      supportingRun: null,
+      artifact: null,
+    };
+  }
+
+  if (parsed.runtimeBucket !== 'procedureFeedback') {
+    return {
+      ...parsed,
+      authoritative: false,
+      runtimeAuthoritative: false,
+      resolved: false,
+      error: 'feedback-ref-not-procedure-feedback',
+      relatedProceduralArtifacts: [],
+      supportingRun: null,
+      artifact: null,
+    };
+  }
+
+  const supportingRun = runtimeIndex.runsById.get(parsed.runId) || null;
+  const artifact = runtimeIndex.artifactsByRef.get(parsed.ref) || null;
+
+  return {
+    ...parsed,
+    authoritative: false,
+    runtimeAuthoritative: false,
+    resolved: Boolean(artifact),
+    error: artifact ? null : supportingRun ? 'missing-runtime-artifact' : 'missing-runtime-run',
+    supportingRun,
+    artifact,
+    relatedProceduralArtifacts: supportingRun
+      ? (runtimeIndex.proceduralByRunId.get(parsed.runId) || []).map((entry) => ({ ...entry }))
+      : [],
+  };
+}
+
+function summarizeProcedureEvidenceLinkage(record, runtimeIndex) {
+  const feedbackRefs = sortStrings(record.feedbackRefs || []);
+  const feedbackLinks = feedbackRefs.map((ref) => resolveProcedureFeedbackRef(ref, runtimeIndex));
+  const linkedRuns = new Map();
+  const linkedFeedbackArtifacts = new Map();
+  const linkedProceduralArtifacts = new Map();
+
+  for (const link of feedbackLinks) {
+    if (link.supportingRun) {
+      linkedRuns.set(link.supportingRun.runId, link.supportingRun);
+    }
+    if (link.artifact) {
+      linkedFeedbackArtifacts.set(link.artifact.ref, link.artifact);
+    }
+    for (const artifact of link.relatedProceduralArtifacts) {
+      linkedProceduralArtifacts.set(artifact.ref, artifact);
+    }
+  }
+
+  return {
+    kind: 'procedure-evidence-linkage',
+    authoritative: false,
+    runtimeAuthoritative: false,
+    summary: {
+      feedbackRefCount: feedbackLinks.length,
+      resolvedFeedbackCount: feedbackLinks.filter((link) => link.resolved).length,
+      missingFeedbackCount: feedbackLinks.filter((link) => !link.resolved).length,
+      linkedRunCount: linkedRuns.size,
+      linkedFeedbackArtifactCount: linkedFeedbackArtifacts.size,
+      linkedProceduralArtifactCount: linkedProceduralArtifacts.size,
+    },
+    feedbackRefs: feedbackLinks,
+    linkedRuns: Array.from(linkedRuns.values()).sort(compareRuntimeRuns),
+    linkedArtifacts: {
+      procedureFeedback: Array.from(linkedFeedbackArtifacts.values()).sort(compareRuntimeArtifacts),
+      procedural: Array.from(linkedProceduralArtifacts.values()).sort(compareRuntimeArtifacts),
+    },
+    freshnessBoundary: {
+      runtimeShadowAvailable: runtimeIndex.available,
+      runtimeAuthoritative: false,
+    },
+  };
+}
+
+function decorateProcedureRecord(record, runtimeIndex) {
+  return {
+    ...record,
+    evidenceLinkage: summarizeProcedureEvidenceLinkage(record, runtimeIndex),
+  };
 }
 
 function normalizeProcedureRecord(record, filePath, relativePath) {
@@ -224,7 +448,7 @@ function createDiffView(record) {
   };
 }
 
-function createCatalogLineage(lineage) {
+function createCatalogLineage(lineage, runtimeIndex) {
   const summarizeVersion = (record) =>
     record
       ? {
@@ -253,12 +477,16 @@ function createCatalogLineage(lineage) {
       summary: record.summary,
       supersedes: record.supersedes,
     })),
+    evidenceLinkage: lineage.currentVersion
+      ? summarizeProcedureEvidenceLinkage(lineage.currentVersion, runtimeIndex)
+      : summarizeProcedureEvidenceLinkage(lineage.latestVersion || { feedbackRefs: [] }, runtimeIndex),
   };
 }
 
 function listProcedures(options = {}) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
   const roleId = normalizeString(options.roleId);
+  const runtimeIndex = buildRuntimeEvidenceIndex(memoryRoot);
   const lineages = filterLineages(buildProcedureLineages(collectProcedureRecords(memoryRoot)), roleId);
   const allVersions = lineages.flatMap((lineage) => lineage.versions);
 
@@ -275,12 +503,13 @@ function listProcedures(options = {}) {
       deprecatedCount: allVersions.filter((record) => record.status === 'deprecated').length,
       roles: sortStrings(lineages.map((lineage) => lineage.roleId).filter(Boolean)),
     },
-    procedures: lineages.map(createCatalogLineage),
+    procedures: lineages.map((lineage) => createCatalogLineage(lineage, runtimeIndex)),
   };
 }
 
 function inspectProcedure(options = {}) {
   const memoryRoot = normalizeMemoryRoot(options.memoryRoot);
+  const runtimeIndex = buildRuntimeEvidenceIndex(memoryRoot);
   const lineages = buildProcedureLineages(collectProcedureRecords(memoryRoot));
   const lineage = findProcedureLineage(lineages, options);
 
@@ -294,10 +523,10 @@ function inspectProcedure(options = {}) {
     filePath: lineage.filePath,
     relativePath: lineage.relativePath,
     versionCount: lineage.versionCount,
-    currentVersion: lineage.currentVersion,
-    latestVersion: lineage.latestVersion,
+    currentVersion: lineage.currentVersion ? decorateProcedureRecord(lineage.currentVersion, runtimeIndex) : null,
+    latestVersion: lineage.latestVersion ? decorateProcedureRecord(lineage.latestVersion, runtimeIndex) : null,
     versions: lineage.versions.map((record) => ({
-      ...record,
+      ...decorateProcedureRecord(record, runtimeIndex),
       diffView: createDiffView(record),
     })),
   };

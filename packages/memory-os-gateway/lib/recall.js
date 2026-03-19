@@ -29,6 +29,7 @@ function buildProcedureLookup(memoryRoot) {
         latest: version.recordId === latestRecordId,
         currentRecordId,
         latestRecordId,
+        evidenceLinkage: version.recordId === currentRecordId ? lineage.evidenceLinkage || null : null,
         classification:
           version.recordId === currentRecordId
             ? 'canonical-current-procedure'

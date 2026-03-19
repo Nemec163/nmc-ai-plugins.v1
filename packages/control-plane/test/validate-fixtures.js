@@ -159,7 +159,7 @@ Confirm the control-plane view does not imply runtime authority.`
 
   captureRuntime({
     memoryRoot,
-    runId: 'runtime-run-2026-03-18-control-plane',
+    runId: 'trader-2026-03-05-abc',
     source: 'control-plane-fixture',
     capturedAt: '2026-03-18T14:15:00Z',
     artifacts: {
@@ -174,14 +174,14 @@ Confirm the control-plane view does not imply runtime authority.`
       ],
       procedural: [
         {
-          id: 'proc-1',
+          id: 'proc-001',
           summary: 'Use the confirmation checklist before suggesting volatile-open momentum entries.',
           tags: ['procedure', 'trader'],
         },
       ],
       procedureFeedback: [
         {
-          id: 'pf-1',
+          id: 'pf-001',
           summary: 'Confirmation-first guidance reduced contradictory operator suggestions.',
           tags: ['procedure-feedback'],
         },
@@ -299,14 +299,22 @@ function main() {
       snapshot.runtime.inspector.procedures.canonicalCurrent.procedures[0].procedureKey,
       'volatile-open-confirmation-checklist'
     );
+    assert.equal(
+      snapshot.runtime.inspector.procedures.canonicalCurrent.procedures[0].evidenceLinkage.summary.resolvedFeedbackCount,
+      1
+    );
+    assert.equal(
+      snapshot.runtime.inspector.procedures.canonicalCurrent.procedures[0].evidenceLinkage.linkedRuns[0].runId,
+      'trader-2026-03-05-abc'
+    );
     assert.equal(snapshot.runtime.inspector.procedures.runtimeArtifacts.authoritative, false);
     assert.equal(
       snapshot.runtime.inspector.procedures.runtimeArtifacts.buckets.procedural.entries[0].id,
-      'proc-1'
+      'proc-001'
     );
     assert.equal(
       snapshot.runtime.inspector.procedures.runtimeArtifacts.buckets.procedureFeedback.entries[0].id,
-      'pf-1'
+      'pf-001'
     );
     assert.equal(snapshot.releaseQualification.kind, 'control-plane-release-qualification');
     assert.equal(snapshot.releaseQualification.qualified, true);
@@ -405,8 +413,12 @@ function main() {
       'prc-2026-03-05-001'
     );
     assert.equal(
+      runtimeInspector.procedures.recall.canonicalCurrent.hits[0].procedureSurface.evidenceLinkage.summary.resolvedFeedbackCount,
+      1
+    );
+    assert.equal(
       runtimeInspector.procedures.recall.runtimeArtifacts.buckets.procedureFeedback[0].id,
-      'pf-1'
+      'pf-001'
     );
 
     const degradedHealth = getControlPlaneHealth({

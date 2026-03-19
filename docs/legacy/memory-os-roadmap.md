@@ -5,8 +5,8 @@
 
 ## Progress Snapshot
 
-- completed: `procedure-aware recall surfaces — distinguish canonical current procedures from runtime procedural artifacts in recall and operator views without widening write authority`
-- next: `procedure evidence linkage surfaces — expose read-only links from canonical current procedures back to supporting runtime procedural feedback and observations without widening write authority`
+- completed: `procedure evidence linkage surfaces — expose read-only links from canonical current procedures back to supporting runtime procedural feedback and observations without widening write authority`
+- next: `namespace / tenant / actor model foundations — introduce explicit namespace contract surfaces across gateway, runtime shadow, and derived read paths while preserving the current single-tenant default`
 - last verified on: `2026-03-19`
 - verified in this slice:
   - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
@@ -2184,12 +2184,26 @@ Implementation note:
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
 - verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 
+### procedure evidence linkage surfaces
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- added read-only procedure evidence linkage in `memory-os-gateway` so inspected canonical procedure versions now resolve `feedback_refs` into runtime feedback artifacts, supporting runtime runs, and related runtime `procedural` observations without changing canon authority
+- extended `listProcedures` and recall hit procedure metadata with bounded evidence-link summaries so canonical current procedures can point back to their runtime evidence chain from both lineage and query surfaces
+- surfaced the same evidence-link summaries through `control-plane` runtime inspection so operator views can inspect runtime provenance for canonical procedures while runtime remains explicitly non-authoritative
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
 ## Immediate Next Step
 
-The next implementation step should expose read-only evidence linkage from canonical current procedures back to the runtime procedural observations and feedback that informed them, without weakening the existing source-of-truth and promotion invariants:
+The next implementation step should introduce explicit namespace / tenant / actor model foundations across the supported read and runtime surfaces without breaking the current single-tenant install and authority boundaries:
 
-- expose procedure lineage and recall views that can point from canonical current procedure records to linked `feedback_refs`, supporting runtime runs, and related runtime procedural artifacts as read-only evidence
-- keep scope pinned to read/query visibility, lineage linking, and freshness boundaries; do not widen into automatic promotion, rollback, or runtime authority
-- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while procedure evidence linkage surfaces mature
+- define a stable namespace contract that can flow through gateway read/query APIs, runtime shadow storage, and derived read-index metadata while defaulting cleanly to the existing single-tenant workspace shape
+- keep scope pinned to contract visibility, pathing, and read/runtime isolation; do not widen into multi-tenant orchestration, scheduler ownership, or new canon writers
+- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while namespace semantics become explicit
 
-Canonical current procedures and runtime procedural artifacts are now clearly separated in recall and operator views. The next risk is losing the read-only evidence trail between them even though the authority boundary remains correct.
+Canonical procedure lineage now keeps a read-only evidence trail back to runtime feedback and procedural observations. The next risk is leaving namespace semantics implicit across gateway, runtime, and derived read surfaces even though the repository is still operating in a single-tenant mode today.

@@ -172,6 +172,13 @@ function main() {
   assert.equal(procedureInspection.kind, 'procedure-inspection');
   assert.equal(procedureInspection.versionCount, 1);
   assert.equal(procedureInspection.currentVersion.recordId, 'prc-2026-03-05-001');
+  assert.equal(procedureInspection.currentVersion.evidenceLinkage.summary.feedbackRefCount, 1);
+  assert.equal(procedureInspection.currentVersion.evidenceLinkage.summary.resolvedFeedbackCount, 0);
+  assert.equal(procedureInspection.currentVersion.evidenceLinkage.summary.missingFeedbackCount, 1);
+  assert.equal(
+    procedureInspection.currentVersion.evidenceLinkage.feedbackRefs[0].error,
+    'missing-runtime-run'
+  );
   assert.deepEqual(procedureInspection.versions[0].diffView.acceptance, [
     'Wait for confirmation after the initial fakeout before calling a momentum entry.',
     'Prefer slower confirmation-based entries during volatile opens.',
@@ -336,7 +343,7 @@ function main() {
 
     const capture = captureRuntime({
       memoryRoot: runtimeWorkspaceRoot,
-      runId: 'codex-2026-03-18-001',
+      runId: 'trader-2026-03-05-abc',
       source: 'gateway-test',
       capturedAt: '2026-03-18T12:00:00Z',
       runtimeInputs: JSON.parse(fs.readFileSync(inputsFile, 'utf8')),
@@ -354,6 +361,22 @@ function main() {
     assert.equal(runtimeDelta.totalArtifacts, 7);
     assert.equal(runtimeDelta.buckets.episodic.count, 1);
     assert.equal(runtimeDelta.buckets.procedureFeedback.entries[0].id, 'pf-001');
+
+    const runtimeInspection = inspectProcedure({
+      memoryRoot: runtimeWorkspaceRoot,
+      roleId: 'trader',
+      procedureKey: 'volatile-open-confirmation-checklist',
+    });
+    assert.equal(runtimeInspection.currentVersion.evidenceLinkage.summary.resolvedFeedbackCount, 1);
+    assert.equal(runtimeInspection.currentVersion.evidenceLinkage.linkedRuns[0].runId, 'trader-2026-03-05-abc');
+    assert.equal(
+      runtimeInspection.currentVersion.evidenceLinkage.linkedArtifacts.procedureFeedback[0].id,
+      'pf-001'
+    );
+    assert.equal(
+      runtimeInspection.currentVersion.evidenceLinkage.linkedArtifacts.procedural[0].id,
+      'proc-001'
+    );
 
     const recallBundle = getRecallBundle({
       memoryRoot: runtimeWorkspaceRoot,
@@ -376,6 +399,14 @@ function main() {
     assert.equal(
       recallBundle.procedureRecall.canonicalCurrent.hits[0].procedureSurface.classification,
       'canonical-current-procedure'
+    );
+    assert.equal(
+      recallBundle.procedureRecall.canonicalCurrent.hits[0].procedureSurface.evidenceLinkage.summary.resolvedFeedbackCount,
+      1
+    );
+    assert.equal(
+      recallBundle.procedureRecall.canonicalCurrent.hits[0].procedureSurface.evidenceLinkage.linkedRuns[0].runId,
+      'trader-2026-03-05-abc'
     );
     assert.equal(
       recallBundle.procedureRecall.runtimeArtifacts.buckets.procedural[0].id,
@@ -669,6 +700,32 @@ function main() {
     const procedureWorkspaceRoot = path.join(procedureInspectionRoot, 'workspace');
     fs.cpSync(WORKSPACE_FIXTURE, procedureWorkspaceRoot, { recursive: true });
     writeProcedureUpdateBatch(procedureWorkspaceRoot);
+    captureRuntime({
+      memoryRoot: procedureWorkspaceRoot,
+      runId: 'trader-2026-03-19-xyz',
+      source: 'gateway-procedure-fixture',
+      capturedAt: '2026-03-19T09:30:00Z',
+      artifacts: {
+        procedural: [
+          {
+            id: 'proc-002',
+            summary: 'Escalate to confirmation-first guidance when the open is volatile.',
+          },
+        ],
+        procedureFeedback: [
+          {
+            id: 'pf-002',
+            summary: 'Explicit fakeout checks reduced premature momentum guidance.',
+          },
+        ],
+      },
+      runtimeInputs: [
+        {
+          kind: 'transcript',
+          sourceSession: 'trader-2026-03-19-xyz',
+        },
+      ],
+    });
 
     const promoter = createPromoterInterface();
     promoter.promote({
@@ -690,6 +747,16 @@ function main() {
     assert.equal(updatedInspection.latestVersion.recordId, 'prc-2026-03-19-001');
     assert.equal(updatedInspection.versions[0].status, 'deprecated');
     assert.equal(updatedInspection.versions[1].feedbackRefs[0].includes('pf-002'), true);
+    assert.equal(updatedInspection.currentVersion.evidenceLinkage.summary.resolvedFeedbackCount, 1);
+    assert.equal(updatedInspection.currentVersion.evidenceLinkage.linkedRuns[0].runId, 'trader-2026-03-19-xyz');
+    assert.equal(
+      updatedInspection.currentVersion.evidenceLinkage.linkedArtifacts.procedureFeedback[0].id,
+      'pf-002'
+    );
+    assert.equal(
+      updatedInspection.currentVersion.evidenceLinkage.linkedArtifacts.procedural[0].id,
+      'proc-002'
+    );
 
     const comparison = compareProcedureVersions({
       memoryRoot: procedureWorkspaceRoot,

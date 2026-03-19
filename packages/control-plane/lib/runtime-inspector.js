@@ -91,6 +91,7 @@ function summarizeCurrentProcedures(catalog) {
       versionCount: lineage.versionCount,
       currentVersion: lineage.currentVersion,
       latestVersion: lineage.latestVersion,
+      evidenceLinkage: lineage.evidenceLinkage || null,
     }))
     .sort((left, right) => {
       if (String(left.roleId || '') !== String(right.roleId || '')) {
