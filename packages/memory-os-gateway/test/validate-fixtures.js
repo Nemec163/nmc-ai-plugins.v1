@@ -8,6 +8,7 @@ const { spawnSync } = require('node:child_process');
 
 const {
   bootstrap,
+  buildReadIndex,
   captureRuntime,
   completeJob,
   feedback,
@@ -20,8 +21,10 @@ const {
   getStatus,
   propose,
   query,
+  readReadIndex,
   readRecord,
   verify,
+  verifyReadIndex,
 } = require('..');
 const { acquireCanonWriteLock } = require('../../memory-canon');
 
@@ -127,8 +130,16 @@ function main() {
     memoryRoot: FIXTURE_MEMORY_ROOT,
     text: 'What is the current approach on volatile mornings?',
   });
+  assert.equal(search.contract.rankingVersion, '1');
+  assert.equal(search.readIndex.status, 'rebuilt-ephemeral');
+  assert.equal(search.readIndex.persisted, false);
   assert.equal(search.freshnessBoundary.runtimeDeltaIncluded, true);
   assert.equal(search.canonicalHits[0].recordId, 'st-2026-03-05-001');
+  assert.equal(search.canonicalHits[0].authoritative, true);
+  assert.equal(
+    search.canonicalHits[0].ranking.reasons.some((reason) => reason.code === 'current-projection'),
+    true
+  );
   assert.equal(
     search.runtimeDelta.some((hit) => hit.claimId === 'claim-20260305-003'),
     true
@@ -142,6 +153,7 @@ function main() {
   assert.equal(status.intake.backlogAlert, false);
   assert.equal(status.runtime.shadowExists, false);
   assert.equal(status.runtime.runCount, 0);
+  assert.equal(status.readIndex.status, 'missing');
 
   const health = getHealth({
     memoryRoot: FIXTURE_MEMORY_ROOT,
@@ -274,8 +286,16 @@ function main() {
     });
     assert.equal(recallBundle.kind, 'recall-bundle');
     assert.equal(recallBundle.authoritative, false);
+    assert.equal(recallBundle.contract.version, '1');
     assert.equal(recallBundle.freshnessBoundary.runtimeAuthoritative, false);
     assert.equal(recallBundle.roleBundle.manifest.id, 'mnemo');
+    assert.equal(recallBundle.canonicalRecall.authoritative, true);
+    assert.equal(recallBundle.pendingRecall.authoritative, false);
+    assert.equal(recallBundle.topHits.length > 0, true);
+    assert.equal(
+      ['canonical', 'pending-runtime-delta', 'runtime-shadow'].includes(recallBundle.topHits[0].sourceKind),
+      true
+    );
     assert.equal(recallBundle.runtimeDelta.buckets.retrievalTraces.entries[0].id, 'rt-001');
     assert.equal(recallBundle.query.runtimeDelta.length > 0, true);
 
@@ -351,6 +371,87 @@ function main() {
     assert.deepEqual(hashCanonTree(runtimeWorkspaceRoot), canonSnapshot);
   } finally {
     fs.rmSync(runtimeRoot, { recursive: true, force: true });
+  }
+
+  const readIndexRoot = makeTempRoot();
+  try {
+    const readIndexWorkspaceRoot = path.join(readIndexRoot, 'workspace');
+    fs.cpSync(WORKSPACE_FIXTURE, readIndexWorkspaceRoot, { recursive: true });
+
+    const initialVerification = verifyReadIndex({
+      memoryRoot: readIndexWorkspaceRoot,
+    });
+    assert.equal(initialVerification.status, 'missing');
+
+    const builtIndex = buildReadIndex({
+      memoryRoot: readIndexWorkspaceRoot,
+      builtAt: '2026-03-18T15:00:00Z',
+    });
+    assert.equal(fs.existsSync(builtIndex.path), true);
+    assert.equal(builtIndex.stats.recordCount, 6);
+    assert.equal(readReadIndex({ memoryRoot: readIndexWorkspaceRoot }).builtAt, '2026-03-18T15:00:00Z');
+
+    const verifiedIndex = verifyReadIndex({
+      memoryRoot: readIndexWorkspaceRoot,
+    });
+    assert.equal(verifiedIndex.status, 'ok');
+    assert.equal(verifiedIndex.stats.recordCount, 6);
+
+    const indexedQuery = query({
+      memoryRoot: readIndexWorkspaceRoot,
+      text: 'volatile mornings current approach',
+    });
+    assert.equal(indexedQuery.contract.rankingVersion, '1');
+    assert.equal(indexedQuery.readIndex.status, 'ok');
+    assert.equal(indexedQuery.readIndex.source, 'persisted');
+    assert.equal(indexedQuery.canonicalHits[0].recordId, 'st-2026-03-05-001');
+    assert.equal(indexedQuery.canonicalHits[0].ranking.total > 0, true);
+
+    const indexedStatus = getStatus({
+      memoryRoot: readIndexWorkspaceRoot,
+    });
+    assert.equal(indexedStatus.readIndex.status, 'ok');
+    assert.equal(indexedStatus.readIndex.recordCount, 6);
+
+    fs.appendFileSync(
+      path.join(readIndexWorkspaceRoot, 'core/user/knowledge/work.md'),
+      '\n<!-- read-index drift fixture -->\n',
+      'utf8'
+    );
+
+    const staleVerification = verifyReadIndex({
+      memoryRoot: readIndexWorkspaceRoot,
+    });
+    assert.equal(staleVerification.status, 'stale');
+    assert.equal(staleVerification.reasons.some((reason) => reason.code === 'checksum-mismatch'), true);
+
+    const rebuiltQuery = query({
+      memoryRoot: readIndexWorkspaceRoot,
+      text: 'volatile mornings current approach',
+    });
+    assert.equal(rebuiltQuery.readIndex.status, 'rebuilt-ephemeral');
+
+    const cliBuildIndex = spawnSync(
+      process.execPath,
+      [CLI_PATH, 'build-read-index', '--memory-root', readIndexWorkspaceRoot, '--built-at', '2026-03-18T16:00:00Z'],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(cliBuildIndex.status, 0, cliBuildIndex.stderr);
+    assert.equal(JSON.parse(cliBuildIndex.stdout).builtAt, '2026-03-18T16:00:00Z');
+
+    const cliVerifyIndex = spawnSync(
+      process.execPath,
+      [CLI_PATH, 'verify-read-index', '--memory-root', readIndexWorkspaceRoot],
+      {
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(cliVerifyIndex.status, 0, cliVerifyIndex.stderr);
+    assert.equal(JSON.parse(cliVerifyIndex.stdout).status, 'ok');
+  } finally {
+    fs.rmSync(readIndexRoot, { recursive: true, force: true });
   }
 
   const orchestrationRoot = makeTempRoot();

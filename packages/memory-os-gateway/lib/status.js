@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { loadMemoryCanon } = require('./load-deps');
+const { verifyReadIndex } = require('./read-index');
 const { readManifestSnapshot } = require('./read');
 const { getRuntimeDelta } = require('./runtime');
 
@@ -49,6 +50,7 @@ function getStatus(options) {
   const canon = loadMemoryCanon();
   const manifestPath = canon.resolveManifestPath(memoryRoot);
   const manifest = readManifestSnapshot(memoryRoot);
+  const readIndex = verifyReadIndex({ memoryRoot });
   const runtimeDelta = getRuntimeDelta({ memoryRoot, limit: 5 });
   const pendingDir = path.join(memoryRoot, 'intake/pending');
   const processedDir = path.join(memoryRoot, 'intake/processed');
@@ -135,6 +137,20 @@ function getStatus(options) {
           bucket.count,
         ])
       ),
+    },
+    readIndex: {
+      exists: readIndex.exists,
+      path: readIndex.path,
+      relativePath: readIndex.relativePath,
+      status: readIndex.status,
+      sourceFresh: readIndex.sourceFresh,
+      authoritative: false,
+      builtAt: readIndex.builtAt,
+      recordCount: readIndex.stats.recordCount,
+      fileCount: readIndex.stats.fileCount,
+      tokenCount: readIndex.stats.tokenCount,
+      reasons: readIndex.reasons,
+      sourceManifestLastUpdated: readIndex.source.manifestLastUpdated,
     },
     overall: {
       status: overallStatus,

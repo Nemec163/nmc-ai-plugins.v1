@@ -11,6 +11,7 @@
     "./cli": "./lib/cli.js",
     "./health": "./lib/health.js",
     "./query": "./lib/query.js",
+    "./read-index": "./lib/read-index.js",
     "./read": "./lib/read.js",
     "./runtime": "./lib/runtime.js",
     "./status": "./lib/status.js",

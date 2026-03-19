@@ -7,6 +7,9 @@ Current v1 surface:
 - `readRecord` / `read_record`
 - `getProjection` / `get_projection`
 - `getCanonicalCurrent` / `get_canonical_current`
+- `buildReadIndex` / `build_read_index`
+- `readReadIndex` / `read_read_index`
+- `verifyReadIndex` / `verify_read_index`
 - `getRoleBundle` / `get_role_bundle`
 - `bootstrap`
 - `query`
@@ -51,5 +54,16 @@ Shadow runtime stays separate from canon in this slice:
 - `getRuntimeRecallBundle` exposes scored runtime recall hits without widening authority
 - `getRecallBundle` composes canonical current, optional role bundle/query context, and runtime recall for orchestration consumers
 - `status` reports runtime shadow counts without widening into canon mutation or orchestration ownership
+
+Derived read index stays rebuildable and non-authoritative in this slice:
+
+- `buildReadIndex` materializes `core/meta/read-index.json` from canon only
+- `verifyReadIndex` reports whether a persisted index is fresh against current canon checksums
+- `query` prefers the persisted index when it is fresh and otherwise rebuilds an ephemeral in-memory index without changing canon
+
+Retrieval semantics stay bounded and explainable in this slice:
+
+- `query` returns weighted ranking reasons for canonical hits and keeps pending runtime delta explicit instead of blending it into canonical results
+- `getRecallBundle` separates `canonicalRecall`, `pendingRecall`, and `runtimeRecall`, then exposes normalized `topHits` over those bounded sources
 
 See [Memory OS Roadmap](../../docs/memory-os-roadmap.md) for the extraction plan and phase sequencing.

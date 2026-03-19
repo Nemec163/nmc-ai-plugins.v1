@@ -4,6 +4,7 @@ module.exports = {
   ...require('./lib/bootstrap'),
   ...require('./lib/health'),
   ...require('./lib/query'),
+  ...require('./lib/read-index'),
   ...require('./lib/recall'),
   ...require('./lib/read'),
   ...require('./lib/runtime'),

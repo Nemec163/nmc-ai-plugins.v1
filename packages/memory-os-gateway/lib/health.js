@@ -50,6 +50,9 @@ function getHealth(options) {
   if (status.retention.retentionAlert) {
     warnings.push('Processed intake retention window exceeded 90 days.');
   }
+  if (status.readIndex.exists && !status.readIndex.sourceFresh) {
+    warnings.push('Persisted read index is stale and should be rebuilt.');
+  }
 
   const ok = checks.every((check) => check.ok) && status.overall.status === 'OK';
 

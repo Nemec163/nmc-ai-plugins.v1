@@ -6,8 +6,8 @@ This repository now treats `MemoryOS.v1` as the product boundary and uses the ro
 
 ## Current State
 
-- completed roadmap slice: `legacy-shell retirement cleanup — remove nmc-memory-plugin mirrors once fixtures and packaging checks no longer depend on them`
-- next roadmap slice: `adapter-claude runtime contract — turn the Claude adapter scaffold into a bounded supported connector contract`
+- completed roadmap slice: `retrieval semantics and recall quality — add bounded ranking and explainable recall over canonical and runtime memory`
+- next roadmap slice: `first-class procedural canon — promote procedures into a versioned canonical contract with feedback lineage`
 - regression baseline:
   - `./tests/run-contract-tests.sh`
   - `./tests/run-integration.sh`
@@ -99,7 +99,10 @@ Phase 0 is complete:
 - `compatibility-shell shipped artifact layout convergence` added shell-owned CLI and programmatic wrappers under `nmc-memory-plugin`, moved installed-artifact guidance and smoke coverage onto those wrapper paths, and cleared that retirement gate without widening scope into new operator capabilities
 - `compatibility-shell regression cutover coverage` added synthetic direct-surface regression coverage through `packages/adapter-openclaw`, cleared that retirement gate, and isolated `install-manifest-surface` as the final direct-install blocker
 - `compatibility-shell install manifest surface convergence` moved OpenClaw install manifest ownership and bundled scaffold templates onto `packages/adapter-openclaw`, kept compatibility-shell mirrors under `nmc-memory-plugin`, and cleared the final direct-install retirement gate without widening scope into new operator capabilities
-- the next slice is `adapter-claude runtime contract`, which should replace the current scaffold-only package with a bounded Claude connector contract over existing gateway and handoff surfaces
+- `adapter-claude runtime contract` replaced the scaffold-only package with a bounded Claude connector contract over existing gateway, role-bundle, and explicit handoff surfaces without widening canon or runtime authority
+- `derived read index` added a rebuildable non-authoritative read index over canon inside `memory-os-gateway`, plus build/verify CLI surfaces and status visibility, while preserving canon as the only truth layer
+- `retrieval semantics and recall quality` added explainable ranking, normalized recall sections, and explicit canonical-versus-runtime authority boundaries over the derived read layer without widening runtime authority
+- the next slice is `first-class procedural canon`, which should promote procedures into a versioned canonical contract with feedback lineage while keeping runtime procedural artifacts non-authoritative until promotion
 
 ## Commit Convention
 

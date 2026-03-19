@@ -3,6 +3,7 @@
 const path = require('node:path');
 
 const { loadMemoryCanon } = require('./load-deps');
+const { verifyReadIndex } = require('./read-index');
 
 function verify(options) {
   const memoryRoot = path.resolve(options.memoryRoot);
@@ -20,6 +21,7 @@ function verify(options) {
     memoryRoot,
     updatedAt,
     today,
+    readIndex: verifyReadIndex({ memoryRoot }),
     status: result.warningCount > 0 ? 'warning' : 'ok',
   };
 }

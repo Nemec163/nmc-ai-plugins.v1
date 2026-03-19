@@ -23,7 +23,7 @@ Connector framing for this repository:
 
 - `packages/adapter-openclaw` is the OpenClaw connector surface.
 - `packages/adapter-codex` is the Codex connector surface.
-- `packages/adapter-claude` is the Claude connector scaffold surface and is not part of the current supported production release boundary.
+- `packages/adapter-claude` is the bounded Claude connector surface over existing gateway and handoff contracts and is not part of the current direct-install production release boundary.
 
 The deprecated `memory-os-gateway ops-snapshot` bridge is retired and is not part of the supported operator contract.
 
@@ -52,6 +52,23 @@ node ~/.openclaw/extensions/memoryos-openclaw/bin/memory-os-gateway.js status \
 ```
 
 Supported operator commands still come from `packages/control-plane` and include `snapshot`, `health`, `queues`, `analytics`, `audits`, `runtime-inspector`, and advisory `record-intervention`, but installed-artifact usage should prefer the adapter-owned wrapper paths above rather than reaching into nested `packages/` paths. Gateway CLI access should likewise go through the adapter-owned wrapper rather than `packages/memory-os-gateway/bin/`.
+
+The gateway now also carries a derived read-index surface for the canonical read path:
+
+```bash
+node ~/.openclaw/extensions/memoryos-openclaw/bin/memory-os-gateway.js build-read-index \
+  --memory-root ~/.openclaw/workspace/system/memory
+
+node ~/.openclaw/extensions/memoryos-openclaw/bin/memory-os-gateway.js verify-read-index \
+  --memory-root ~/.openclaw/workspace/system/memory
+```
+
+The read index is stored under `core/meta/read-index.json`, derives entirely from canon, remains non-authoritative, and can be rebuilt or discarded without changing canonical state.
+
+Gateway query and recall now expose bounded retrieval semantics:
+
+- `query` returns weighted canonical ranking reasons plus an explicit pending-runtime-delta section when freshness-oriented phrasing or `--include-pending` requests it.
+- `get-recall-bundle` separates `canonicalRecall`, `pendingRecall`, and `runtimeRecall`, and exposes normalized `topHits` without marking runtime memory authoritative.
 
 For installed programmatic access, prefer the adapter-owned wrapper directories:
 

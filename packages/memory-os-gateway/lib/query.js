@@ -3,33 +3,13 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { loadMemoryCanon } = require('./load-deps');
+const { getQueryableReadIndex } = require('./read-index');
 const { readManifestSnapshot } = require('./read');
-const { parseProjectionRecords, tokenizeText, toPosixRelative } = require('./records');
+const { tokenizeText, toPosixRelative } = require('./records');
 
 const CURRENT_QUERY_PATTERN = /\b(now|today|current|currently|recent|recently)\b/i;
 const PENDING_CLAIM_PATTERN = /^## (claim-[0-9-]+)\n([\s\S]*?)(?=^## |\Z)/gm;
-
-function scoreText(haystack, tokens) {
-  const normalized = haystack.toLowerCase();
-  let score = 0;
-
-  for (const token of tokens) {
-    if (normalized.includes(token)) {
-      score += 1;
-    }
-  }
-
-  return score;
-}
-
-function pickSnippet(record) {
-  if (record.metadata.summary) {
-    return record.metadata.summary;
-  }
-
-  return record.body.split('\n')[0] || '';
-}
+const QUERY_RANKING_VERSION = '1';
 
 function parsePendingClaims(markdown) {
   const claims = [];
@@ -44,6 +24,103 @@ function parsePendingClaims(markdown) {
   return claims;
 }
 
+function intersectTokens(sourceTokens, queryTokens) {
+  const sourceSet = new Set(sourceTokens);
+  return queryTokens.filter((token) => sourceSet.has(token));
+}
+
+function buildCanonicalRanking(record, matchedTokens, text) {
+  const summaryMatches = intersectTokens(tokenizeText(record.summary), matchedTokens);
+  const headingMatches = intersectTokens(tokenizeText(record.heading), matchedTokens);
+  const pathMatches = intersectTokens(tokenizeText(record.relativePath), matchedTokens);
+  const reasons = [];
+  let total = matchedTokens.length * 10;
+
+  reasons.push({
+    code: 'token-overlap',
+    weight: matchedTokens.length * 10,
+    matchedTokens,
+  });
+
+  if (summaryMatches.length > 0) {
+    const weight = summaryMatches.length * 3;
+    total += weight;
+    reasons.push({
+      code: 'summary-match',
+      weight,
+      matchedTokens: summaryMatches,
+    });
+  }
+
+  if (headingMatches.length > 0) {
+    const weight = headingMatches.length * 2;
+    total += weight;
+    reasons.push({
+      code: 'heading-match',
+      weight,
+      matchedTokens: headingMatches,
+    });
+  }
+
+  if (pathMatches.length > 0) {
+    total += pathMatches.length;
+    reasons.push({
+      code: 'path-match',
+      weight: pathMatches.length,
+      matchedTokens: pathMatches,
+    });
+  }
+
+  if (record.relativePath.endsWith('/current.md')) {
+    total += 2;
+    reasons.push({
+      code: 'current-projection',
+      weight: 2,
+    });
+  }
+
+  if (String(text || '').toLowerCase().includes(String(record.recordId || '').toLowerCase())) {
+    total += 25;
+    reasons.push({
+      code: 'exact-record-id',
+      weight: 25,
+    });
+  }
+
+  return {
+    version: QUERY_RANKING_VERSION,
+    total,
+    matchedTokens,
+    reasons,
+  };
+}
+
+function buildPendingRanking(claim, matchedTokens, includePending) {
+  const reasons = [
+    {
+      code: 'token-overlap',
+      weight: matchedTokens.length * 10,
+      matchedTokens,
+    },
+  ];
+  let total = matchedTokens.length * 10;
+
+  if (includePending) {
+    total += 2;
+    reasons.push({
+      code: 'pending-runtime-delta',
+      weight: 2,
+    });
+  }
+
+  return {
+    version: QUERY_RANKING_VERSION,
+    total,
+    matchedTokens,
+    reasons,
+  };
+}
+
 function query(options) {
   const memoryRoot = path.resolve(options.memoryRoot);
   const text = String(options.text || '').trim();
@@ -56,41 +133,52 @@ function query(options) {
   const includePending =
     options.includePending === true ||
     (options.includePending !== false && CURRENT_QUERY_PATTERN.test(text));
-
-  const canon = loadMemoryCanon();
+  const readIndex = getQueryableReadIndex({
+    memoryRoot,
+    persist: options.persistReadIndex === true,
+    rebuild: options.rebuildReadIndex !== false,
+    builtAt: options.builtAt,
+  });
   const canonicalHits = [];
 
-  for (const filePath of canon.listRecordFiles(memoryRoot)) {
-    const content = fs.readFileSync(filePath, 'utf8');
-    const records = parseProjectionRecords(content);
+  if (readIndex.index) {
+    const postings = readIndex.index.postings || {};
+    const recordsById = new Map(
+      (readIndex.index.records || []).map((record) => [record.recordId, record])
+    );
+    const candidates = new Map();
 
-    for (const record of records) {
-      const score = scoreText(
-        [
-          record.heading,
-          record.metadata.record_id,
-          record.metadata.summary,
-          record.body,
-          toPosixRelative(memoryRoot, filePath),
-        ]
-          .filter(Boolean)
-          .join('\n'),
-        tokens
-      );
+    for (const token of tokens) {
+      const matchedIds = postings[token] || [];
 
-      if (score === 0) {
+      for (const recordId of matchedIds) {
+        if (!candidates.has(recordId)) {
+          candidates.set(recordId, []);
+        }
+
+        candidates.get(recordId).push(token);
+      }
+    }
+
+    for (const [recordId, matchedTokens] of candidates.entries()) {
+      const record = recordsById.get(recordId);
+      if (!record) {
         continue;
       }
 
+      const ranking = buildCanonicalRanking(record, matchedTokens, text);
       canonicalHits.push({
-        score,
-        recordId: record.metadata.record_id || null,
-        type: record.metadata.type || null,
-        status: record.metadata.status || null,
-        summary: record.metadata.summary || '',
-        filePath,
-        relativePath: toPosixRelative(memoryRoot, filePath),
-        snippet: pickSnippet(record),
+        score: ranking.total,
+        matchedTokens,
+        recordId,
+        type: record.type || null,
+        status: record.status || null,
+        summary: record.summary || '',
+        filePath: path.join(memoryRoot, record.relativePath),
+        relativePath: record.relativePath,
+        snippet: record.snippet || '',
+        authoritative: true,
+        ranking,
       });
     }
   }
@@ -116,17 +204,22 @@ function query(options) {
         const content = fs.readFileSync(filePath, 'utf8');
 
         for (const claim of parsePendingClaims(content)) {
-          const score = scoreText(claim.block, tokens);
-          if (score === 0) {
+          const matchedTokens = tokens.filter((token) =>
+            String(claim.block || '').toLowerCase().includes(token)
+          );
+          if (matchedTokens.length === 0) {
             continue;
           }
 
+          const ranking = buildPendingRanking(claim, matchedTokens, includePending);
           runtimeDelta.push({
-            score,
+            score: ranking.total,
             claimId: claim.claimId,
             filePath,
             relativePath: toPosixRelative(memoryRoot, filePath),
             snippet: claim.block.split('\n').find((line) => line.includes('- claim:')) || claim.block,
+            authoritative: false,
+            ranking,
           });
         }
       }
@@ -138,11 +231,28 @@ function query(options) {
   return {
     text,
     tokens,
+    contract: {
+      kind: 'canonical-query',
+      rankingVersion: QUERY_RANKING_VERSION,
+      scopes: {
+        canonical: true,
+        pendingRuntimeDelta: includePending,
+      },
+    },
+    readIndex: {
+      path: readIndex.index ? readIndex.index.relativePath : readIndex.verification.relativePath,
+      status: readIndex.verification.status,
+      source: readIndex.source,
+      builtAt: readIndex.verification.builtAt,
+      persisted: readIndex.source === 'persisted' || readIndex.source === 'rebuilt-persisted',
+      authoritative: false,
+    },
     freshnessBoundary: {
       canonicalLastUpdated: readManifestSnapshot(memoryRoot)?.last_updated || null,
       runtimeDeltaIncluded: includePending,
     },
     canonicalHits: canonicalHits.slice(0, limit),
+    pendingRuntimeDelta: runtimeDelta.slice(0, limit),
     runtimeDelta: runtimeDelta.slice(0, limit),
   };
 }

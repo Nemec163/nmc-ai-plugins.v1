@@ -1,17 +1,14 @@
 # adapter-claude
 
-Claude adapter scaffold for MemoryOS.v1.
+Claude-facing bounded adapter over `memory-os-gateway`.
 
-This package exists to make the repository-level architecture explicit:
-MemoryOS.v1 is the product core, and Claude is an optional adapter surface
-alongside Codex and OpenClaw.
+Current scope for the `adapter-claude runtime contract` slice:
 
-Current status:
+- role-aware bootstrap for a bounded Claude workspace
+- role bundle intake for a Claude session
+- canon-safe read and write-orchestration operations through the gateway
+- a bounded session helper for read-only operations plus an explicit handoff helper that uploads reviewed results and completes at the promoter handoff boundary
+- shared adapter conformance coverage for the claimed capabilities
 
-- package scaffold only
-- no runtime wiring yet
-- no install manifest yet
-- no supported execution contract yet
-
-Use this package as the future home for Claude-specific bootstrap, runtime, and
-handoff integration once the adapter contract is implemented.
+This package intentionally does not mutate `openclaw.json`, own workspace-wide
+setup, lease maintainer jobs, or write canon directly.

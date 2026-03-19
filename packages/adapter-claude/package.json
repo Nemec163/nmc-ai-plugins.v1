@@ -2,11 +2,24 @@
   "name": "adapter-claude",
   "version": "0.0.0",
   "private": true,
-  "description": "Claude adapter scaffold for MemoryOS.v1.",
+  "description": "Claude adapter package over extracted Memory OS core modules.",
   "type": "commonjs",
   "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./conformance-adapter": "./lib/claude-adapter.js"
+  },
   "files": [
     "index.js",
+    "lib/",
+    "test/",
     "README.md"
-  ]
+  ],
+  "scripts": {
+    "test": "node ./test/validate-fixtures.js"
+  },
+  "dependencies": {
+    "adapter-conformance": "0.0.0",
+    "memory-os-gateway": "0.0.0"
+  }
 }

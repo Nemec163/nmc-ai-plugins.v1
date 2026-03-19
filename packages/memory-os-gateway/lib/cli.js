@@ -9,6 +9,7 @@ const {
 } = require('./bootstrap');
 const { getHealth } = require('./health');
 const { query } = require('./query');
+const { buildReadIndex, verifyReadIndex } = require('./read-index');
 const {
   captureRuntime,
   getRuntimeDelta,
@@ -77,7 +78,9 @@ function printUsage() {
   console.error('  get-recall-bundle --memory-root <path> [--role-id <id>] [--install-date <date>] [--memory-path <path>] [--system-path <path>] [--text <query>] [--limit <n>] [--include-pending]');
   console.error('  bootstrap-role --role-id <id> --workspace-dir <path> --shared-skills-root <path> --system-root <path> --memory-root <path> [--state-dir <path>] [--install-date <date>] [--overwrite]');
   console.error('  bootstrap-workspace --state-dir <path> --workspace-root <path> --system-root <path> --memory-root <path> --system-template-root <path> --memory-template-root <path> --skills-source-root <path> [--shared-skills-root <path>] [--install-date <date>] [--overwrite]');
+  console.error('  build-read-index --memory-root <path> [--built-at <ts>]');
   console.error('  query --memory-root <path> --text <query> [--limit <n>] [--include-pending]');
+  console.error('  verify-read-index --memory-root <path>');
   console.error('  get-runtime-delta --memory-root <path> [--limit <n>]');
   console.error('  get-runtime-recall-bundle --memory-root <path> [--text <query>] [--limit <n>]');
   console.error('  capture-runtime --memory-root <path> --run-id <id> --artifacts-file <path> [--runtime-inputs-file <path>] [--source <label>] [--captured-at <ts>] [--overwrite]');
@@ -167,12 +170,25 @@ function runCli(argv) {
         overwrite: toBoolean(flags.overwrite),
       });
       break;
+    case 'build-read-index':
+      result = buildReadIndex({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        builtAt: flags['built-at'],
+      });
+      break;
     case 'query':
       result = query({
         memoryRoot: requireFlag(flags, 'memory-root'),
         text: requireFlag(flags, 'text'),
         limit: flags.limit ? Number(flags.limit) : undefined,
         includePending: flags['include-pending'] === true ? true : undefined,
+        persistReadIndex: flags['persist-read-index'] === true,
+        rebuildReadIndex: flags['rebuild-read-index'] === true ? true : undefined,
+      });
+      break;
+    case 'verify-read-index':
+      result = verifyReadIndex({
+        memoryRoot: requireFlag(flags, 'memory-root'),
       });
       break;
     case 'get-runtime-delta':

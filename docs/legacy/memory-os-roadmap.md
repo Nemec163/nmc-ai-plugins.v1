@@ -5,15 +5,16 @@
 
 ## Progress Snapshot
 
-- completed: `legacy-shell retirement cleanup — remove nmc-memory-plugin mirrors once fixtures and packaging checks no longer depend on them`
-- next: `adapter-claude runtime contract — turn the Claude adapter scaffold into a bounded supported connector contract`
+- completed: `retrieval semantics and recall quality — add bounded ranking and explainable recall over canonical and runtime memory`
+- next: `first-class procedural canon — promote procedures into a versioned canonical contract with feedback lineage`
 - last verified on: `2026-03-19`
 - verified in this slice:
+  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/adapter-conformance/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/adapter-codex/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/adapter-conformance/test/validate-fixtures.js`
+  - `PATH="/usr/local/bin:$PATH" node packages/adapter-claude/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
-  - `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
   - `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
   - `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
 - verification baseline:
@@ -2082,12 +2083,68 @@ Rules:
 - operator controls exist over stable contracts
 - scheduling and health no longer depend on direct script choreography alone
 
+### adapter-claude runtime contract
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- replaced `packages/adapter-claude` scaffold-only behavior with a bounded gateway-backed connector contract
+- added role-aware bootstrap, role-bundle intake, canon-safe read helpers, explicit proposal/feedback/completion handoff helpers, and CLI passthrough over existing gateway surfaces
+- kept `adapter-claude` out of canon ownership, workspace-wide setup ownership, and any new runtime authority model
+- added fixture-backed validation for the bounded Claude session contract and shared adapter conformance coverage
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-claude/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-codex/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-conformance/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
+### derived read index
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- added a derived non-authoritative read index under `packages/memory-os-gateway/lib/read-index.js` that builds entirely from canon and stores persisted snapshots at `core/meta/read-index.json`
+- switched `query` to prefer a fresh persisted read index and otherwise rebuild an ephemeral in-memory index without changing canon
+- added explicit `build-read-index` and `verify-read-index` gateway CLI commands plus status and health visibility for persisted index freshness
+- kept canon as the only source of truth by treating the read index as disposable, rebuildable, and checksum-validated against current canonical content
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-conformance/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-codex/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-claude/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
+### retrieval semantics and recall quality
+
+Status: done on `2026-03-19`
+
+Implementation note:
+
+- added explainable canonical ranking in gateway `query` results with bounded weighted reasons instead of leaving ranking implicit
+- made pending runtime delta recall explicit in the query contract and added normalized `canonicalRecall`, `pendingRecall`, and `topHits` sections to `getRecallBundle`
+- kept canonical and runtime authority boundaries explicit by marking canonical hits authoritative and runtime-derived hits non-authoritative throughout the recall bundle
+- preserved the derived read index as the backing read path without widening runtime into a second truth layer
+- verified with `PATH="/usr/local/bin:$PATH" node packages/memory-os-gateway/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-conformance/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-openclaw/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-codex/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/adapter-claude/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" node packages/control-plane/test/validate-fixtures.js`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-contract-tests.sh`
+- verified with `PATH="/usr/local/bin:$PATH" ./tests/run-integration.sh`
+
 ## Immediate Next Step
 
-The next implementation step should turn the existing Claude scaffold into a bounded connector contract rather than reopening the retired shell boundary:
+The next implementation step should promote procedural memory into a first-class canonical contract without weakening the existing source-of-truth and promotion invariants:
 
-- implement `packages/adapter-claude` as a real connector over the existing gateway, role-bundle, and write-handoff surfaces instead of leaving it scaffold-only
-- keep scope pinned to a bounded adapter contract comparable to current `adapter-codex` and `adapter-openclaw` capabilities; do not widen into canon ownership changes or a new runtime authority model
-- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the current direct OpenClaw production surface while the Claude connector is brought online
+- define a versioned procedure record contract and a bounded promotion path from runtime feedback into canonical procedures
+- keep scope pinned to procedure schemas, lineage, feedback linkage, and verification rules; do not widen into free-form prompt storage or new direct canon writers
+- preserve `openclaw memoryos setup`, auto-bootstrap behavior, workspace layout, and the single promotion path while procedural memory is formalized
 
-The legacy-shell cleanup is complete. The next risk is no longer repo-local OpenClaw packaging drift; it is adding a third connector without weakening the existing gateway, runtime, and promotion boundaries.
+The read path and recall semantics are now materially stronger. The next risk is procedural learning remaining trapped in runtime buckets and competence notes instead of a versioned canonical contract.
