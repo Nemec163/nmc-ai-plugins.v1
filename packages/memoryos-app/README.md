@@ -3,9 +3,9 @@
 Standalone CLI application surface for `MemoryOS.v1`.
 
 Surface status: `production` standalone install/run surface for the repository.
-It bootstraps the shared `system/` workspace contract without requiring
-OpenClaw as the host runtime. `adapter-openclaw` remains a supported optional
-connector surface.
+It bootstraps the shared `system/` workspace contract independently of any
+adapter. Peer adapters (`adapter-openclaw`, `adapter-codex`, `adapter-claude`)
+are optional connector surfaces.
 
 Current commands:
 

@@ -7,9 +7,8 @@ Surface status: `internal` shared core package inside the product boundary. It
 is not a direct install, operator, or adapter surface.
 
 The canonical implementations live in this package. Adapter-owned wrapper
-entrypoints such as `packages/adapter-openclaw/skills/` delegate here so
-standalone usage, adapter installs, and repo-local tests resolve the same
-script behavior.
+entrypoints delegate here so standalone usage, adapter installs, and repo-local
+tests resolve the same script behavior.
 
 ## Scripts
 

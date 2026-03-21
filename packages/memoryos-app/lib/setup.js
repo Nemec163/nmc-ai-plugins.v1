@@ -177,9 +177,9 @@ function setupStandalone(rawOptions = {}) {
     systemRoot: options.systemRoot,
     memoryRoot: options.memoryRoot,
     sharedSkillsRoot: options.sharedSkillsRoot,
-    systemTemplateRoot: resolvePackagePath('adapter-openclaw', 'templates', 'workspace-system'),
-    memoryTemplateRoot: resolvePackagePath('adapter-openclaw', 'templates', 'workspace-memory'),
-    skillsSourceRoot: resolvePackagePath('adapter-openclaw', 'skills'),
+    systemTemplateRoot: resolvePackagePath('memory-workspace', 'templates', 'workspace-system'),
+    memoryTemplateRoot: resolvePackagePath('memory-workspace', 'templates', 'workspace-memory'),
+    skillsSourceRoot: resolvePackagePath('memory-workspace', 'skills'),
     installDate: options.installDate,
     overwrite: options.overwrite,
   });

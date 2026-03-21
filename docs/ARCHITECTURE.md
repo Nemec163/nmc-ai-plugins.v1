@@ -53,9 +53,6 @@ These rules are visible in code, tests, and release qualification:
 - `control-plane` stays read-only
 - adapters preserve only their host-specific contracts without redefining the
   product boundary or becoming privileged relative to one another
-- for the OpenClaw adapter specifically, `openclaw memoryos setup`, plugin
-  auto-bootstrap, and `openclaw.plugin.json` remain intact as host-specific
-  integration details rather than a distinct product surface class
 
 ## Package Layers
 
@@ -118,18 +115,17 @@ the live product boundary.
 
 ### Adapter Surfaces
 
-The repository exposes three peer adapters:
+The repository exposes three peer adapters. All are equal surfaces over the
+same core:
 
-- `adapter-openclaw`: peer adapter for the OpenClaw host with
-  `openclaw.plugin.json`, `plugin.js`, direct setup, auto-bootstrap, bundled
-  skills, and wrapper entrypoints for `control-plane` and `memory-os-gateway`
-- `adapter-codex`: bounded Codex adapter for role-aware bootstrap,
-  adapter-neutral `extract` and `curate` execution through the shared
-  pipeline contract, bounded single-run execution, and explicit
-  gateway-mediated handoff
-- `adapter-claude`: bounded Claude adapter over the same bootstrap, read,
-  adapter-neutral `extract` and `curate` execution through the shared
-  pipeline contract, and handoff contracts
+- `adapter-openclaw`: OpenClaw host integration with plugin setup,
+  auto-bootstrap, skill discovery, and wrapper entrypoints
+- `adapter-codex`: Codex host integration with role-aware bootstrap,
+  single-run execution, and adapter-neutral `extract`/`curate` through the
+  shared pipeline contract
+- `adapter-claude`: Claude host integration with role-aware bootstrap,
+  session execution, and adapter-neutral `extract`/`curate` through the
+  shared pipeline contract
 
 `adapter-conformance` remains an internal test-only package that validates only
 the capabilities each adapter explicitly claims.
@@ -151,23 +147,14 @@ verification receipts.
 
 ## Workspace Model
 
-The autonomous standalone app owns the default local workspace:
+The standalone app owns the default local workspace:
 
 - `~/.memoryos/system/`
 - `~/.memoryos/system/memory/`
 - `~/.memoryos/{nyx,medea,arx,lev,mnemo}/`
 - `~/.memoryos/agents/{nyx,medea,arx,lev,mnemo}/`
 
-The OpenClaw adapter owns its separate host-specific scaffold under
-`~/.openclaw/`:
-
-- `~/.openclaw/workspace/system/`
-- `~/.openclaw/workspace/system/memory/`
-- `~/.openclaw/workspace/{nyx,medea,arx,lev,mnemo}/`
-- `~/.openclaw/agents/{nyx,medea,arx,lev,mnemo}/`
-
-Within that adapter-owned layout, the shared execution layer lives under
-`~/.openclaw/workspace/system/`:
+The shared execution layer lives under `system/`:
 
 - `memory/` for canon, intake, metadata, and runtime shadow state
 - `skills/` for mirrored bundled skills
@@ -176,9 +163,9 @@ Within that adapter-owned layout, the shared execution layer lives under
 - `docs/` for system-level notes
 - `scripts/` for local helper tooling such as `kanban.mjs`
 
-It also creates predefined per-agent workspaces for `nyx`, `medea`, `arx`,
-`lev`, and `mnemo`, plus adapter-managed OpenClaw state directories under
-`~/.openclaw/agents/`.
+Each adapter may scaffold its own host-specific workspace layout (e.g.,
+`~/.openclaw/workspace/` for OpenClaw) while preserving the same `system/`
+contract.
 
 ## Pipeline
 
@@ -189,12 +176,9 @@ The current memory pipeline stays four-phase:
 3. `apply`
 4. `verify`
 
-`@nmc/memory-pipeline` owns sequencing and adapter invocation. The supported
-OpenClaw entrypoint remains
-`packages/adapter-openclaw/skills/memory-pipeline/pipeline.sh`, which delegates
-into the shared pipeline package. Peer adapters can now attach their own
-extract/curate runner contracts without inheriting OpenClaw skill invocation
-assumptions, while Phase C remains core-owned.
+`@nmc/memory-pipeline` owns sequencing and adapter invocation. Each peer
+adapter can attach its own extract/curate runner contract through the shared
+pipeline package, while Phase C remains core-owned.
 
 ## Runtime Paths
 
@@ -206,25 +190,18 @@ node ./packages/memoryos-app/bin/memoryos.js run --phase verify --once
 node ./packages/memoryos-app/bin/memoryos.js status
 ```
 
-The adapters are equal peer surfaces. OpenClaw exposes a plugin-style install
-command because that host requires it:
+Use any peer adapter for LLM-driven pipeline phases:
 
 ```bash
-openclaw plugins install ./packages/adapter-openclaw
+node ./packages/memoryos-app/bin/memoryos.js pipeline 2026-03-20 \
+  --phase extract \
+  --adapter-module ./packages/adapter-codex \
+  --llm-runner codex
 ```
 
-Its host-specific setup command is:
-
-```bash
-openclaw memoryos setup
-```
-
-The packaged OpenClaw adapter also exposes adapter-owned wrapper entrypoints:
-
-- `~/.openclaw/extensions/memoryos-openclaw/bin/memory-control-plane.js`
-- `~/.openclaw/extensions/memoryos-openclaw/bin/memory-os-gateway.js`
-- `~/.openclaw/extensions/memoryos-openclaw/control-plane/`
-- `~/.openclaw/extensions/memoryos-openclaw/memory-os-gateway/`
+Each adapter may expose additional host-specific entry points (e.g.,
+`openclaw memoryos setup` for the OpenClaw adapter). See individual adapter
+READMEs for details.
 
 ## Verification
 

@@ -93,10 +93,8 @@ Procedure inspection stays canonical and read-only:
 - `compareProcedureVersions` emits a structured diff between two canonical procedure versions without introducing a rollback writer or runtime authority
 - the gateway CLI now exposes `list-procedures`, `inspect-procedure`, and `compare-procedure-versions` for operator-facing inspection paths
 
-Installed artifacts should prefer the adapter-owned wrapper paths:
-
-- `node ~/.openclaw/extensions/memoryos-openclaw/bin/memory-os-gateway.js <command> ...`
-- `~/.openclaw/extensions/memoryos-openclaw/memory-os-gateway/`
+Installed artifacts should prefer adapter-owned wrapper paths when available.
+See individual adapter READMEs for host-specific wrapper entrypoints.
 
 See [supported surfaces](../../docs/supported-surfaces.md) for the current
 package matrix and [implementation guide](../../docs/legacy/implementation-guide.md)

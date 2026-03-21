@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('node:fs');
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 
@@ -65,11 +66,27 @@ function printUsage() {
   console.error('  health [--memory-root <path>] [--config-path <path>] [--system-root <path>] [--runtime-stale-after-days <n>] [--audit-limit <n>] [--stale-after-days <n>]');
   console.error('  snapshot [--memory-root <path>] [--config-path <path>] [--system-root <path>] [--runtime-stale-after-days <n>] [--audit-limit <n>] [--stale-after-days <n>]');
   console.error('  pipeline <YYYY-MM-DD> [--phase extract|curate|apply|verify|all] [--memory-root <path>] [--config-path <path>] [--adapter-module <path>] [--llm-runner <cmd>] [--node-cmd <path>]');
+  console.error('  capture-session --agent <name> --adapter <name> --session-id <id> --messages-file <path> --started-at <ts> [--captured-at <ts>] [--channel <ch>] [--source <label>] [--memory-root <path>] [--config-path <path>]');
+  console.error('  sessions [--agent <name>] [--date <YYYY-MM-DD>] [--adapter <name>] [--memory-root <path>] [--config-path <path>]');
+  console.error('  read-session --session-path <path> [--memory-root <path>] [--config-path <path>]');
+  console.error('  mark-sessions-processed --date <YYYY-MM-DD> --session-paths-file <path> [--extracted-by <label>] [--proposal-id <id>] [--memory-root <path>] [--config-path <path>]');
   console.error(`  run [--phase extract|curate|apply|verify|all] [--date <YYYY-MM-DD>] [--interval-seconds <n>] [--max-runs <n>] [--once] [--memory-root <path>] [--config-path <path>] [--adapter-module <path>] [--llm-runner <cmd>] [--node-cmd <path>] (default interval: ${DEFAULT_INTERVAL_SECONDS}s)`);
 }
 
 function outputJson(result) {
   console.log(JSON.stringify(result, null, 2));
+}
+
+function requireFlag(flags, key) {
+  if (flags[key] == null || flags[key] === '') {
+    throw new Error(`--${key} is required`);
+  }
+
+  return flags[key];
+}
+
+function readJsonFile(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
 function resolvePaths(flags) {
@@ -184,6 +201,51 @@ function runCli(argv) {
           runtimeStaleAfterDays: flags['runtime-stale-after-days'],
           auditLimit: flags['audit-limit'],
           staleAfterDays: flags['stale-after-days'],
+        })
+      );
+      return 0;
+    case 'capture-session':
+      outputJson(
+        gateway.captureSession({
+          memoryRoot: paths.memoryRoot,
+          agent: requireFlag(flags, 'agent'),
+          adapter: requireFlag(flags, 'adapter'),
+          sessionId: requireFlag(flags, 'session-id'),
+          messages: readJsonFile(requireFlag(flags, 'messages-file')),
+          startedAt: requireFlag(flags, 'started-at'),
+          capturedAt: flags['captured-at'],
+          channel: flags.channel,
+          source: flags.source,
+          roleId: flags['role-id'],
+        })
+      );
+      return 0;
+    case 'sessions':
+      outputJson(
+        gateway.listSessions({
+          memoryRoot: paths.memoryRoot,
+          agent: flags.agent,
+          date: flags.date,
+          adapter: flags.adapter,
+        })
+      );
+      return 0;
+    case 'read-session':
+      outputJson(
+        gateway.readSession({
+          memoryRoot: paths.memoryRoot,
+          sessionPath: requireFlag(flags, 'session-path'),
+        })
+      );
+      return 0;
+    case 'mark-sessions-processed':
+      outputJson(
+        gateway.markSessionsProcessed({
+          memoryRoot: paths.memoryRoot,
+          date: requireFlag(flags, 'date'),
+          sessionPaths: readJsonFile(requireFlag(flags, 'session-paths-file')),
+          extractedBy: flags['extracted-by'],
+          proposalId: flags['proposal-id'],
         })
       );
       return 0;

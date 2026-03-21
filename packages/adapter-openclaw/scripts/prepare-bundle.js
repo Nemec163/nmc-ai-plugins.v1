@@ -20,6 +20,8 @@ const BUNDLED_PACKAGES = Object.freeze([
   "memory-workspace",
 ]);
 
+const SHARED_ASSET_DIRS = Object.freeze(["templates", "skills"]);
+
 const GENERATED_ROOTS = Object.freeze(["bin", ...BUNDLED_PACKAGES]);
 
 function ensureDir(dirPath) {
@@ -73,6 +75,31 @@ function cleanBundle() {
       force: true,
     });
   }
+
+  restoreSharedAssetSymlinks();
+}
+
+function resolveSharedAssets() {
+  for (const dirName of SHARED_ASSET_DIRS) {
+    const localPath = path.join(PACKAGE_ROOT, dirName);
+    const lstat = fs.existsSync(localPath) ? fs.lstatSync(localPath) : null;
+
+    if (lstat && lstat.isSymbolicLink()) {
+      const realPath = fs.realpathSync(localPath);
+      fs.rmSync(localPath, { recursive: true, force: true });
+      fs.cpSync(realPath, localPath, { recursive: true, force: true });
+    }
+  }
+}
+
+function restoreSharedAssetSymlinks() {
+  for (const dirName of SHARED_ASSET_DIRS) {
+    const localPath = path.join(PACKAGE_ROOT, dirName);
+    const symlinkTarget = path.join("..", "memory-workspace", dirName);
+
+    fs.rmSync(localPath, { recursive: true, force: true });
+    fs.symlinkSync(symlinkTarget, localPath);
+  }
 }
 
 function buildBundle() {
@@ -81,6 +108,8 @@ function buildBundle() {
   for (const packageDirName of BUNDLED_PACKAGES) {
     bundlePackage(packageDirName);
   }
+
+  resolveSharedAssets();
 
   writeExecutable(
     path.join("bin", "memory-control-plane.js"),

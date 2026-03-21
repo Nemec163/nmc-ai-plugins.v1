@@ -6,12 +6,16 @@ MemoryOS core.
 Surface status: `internal` shared core package inside the product boundary. It
 is not a direct install, operator, or adapter surface.
 
-This package owns generic filesystem placement concerns:
+This package owns generic filesystem placement concerns and shared product-level
+assets:
 
 - path normalization (`expandHome`, `toConfigPath`, `toPosixPath`, `relativeWorkspacePath`)
 - filesystem helpers (`ensureDir`, `writeFileIfNeeded`, `ensureSymlink`, `listFilesRecursive`)
 - template helpers (`replaceTemplatePlaceholders`, `copyTemplateTree`)
 - scaffold helpers (`copyMemoryTemplate`, `copySystemTemplate`, `createSharedSkillsWorkspace`, `scaffoldAgentWorkspace`, `ensureAgentState`)
+- bundled templates (`templates/workspace-system/`, `templates/workspace-memory/`)
+- bundled skills (`skills/`) consumed by standalone and adapter bootstrap flows
+- bundled asset path constants (`BUNDLED_SYSTEM_TEMPLATE_ROOT`, `BUNDLED_MEMORY_TEMPLATE_ROOT`, `BUNDLED_SKILLS_ROOT`)
 
 Boundaries:
 

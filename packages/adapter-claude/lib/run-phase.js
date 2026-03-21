@@ -134,7 +134,7 @@ Required behavior:
 - the batch scaffold already exists; preserve the frontmatter/header and append claim blocks in place
 - use the exact claim block shape documented in the runbook and phase contract
 - work source-first and use only observations provided for the requested date
-- do not assume OpenClaw session paths or OpenClaw skill wiring
+- do not assume host-specific session paths or adapter-specific skill wiring
 - do not compare against canon during extract
 - do not add curator annotations
 - do not write canonical records

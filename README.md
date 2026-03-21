@@ -18,7 +18,7 @@ Use this document as the entry point. Start with [standalone app README](./packa
 
 ## Quick Start
 
-Run MemoryOS.v1 directly from this repository without OpenClaw:
+Bootstrap and run MemoryOS.v1 standalone:
 
 ```bash
 node ./packages/memoryos-app/bin/memoryos.js init
@@ -26,7 +26,7 @@ node ./packages/memoryos-app/bin/memoryos.js run --phase verify --once
 node ./packages/memoryos-app/bin/memoryos.js status
 ```
 
-Run maintenance against the standalone workspace:
+Run maintenance:
 
 ```bash
 node ./packages/memoryos-app/bin/memoryos.js verify
@@ -34,38 +34,24 @@ node ./packages/memoryos-app/bin/memoryos.js health
 node ./packages/memoryos-app/bin/memoryos.js pipeline 2026-03-05 --phase verify
 ```
 
-The three adapters are peer adapters over the same core. Use the OpenClaw path only when you need that specific host integration:
+Use any peer adapter for LLM-driven pipeline phases:
 
 ```bash
-openclaw plugins install ./packages/adapter-openclaw
-```
-
-The plugin auto-bootstraps on first runtime load by default. To run setup explicitly:
-
-```bash
-openclaw memoryos setup
-```
-
-For local development without installing the OpenClaw package, use the adapter setup script:
-
-```bash
-node ./packages/adapter-openclaw/lib/setup-cli.js --state-dir ~/.openclaw
-```
-
-For Codex or Claude, use their peer adapter packages as the `--adapter-module`
-for shared pipeline or standalone host execution instead of treating OpenClaw as
-the default adapter:
-
-```bash
+# Codex adapter
 node ./packages/memoryos-app/bin/memoryos.js pipeline 2026-03-20 \
   --phase extract \
   --adapter-module ./packages/adapter-codex \
   --llm-runner codex
 
+# Claude adapter
 node ./packages/memoryos-app/bin/memoryos.js pipeline 2026-03-20 \
   --phase curate \
   --adapter-module ./packages/adapter-claude \
   --llm-runner claude
+
+# OpenClaw adapter
+openclaw plugins install ./packages/adapter-openclaw
+openclaw memoryos setup
 ```
 
 ## Architecture
@@ -88,37 +74,15 @@ MemoryOS.v1 centers on the extracted core packages:
 
 These packages define the standalone memory system and its stable operator/programmatic entrypoints. Connectors are optional and sit on top.
 
-### Optional Connectors
+### Peer Adapters
 
-- `packages/memoryos-app` attaches MemoryOS.v1 to a standalone local CLI/runtime surface.
-- `packages/adapter-openclaw` attaches MemoryOS.v1 to the OpenClaw plugin/runtime model.
-- `packages/adapter-codex` attaches MemoryOS.v1 to Codex-oriented execution
-  flows, including connector-neutral `extract` and `curate` execution through
-  the shared pipeline contract.
-- `packages/adapter-claude` attaches MemoryOS.v1 to Claude-oriented execution
-  flows, including connector-neutral `extract` and `curate` execution through
-  the shared pipeline contract.
+Each adapter attaches the MemoryOS core to a specific LLM or host runtime:
 
-### Optional OpenClaw Adapter
+- `packages/adapter-openclaw` — OpenClaw plugin/runtime integration with host-specific setup and skill discovery
+- `packages/adapter-codex` — Codex-oriented execution with connector-neutral `extract` and `curate` through the shared pipeline contract
+- `packages/adapter-claude` — Claude-oriented execution with connector-neutral `extract` and `curate` through the shared pipeline contract
 
-`packages/adapter-openclaw` registers:
-
-- a CLI command: `openclaw memoryos setup`
-- a runtime bootstrap service that can scaffold the workspace automatically on plugin load
-
-The managed scaffold creates:
-
-- `~/.openclaw/workspace/system/` as the shared infra root
-- `~/.openclaw/workspace/system/memory/` as the shared canon root
-- `~/.openclaw/workspace/system/skills/` as the mirrored shared skill root
-- `~/.openclaw/workspace/system/tasks/`, `policy/`, `docs/`, `scripts/` as the shared execution layer
-- `~/.openclaw/workspace/{nyx,medea,arx,lev,mnemo}/` as per-agent workspaces
-- `~/.openclaw/agents/{nyx,medea,arx,lev,mnemo}/` as OpenClaw state directories
-
-Each agent workspace is linked back to shared infrastructure through:
-
-- `system -> ../system`
-- `skills -> ../system/skills`
+All three adapters are equal peer surfaces over the same core. Each preserves only its host-specific contract without becoming the product boundary.
 
 ### Agent Roster
 
@@ -136,7 +100,7 @@ Each agent workspace is linked back to shared infrastructure through:
 |---|---|---|
 | `memory-extract` | LLM | Extract atomic claims into `intake/pending/`. |
 | `memory-curate` | LLM | Accept, reject, or defer extracted claims against canon. |
-| `memory-apply` | Compatibility | OpenClaw-facing Phase C shim that preserves the stable apply skill name while the core promoter owns canon writes. |
+| `memory-apply` | Compatibility | Phase C shim that preserves the stable apply skill name while the core promoter owns canon writes. |
 | `memory-verify` | Script | Rebuild manifest metadata and graph edges. |
 | `memory-query` | LLM | Answer canon-grounded memory questions. |
 | `memory-status` | Script | Report manifest health, backlog risk, and retention alerts. |
@@ -156,7 +120,7 @@ Shared infrastructure is scaffolded under `system/`:
 - `scripts/` contains local operational helpers such as `kanban.mjs`.
 - `docs/` contains system-level implementation notes for future tooling and UI layers.
 
-The shared task layer uses the contract from `packages/adapter-openclaw/templates/workspace-system/tasks/README.md`:
+The shared task layer uses the contract from `packages/memory-workspace/templates/workspace-system/tasks/README.md`:
 
 - active tasks are `T-*.md`
 - board defaults live in `tasks/active/.kanban.json`
@@ -180,45 +144,7 @@ Operational helpers:
 
 ## Configuration
 
-The adapter manifest exposes these managed config knobs through `openclaw.plugin.json`:
-
-| Key | Purpose |
-|---|---|
-| `autoSetup` | Enable runtime bootstrap on plugin load. |
-| `stateDir` | Override the OpenClaw state directory. |
-| `workspaceRoot` | Override the workspace root containing `system/` and agent folders. |
-| `systemRoot` | Override the shared system root. |
-| `memoryRoot` | Override the shared memory root. |
-| `configPath` | Override the `openclaw.json` path used for managed updates. |
-| `overwrite` | Allow managed files and symlinks to be replaced. |
-| `writeConfig` | Disable or enable `openclaw.json` updates during setup. |
-| `bindings` | Seed routing bindings in `agent=channel[:accountId[:peerId]]` form. |
-| `models.*` | Override the default model per predefined agent. |
-
-These settings apply only to the OpenClaw adapter surface. They are not part of the standalone `MemoryOS.v1` product boundary.
-
-Example:
-
-```json
-{
-  "plugins": {
-    "entries": {
-      "memoryos-openclaw": {
-        "enabled": true,
-        "config": {
-          "autoSetup": false,
-          "workspaceRoot": "~/custom-workspace",
-          "systemRoot": "~/custom-workspace/system",
-          "models": {
-            "nyx": "opus 4.6",
-            "lev": "codex 5.1 mini"
-          }
-        }
-      }
-    }
-  }
-}
-```
+The standalone app stores its configuration in `~/.memoryos/memoryos.json`. Each adapter may expose additional host-specific config knobs (e.g., `openclaw.plugin.json` for the OpenClaw adapter). See the individual adapter READMEs for adapter-specific configuration.
 
 ## Verification
 

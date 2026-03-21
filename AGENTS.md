@@ -48,7 +48,7 @@ Work one roadmap slice at a time. Treat each `PR x.y` heading in the roadmap as 
 
 These rules stay in force for every phase unless the roadmap explicitly changes them:
 
-- do not break `openclaw memoryos setup`, auto-bootstrap, or `openclaw.plugin.json`
+- do not break any adapter's host-specific setup, bootstrap, or configuration contracts
 - do not change the default workspace layout under `system/`
 - do not change the canon on-disk format during extraction
 - do not let runtime memory write canon directly

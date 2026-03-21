@@ -28,22 +28,18 @@ true:
 
 1. Supported-surface docs stay aligned with release qualification metadata.
 2. The independent MemoryOS core remains the product boundary and is not
-   reframed as an OpenClaw-owned release.
+   reframed as any single adapter's release.
 3. The managed workspace layout under `system/` remains unchanged.
 4. Runtime remains non-authoritative and cannot write canon directly.
 5. Canon writes stay behind the single promotion path.
-6. The supported standalone app path works without OpenClaw while preserving the
-   existing `system/` layout, canon boundaries, and app-owned `memoryos run`
-   host loop.
+6. The supported standalone app path works independently of any adapter while
+   preserving the existing `system/` layout, canon boundaries, and app-owned
+   `memoryos run` host loop.
 7. Each supported adapter surface preserves only its LLM- or host-specific
    contract without becoming the product boundary or a privileged adapter
    class.
-8. The OpenClaw adapter keeps `openclaw memoryos setup`, auto-bootstrap
-   behavior, and `openclaw.plugin.json` intact as host-specific integration
-   details, not as a higher-order install/setup surface than the other peer
-   adapters.
-9. The contract and integration baselines are green.
-10. The production-readiness gate is green.
+8. The contract and integration baselines are green.
+9. The production-readiness gate is green.
 
 ## Production Gate
 
@@ -67,17 +63,16 @@ That gate verifies:
 For a release candidate, these manual spot checks are still worth doing after
 the automated gate is green:
 
-- install the packed `adapter-openclaw` artifact in a temp OpenClaw project
-- run `PATH="/usr/local/bin:$PATH" node ./packages/adapter-codex/test/validate-fixtures.js`
-- run `PATH="/usr/local/bin:$PATH" node ./packages/adapter-claude/test/validate-fixtures.js`
 - run `node ./packages/memoryos-app/bin/memoryos.js init`
 - run `node ./packages/memoryos-app/bin/memoryos.js run --phase verify --once`
 - run `node ./packages/memoryos-app/bin/memoryos.js status`
-- run `openclaw memoryos setup`
 - confirm the managed workspace appears under `system/`
 - run `memory-control-plane snapshot`
 - run `memory-os-gateway status`
 - run `memory-verify` and `memory-status` against the scaffolded memory root
+- run `PATH="/usr/local/bin:$PATH" node ./packages/adapter-codex/test/validate-fixtures.js`
+- run `PATH="/usr/local/bin:$PATH" node ./packages/adapter-claude/test/validate-fixtures.js`
+- run `PATH="/usr/local/bin:$PATH" node ./packages/adapter-openclaw/test/validate-fixtures.js`
 
 ## Release Record
 

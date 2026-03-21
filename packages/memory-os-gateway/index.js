@@ -10,6 +10,7 @@ module.exports = {
   ...require('./lib/recall'),
   ...require('./lib/read'),
   ...require('./lib/runtime'),
+  ...require('./lib/sessions'),
   ...require('./lib/status'),
   ...require('./lib/verify'),
   ...require('./lib/write'),

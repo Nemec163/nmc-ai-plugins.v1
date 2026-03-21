@@ -9,6 +9,7 @@ const { getVerificationProvenance } = require('./provenance');
 const { verifyReadIndex } = require('./read-index');
 const { readManifestSnapshot } = require('./read');
 const { getRuntimeDelta } = require('./runtime');
+const { getSessionsStatus } = require('./sessions');
 
 function fileMtimeEpoch(filePath) {
   return Math.floor(fs.statSync(filePath).mtimeMs / 1000);
@@ -218,6 +219,7 @@ function getStatus(options) {
       reconciliation: readIndex.reconciliation || null,
       receipt: verificationProvenance.receipts.readIndex,
     },
+    sessions: getSessionsStatus(memoryRoot),
     verificationProvenance,
     overall: {
       status: overallStatus,

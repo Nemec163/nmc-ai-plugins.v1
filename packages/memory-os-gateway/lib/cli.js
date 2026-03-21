@@ -21,6 +21,12 @@ const {
   getRuntimeRecallBundle,
 } = require('./runtime');
 const {
+  captureSession,
+  listSessions,
+  markSessionsProcessed,
+  readSession,
+} = require('./sessions');
+const {
   getCanonicalCurrent,
   getProjection,
   readRecord,
@@ -95,6 +101,10 @@ function printUsage() {
   console.error('  status --memory-root <path>');
   console.error('  verify --memory-root <path> [--updated-at <ts>] [--today <date>]');
   console.error('  health --memory-root <path>');
+  console.error('  capture-session --memory-root <path> --agent <name> --adapter <name> --session-id <id> --messages-file <path> --started-at <ts> [--captured-at <ts>] [--channel <ch>] [--source <label>]');
+  console.error('  list-sessions --memory-root <path> [--agent <name>] [--date <YYYY-MM-DD>] [--adapter <name>]');
+  console.error('  read-session --memory-root <path> --session-path <path>');
+  console.error('  mark-sessions-processed --memory-root <path> --date <YYYY-MM-DD> --session-paths-file <path> [--extracted-by <label>] [--proposal-id <id>]');
   console.error('  propose --memory-root <path> --batch-date <date> --claims-file <path> [--proposal-id <id>] [--source <label>]');
   console.error('  feedback --memory-root <path> --proposal-id <id> --feedback-file <path>');
   console.error('  complete-job --memory-root <path> --proposal-id <id> [--job-id <id>] [--holder <id>] [--operation <name>]');
@@ -249,6 +259,43 @@ function runCli(argv) {
           ? readJsonFile(flags['runtime-inputs-file'])
           : undefined,
         overwrite: toBoolean(flags.overwrite),
+      });
+      break;
+    case 'capture-session':
+      result = captureSession({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        agent: requireFlag(flags, 'agent'),
+        adapter: requireFlag(flags, 'adapter'),
+        sessionId: requireFlag(flags, 'session-id'),
+        messages: readJsonFile(requireFlag(flags, 'messages-file')),
+        startedAt: requireFlag(flags, 'started-at'),
+        capturedAt: flags['captured-at'],
+        channel: flags.channel,
+        source: flags.source,
+        roleId: flags['role-id'],
+      });
+      break;
+    case 'list-sessions':
+      result = listSessions({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        agent: flags.agent,
+        date: flags.date,
+        adapter: flags.adapter,
+      });
+      break;
+    case 'read-session':
+      result = readSession({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        sessionPath: requireFlag(flags, 'session-path'),
+      });
+      break;
+    case 'mark-sessions-processed':
+      result = markSessionsProcessed({
+        memoryRoot: requireFlag(flags, 'memory-root'),
+        date: requireFlag(flags, 'date'),
+        sessionPaths: readJsonFile(requireFlag(flags, 'session-paths-file')),
+        extractedBy: flags['extracted-by'],
+        proposalId: flags['proposal-id'],
       });
       break;
     case 'status':

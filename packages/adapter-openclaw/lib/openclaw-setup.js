@@ -85,7 +85,8 @@ function utcDate() {
 }
 
 function getBundledSkillsRoot() {
-  return path.resolve(__dirname, "..", "skills");
+  const ws = loadMemoryWorkspace();
+  return ws.BUNDLED_SKILLS_ROOT || path.resolve(__dirname, "..", "skills");
 }
 
 function stripJsonComments(input) {
@@ -495,8 +496,8 @@ function setupOpenClaw(rawOptions = {}) {
     systemRoot: options.systemRoot,
     memoryRoot: options.memoryRoot,
     sharedSkillsRoot: options.sharedSkillsRoot,
-    systemTemplateRoot: path.join(options.pluginRoot, "templates", "workspace-system"),
-    memoryTemplateRoot: path.join(options.pluginRoot, "templates", "workspace-memory"),
+    systemTemplateRoot: loadMemoryWorkspace().BUNDLED_SYSTEM_TEMPLATE_ROOT || path.join(options.pluginRoot, "templates", "workspace-system"),
+    memoryTemplateRoot: loadMemoryWorkspace().BUNDLED_MEMORY_TEMPLATE_ROOT || path.join(options.pluginRoot, "templates", "workspace-memory"),
     skillsSourceRoot: getBundledSkillsRoot(),
     installDate: options.installDate,
     overwrite: options.overwrite,
